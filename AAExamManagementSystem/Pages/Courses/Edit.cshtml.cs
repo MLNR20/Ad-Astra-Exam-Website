@@ -32,7 +32,7 @@ public class EditModel : PageModel
             return NotFound();
         }
 
-        Course = new CourseCreateUpdateDto { Name = course.Name, IsActive = course.IsActive };
+        Course = new CourseCreateUpdateDto { Name = course.Name, SchoolName = course.SchoolName, IsActive = course.IsActive };
         return Page();
     }
 
@@ -50,6 +50,7 @@ public class EditModel : PageModel
         }
 
         course.Name = Course.Name;
+        course.SchoolName = Course.SchoolName;
         course.IsActive = Course.IsActive;
         _repository.Update(course);
         await _repository.SaveChangesAsync();
