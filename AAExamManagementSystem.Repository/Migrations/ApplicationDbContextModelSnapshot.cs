@@ -17,6 +17,7 @@ namespace AAExamManagementSystem.Repository.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .HasDefaultSchema("AAExam")
                 .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
@@ -64,7 +65,7 @@ namespace AAExamManagementSystem.Repository.Migrations
 
                     b.HasIndex("QuestionId");
 
-                    b.ToTable("Answers");
+                    b.ToTable("Answers", "AAExam");
                 });
 
             modelBuilder.Entity("AAExamManagementSystem.Models.Entities.Applicant", b =>
@@ -137,7 +138,7 @@ namespace AAExamManagementSystem.Repository.Migrations
                     b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("Applicants");
+                    b.ToTable("Applicants", "AAExam");
                 });
 
             modelBuilder.Entity("AAExamManagementSystem.Models.Entities.ApplicationRole", b =>
@@ -167,7 +168,7 @@ namespace AAExamManagementSystem.Repository.Migrations
                         .HasDatabaseName("RoleNameIndex")
                         .HasFilter("[NormalizedName] IS NOT NULL");
 
-                    b.ToTable("AspNetRoles", (string)null);
+                    b.ToTable("AspNetRoles", "AAExam");
                 });
 
             modelBuilder.Entity("AAExamManagementSystem.Models.Entities.ApplicationUser", b =>
@@ -258,7 +259,7 @@ namespace AAExamManagementSystem.Repository.Migrations
 
                     b.HasIndex("SectionId");
 
-                    b.ToTable("AspNetUsers", (string)null);
+                    b.ToTable("AspNetUsers", "AAExam");
                 });
 
             modelBuilder.Entity("AAExamManagementSystem.Models.Entities.Attempt", b =>
@@ -306,7 +307,7 @@ namespace AAExamManagementSystem.Repository.Migrations
 
                     b.HasIndex("ApplicantId");
 
-                    b.ToTable("Attempts");
+                    b.ToTable("Attempts", "AAExam");
                 });
 
             modelBuilder.Entity("AAExamManagementSystem.Models.Entities.Choice", b =>
@@ -333,7 +334,7 @@ namespace AAExamManagementSystem.Repository.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Choices");
+                    b.ToTable("Choices", "AAExam");
                 });
 
             modelBuilder.Entity("AAExamManagementSystem.Models.Entities.Course", b =>
@@ -356,7 +357,7 @@ namespace AAExamManagementSystem.Repository.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Courses");
+                    b.ToTable("Courses", "AAExam");
                 });
 
             modelBuilder.Entity("AAExamManagementSystem.Models.Entities.Department", b =>
@@ -376,7 +377,7 @@ namespace AAExamManagementSystem.Repository.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Departments");
+                    b.ToTable("Departments", "AAExam");
                 });
 
             modelBuilder.Entity("AAExamManagementSystem.Models.Entities.Exam", b =>
@@ -407,7 +408,7 @@ namespace AAExamManagementSystem.Repository.Migrations
 
                     b.HasIndex("CourseId");
 
-                    b.ToTable("Exams");
+                    b.ToTable("Exams", "AAExam");
                 });
 
             modelBuilder.Entity("AAExamManagementSystem.Models.Entities.Question", b =>
@@ -450,7 +451,7 @@ namespace AAExamManagementSystem.Repository.Migrations
 
                     b.HasIndex("SectionId");
 
-                    b.ToTable("Questions");
+                    b.ToTable("Questions", "AAExam");
                 });
 
             modelBuilder.Entity("AAExamManagementSystem.Models.Entities.QuestionAndChoice", b =>
@@ -482,7 +483,7 @@ namespace AAExamManagementSystem.Repository.Migrations
 
                     b.HasIndex("QuestionId");
 
-                    b.ToTable("QuestionAndChoices");
+                    b.ToTable("QuestionAndChoices", "AAExam");
                 });
 
             modelBuilder.Entity("AAExamManagementSystem.Models.Entities.QuestionType", b =>
@@ -508,7 +509,7 @@ namespace AAExamManagementSystem.Repository.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("QuestionTypes");
+                    b.ToTable("QuestionTypes", "AAExam");
                 });
 
             modelBuilder.Entity("AAExamManagementSystem.Models.Entities.Section", b =>
@@ -534,7 +535,7 @@ namespace AAExamManagementSystem.Repository.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Sections");
+                    b.ToTable("Sections", "AAExam");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -559,7 +560,7 @@ namespace AAExamManagementSystem.Repository.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetRoleClaims", (string)null);
+                    b.ToTable("AspNetRoleClaims", "AAExam");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<string>", b =>
@@ -584,7 +585,7 @@ namespace AAExamManagementSystem.Repository.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserClaims", (string)null);
+                    b.ToTable("AspNetUserClaims", "AAExam");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserLogin<string>", b =>
@@ -606,7 +607,7 @@ namespace AAExamManagementSystem.Repository.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.ToTable("AspNetUserLogins", (string)null);
+                    b.ToTable("AspNetUserLogins", "AAExam");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserRole<string>", b =>
@@ -621,7 +622,7 @@ namespace AAExamManagementSystem.Repository.Migrations
 
                     b.HasIndex("RoleId");
 
-                    b.ToTable("AspNetUserRoles", (string)null);
+                    b.ToTable("AspNetUserRoles", "AAExam");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserToken<string>", b =>
@@ -640,7 +641,7 @@ namespace AAExamManagementSystem.Repository.Migrations
 
                     b.HasKey("UserId", "LoginProvider", "Name");
 
-                    b.ToTable("AspNetUserTokens", (string)null);
+                    b.ToTable("AspNetUserTokens", "AAExam");
                 });
 
             modelBuilder.Entity("AAExamManagementSystem.Models.Entities.Answer", b =>
