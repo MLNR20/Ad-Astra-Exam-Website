@@ -310,6 +310,38 @@ namespace AAExamManagementSystem.Repository.Migrations
                     b.ToTable("Attempts", "AAExam");
                 });
 
+            modelBuilder.Entity("AAExamManagementSystem.Models.Entities.AuditLog", b =>
+                {
+                    b.Property<Guid>("AuditId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("CreatedById")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<DateTime>("DateCreated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("DateUpdated")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("ResponseBody")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Type")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("AuditId");
+
+                    b.HasIndex("CreatedById");
+
+                    b.ToTable("AuditLogs", "AAExam");
+                });
+
             modelBuilder.Entity("AAExamManagementSystem.Models.Entities.Choice", b =>
                 {
                     b.Property<Guid>("Id")
@@ -707,6 +739,16 @@ namespace AAExamManagementSystem.Repository.Migrations
                         .IsRequired();
 
                     b.Navigation("Applicant");
+                });
+
+            modelBuilder.Entity("AAExamManagementSystem.Models.Entities.AuditLog", b =>
+                {
+                    b.HasOne("AAExamManagementSystem.Models.Entities.ApplicationUser", "CreatedBy")
+                        .WithMany()
+                        .HasForeignKey("CreatedById")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("CreatedBy");
                 });
 
             modelBuilder.Entity("AAExamManagementSystem.Models.Entities.Exam", b =>
