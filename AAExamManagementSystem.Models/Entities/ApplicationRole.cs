@@ -13,4 +13,6 @@ public class ApplicationRole : IdentityRole
     }
 
     public bool IsActive { get; set; } = true;
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime DateUpdated { get; set; } = DateTime.UtcNow;
 }
