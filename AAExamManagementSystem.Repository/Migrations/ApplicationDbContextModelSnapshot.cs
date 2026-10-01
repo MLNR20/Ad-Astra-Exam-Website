@@ -38,6 +38,9 @@ namespace AAExamManagementSystem.Repository.Migrations
                     b.Property<int>("ApplicantId")
                         .HasColumnType("int");
 
+                    b.Property<int>("AttemptId")
+                        .HasColumnType("int");
+
                     b.Property<string>("CheckedBy")
                         .HasColumnType("nvarchar(max)");
 
@@ -62,6 +65,8 @@ namespace AAExamManagementSystem.Repository.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ApplicantId");
+
+                    b.HasIndex("AttemptId");
 
                     b.HasIndex("QuestionId");
 
@@ -306,6 +311,9 @@ namespace AAExamManagementSystem.Repository.Migrations
                     b.Property<int>("ApplicantId")
                         .HasColumnType("int");
 
+                    b.Property<string>("ApprovedBy")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("datetime2");
 
@@ -319,6 +327,9 @@ namespace AAExamManagementSystem.Repository.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsApproved")
                         .HasColumnType("bit");
 
                     b.Property<string>("Section")
@@ -782,6 +793,12 @@ namespace AAExamManagementSystem.Repository.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
+                    b.HasOne("AAExamManagementSystem.Models.Entities.Attempt", "Attempt")
+                        .WithMany("Answers")
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("AAExamManagementSystem.Models.Entities.Question", "Question")
                         .WithMany("Answers")
                         .HasForeignKey("QuestionId")
@@ -789,6 +806,8 @@ namespace AAExamManagementSystem.Repository.Migrations
                         .IsRequired();
 
                     b.Navigation("Applicant");
+
+                    b.Navigation("Attempt");
 
                     b.Navigation("Question");
                 });
@@ -970,6 +989,11 @@ namespace AAExamManagementSystem.Repository.Migrations
             modelBuilder.Entity("AAExamManagementSystem.Models.Entities.ApplicationUser", b =>
                 {
                     b.Navigation("Applicant");
+                });
+
+            modelBuilder.Entity("AAExamManagementSystem.Models.Entities.Attempt", b =>
+                {
+                    b.Navigation("Answers");
                 });
 
             modelBuilder.Entity("AAExamManagementSystem.Models.Entities.Choice", b =>
