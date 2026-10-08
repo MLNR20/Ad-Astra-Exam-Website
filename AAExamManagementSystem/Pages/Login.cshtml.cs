@@ -56,16 +56,19 @@ namespace AAExamManagementSystem.Pages
 
             if (result.Succeeded)
             {
+                if (await _userManager.IsInRoleAsync(user, AAExamManagementSystem.Models.Entities.Roles.Applicant))
+                {
+                    await _signInManager.SignOutAsync();
+                    await LogLoginAttemptAsync(user, Input.UserName, success: false, "Applicant attempted staff login.");
+                    ModelState.AddModelError(string.Empty, "Applicants must sign in from the Applicant Login page.");
+                    return Page();
+                }
+
                 await LogLoginAttemptAsync(user, Input.UserName, success: true, "Login succeeded.");
 
                 if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 {
                     return LocalRedirect(returnUrl);
-                }
-
-                if (await _userManager.IsInRoleAsync(user, AAExamManagementSystem.Models.Entities.Roles.Applicant))
-                {
-                    return RedirectToPage("/ApplicantPortal");
                 }
 
                 return RedirectToPage("/Dashboard");
