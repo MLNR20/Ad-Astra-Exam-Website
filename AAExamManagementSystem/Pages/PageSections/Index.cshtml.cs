@@ -40,6 +40,8 @@ public class IndexModel : PageModel
 
     public IList<PageSectionDto> UnassignedQuestions { get; set; } = new List<PageSectionDto>();
 
+    public IList<PageSectionDto> AssignableQuestions { get; set; } = new List<PageSectionDto>();
+
     public SelectList QuestionTypeOptions { get; set; } = new(new List<QuestionType>(), "Id", "Name");
 
     public async Task<IActionResult> OnGetAsync()
@@ -106,21 +108,25 @@ public class IndexModel : PageModel
         var pageSectionDtos = examPages
             .SelectMany(p => p.PageSections
                 .Where(ps => ps.IsActive)
-                .SelectMany(ps => ps.Questions
+                .OrderBy(ps => ps.Order)
+                .ThenBy(ps => ps.Id)
+                .Select((ps, index) => (PageSection: ps, SectionNumber: index + 1))
+                .SelectMany(entry => entry.PageSection.Questions
                     .Where(q => q.IsActive)
                     .Select(q => new PageSectionDto
                     {
-                        PageSectionId = ps.Id,
+                        PageSectionId = entry.PageSection.Id,
                         ExamPageId = p.Id,
                         QuestionId = q.Id,
                         QuestionTitle = q.QuestionTitle,
-                        QuestionTypeId = ps.QuestionTypeId,
-                        QuestionTypeName = typeNamesById.GetValueOrDefault(ps.QuestionTypeId, "—"),
+                        QuestionTypeId = entry.PageSection.QuestionTypeId,
+                        QuestionTypeName = typeNamesById.GetValueOrDefault(entry.PageSection.QuestionTypeId, "—"),
                         SectionId = q.SectionId,
                         Score = q.Score,
                         IsUpToEvaluation = q.IsUpToEvaluation,
                         PageNumber = p.PageNumber,
-                        SectionOrder = ps.Order,
+                        SectionOrder = entry.PageSection.Order,
+                        SectionNumber = entry.SectionNumber,
                         Order = q.PageOrder,
                         Instruction = p.Instruction,
                         SubInstruction = p.SubInstruction,
@@ -133,24 +139,35 @@ public class IndexModel : PageModel
 
         Pages = pageSectionDtos.GroupBy(d => d.PageNumber).OrderBy(g => g.Key).ToList();
 
-        var unassigned = await _context.Questions
+        var placementByQuestionId = pageSectionDtos.ToDictionary(d => d.QuestionId);
+
+        var departmentQuestions = await _context.Questions
             .AsNoTracking()
-            .Where(q => q.IsActive && q.SectionId == section.Id && q.PageSectionId == null)
+            .Where(q => q.IsActive && q.SectionId == section.Id)
             .OrderBy(q => q.DateCreated)
             .ToListAsync();
 
-        UnassignedQuestions = unassigned
-            .Select(q => new PageSectionDto
+        AssignableQuestions = departmentQuestions
+            .Select(q =>
             {
-                QuestionId = q.Id,
-                QuestionTitle = q.QuestionTitle,
-                QuestionTypeId = q.QuestionTypeId,
-                QuestionTypeName = typeNamesById.GetValueOrDefault(q.QuestionTypeId, "—"),
-                SectionId = q.SectionId,
-                Score = q.Score,
-                IsUpToEvaluation = q.IsUpToEvaluation,
+                placementByQuestionId.TryGetValue(q.Id, out var placement);
+                return new PageSectionDto
+                {
+                    PageSectionId = placement?.PageSectionId ?? 0,
+                    QuestionId = q.Id,
+                    QuestionTitle = q.QuestionTitle,
+                    QuestionTypeId = q.QuestionTypeId,
+                    QuestionTypeName = typeNamesById.GetValueOrDefault(q.QuestionTypeId, "—"),
+                    SectionId = q.SectionId,
+                    Score = q.Score,
+                    IsUpToEvaluation = q.IsUpToEvaluation,
+                    PageNumber = placement?.PageNumber ?? 0,
+                    SectionNumber = placement?.SectionNumber ?? 0,
+                };
             })
             .ToList();
+
+        UnassignedQuestions = AssignableQuestions.Where(q => q.PageSectionId == 0).ToList();
 
         return Page();
     }
@@ -200,25 +217,8 @@ public class IndexModel : PageModel
             examPage.PageSections.Add(pageSection);
         }
 
-        var orderedQuestions = pageSection.Id == 0
-            ? new List<Question>()
-            : await _context.Questions
-                .Where(q => q.PageSectionId == pageSection.Id)
-                .OrderBy(q => q.PageOrder)
-                .ThenBy(q => q.DateCreated)
-                .ToListAsync();
-
-        var alreadyInSection = orderedQuestions.Select(q => q.Id).ToHashSet();
-        foreach (var question in matchingQuestions.Where(q => !alreadyInSection.Contains(q.Id)))
-        {
-            question.PageSection = pageSection;
-            orderedQuestions.Add(question);
-        }
-
-        for (var i = 0; i < orderedQuestions.Count; i++)
-        {
-            orderedQuestions[i].PageOrder = i + 1;
-        }
+        await AppendQuestionsAsync(pageSection, matchingQuestions);
+        RenumberSections(examPage);
 
         var now = DateTime.UtcNow;
         examPage.DateUpdated = now;
@@ -228,6 +228,103 @@ public class IndexModel : PageModel
         await RemoveEmptyPagesAndSectionsAsync(effectiveSectionId.Value);
 
         TempData["SuccessMessage"] = $"Bundled {matchingQuestions.Count} question(s) onto page {pageNumber}.";
+        return RedirectToPage(new { SectionId = effectiveSectionId });
+    }
+
+    public async Task<IActionResult> OnPostAddSectionAsync(int pageNumber, int questionTypeId, List<Guid>? questionIds)
+    {
+        var effectiveSectionId = await ResolveEffectiveSectionIdAsync();
+        if (effectiveSectionId is null)
+        {
+            return Forbid();
+        }
+
+        var examPage = await _context.ExamPages
+            .Include(p => p.PageSections)
+            .FirstOrDefaultAsync(p => p.SectionId == effectiveSectionId.Value && p.PageNumber == pageNumber);
+
+        if (examPage is null)
+        {
+            TempData["ErrorMessage"] = $"Page {pageNumber} no longer exists.";
+            return RedirectToPage(new { SectionId = effectiveSectionId });
+        }
+
+        if (!await _context.QuestionTypes.AnyAsync(qt => qt.Id == questionTypeId && qt.IsActive))
+        {
+            TempData["ErrorMessage"] = "Pick a question type for the new section.";
+            return RedirectToPage(new { SectionId = effectiveSectionId });
+        }
+
+        var questions = await LoadAssignableQuestionsAsync(effectiveSectionId.Value, questionTypeId, questionIds);
+        if (questions.Count == 0)
+        {
+            TempData["ErrorMessage"] = "Select at least one active question of the chosen type to put in the new section.";
+            return RedirectToPage(new { SectionId = effectiveSectionId });
+        }
+
+        var pageSection = new PageSection { QuestionTypeId = questionTypeId };
+        examPage.PageSections.Add(pageSection);
+
+        await AppendQuestionsAsync(pageSection, questions);
+
+        var orderedSections = examPage.PageSections
+            .Where(ps => ps != pageSection)
+            .OrderBy(ps => ps.Order)
+            .ThenBy(ps => ps.Id)
+            .ToList();
+        orderedSections.Add(pageSection);
+        RenumberSections(orderedSections);
+
+        var now = DateTime.UtcNow;
+        examPage.DateUpdated = now;
+        pageSection.DateUpdated = now;
+
+        await _context.SaveChangesAsync();
+        await RemoveEmptyPagesAndSectionsAsync(effectiveSectionId.Value);
+
+        TempData["SuccessMessage"] = $"Added a new section with {questions.Count} question(s) to page {pageNumber}.";
+        return RedirectToPage(new { SectionId = effectiveSectionId });
+    }
+
+    public async Task<IActionResult> OnPostAssignQuestionsAsync(int pageSectionId, List<Guid>? questionIds)
+    {
+        var effectiveSectionId = await ResolveEffectiveSectionIdAsync();
+        if (effectiveSectionId is null)
+        {
+            return Forbid();
+        }
+
+        var pageSection = await _context.PageSections
+            .Include(ps => ps.ExamPage)
+            .FirstOrDefaultAsync(ps => ps.Id == pageSectionId);
+
+        if (pageSection is null)
+        {
+            return NotFound();
+        }
+
+        if (pageSection.ExamPage.SectionId != effectiveSectionId.Value)
+        {
+            return Forbid();
+        }
+
+        var questions = await LoadAssignableQuestionsAsync(effectiveSectionId.Value, pageSection.QuestionTypeId, questionIds);
+        if (questions.Count == 0)
+        {
+            TempData["ErrorMessage"] = "Select at least one active question of this section's type to assign.";
+            return RedirectToPage(new { SectionId = effectiveSectionId });
+        }
+
+        await AppendQuestionsAsync(pageSection, questions);
+
+        var now = DateTime.UtcNow;
+        pageSection.ExamPage.DateUpdated = now;
+        pageSection.DateUpdated = now;
+
+        await _context.SaveChangesAsync();
+        await RemoveEmptyPagesAndSectionsAsync(effectiveSectionId.Value);
+
+        TempData["SuccessMessage"] = $"Assigned {questions.Count} question(s) to the section on page {pageSection.ExamPage.PageNumber}.";
         return RedirectToPage(new { SectionId = effectiveSectionId });
     }
 
@@ -318,6 +415,61 @@ public class IndexModel : PageModel
 
         TempData["SuccessMessage"] = "Question removed from its page.";
         return RedirectToPage(new { SectionId = effectiveSectionId });
+    }
+
+    private async Task<List<Question>> LoadAssignableQuestionsAsync(int departmentSectionId, int questionTypeId, List<Guid>? questionIds)
+    {
+        if (questionIds is null || questionIds.Count == 0)
+        {
+            return new List<Question>();
+        }
+
+        var requestedIds = questionIds.Distinct().ToList();
+        var questions = await _context.Questions
+            .Where(q => requestedIds.Contains(q.Id)
+                && q.IsActive
+                && q.SectionId == departmentSectionId
+                && q.QuestionTypeId == questionTypeId)
+            .ToListAsync();
+
+        // Keep the order the checkboxes were submitted in.
+        return questions.OrderBy(q => requestedIds.IndexOf(q.Id)).ToList();
+    }
+
+    // Appends the questions that aren't already in the section after its existing ones (moving them out of
+    // wherever they were), then renumbers the section's questions 1..n.
+    private async Task AppendQuestionsAsync(PageSection pageSection, IEnumerable<Question> questions)
+    {
+        var orderedQuestions = pageSection.Id == 0
+            ? new List<Question>()
+            : await _context.Questions
+                .Where(q => q.PageSectionId == pageSection.Id)
+                .OrderBy(q => q.PageOrder)
+                .ThenBy(q => q.DateCreated)
+                .ToListAsync();
+
+        var alreadyInSection = orderedQuestions.Select(q => q.Id).ToHashSet();
+        foreach (var question in questions.Where(q => !alreadyInSection.Contains(q.Id)))
+        {
+            question.PageSection = pageSection;
+            orderedQuestions.Add(question);
+        }
+
+        for (var i = 0; i < orderedQuestions.Count; i++)
+        {
+            orderedQuestions[i].PageOrder = i + 1;
+        }
+    }
+
+    private static void RenumberSections(ExamPage examPage) =>
+        RenumberSections(examPage.PageSections.OrderBy(ps => ps.Order).ThenBy(ps => ps.Id).ToList());
+
+    private static void RenumberSections(IList<PageSection> orderedSections)
+    {
+        for (var i = 0; i < orderedSections.Count; i++)
+        {
+            orderedSections[i].Order = i + 1;
+        }
     }
 
     private async Task RemoveEmptyPagesAndSectionsAsync(int sectionId)
