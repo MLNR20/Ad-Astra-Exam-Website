@@ -127,6 +127,8 @@ public class IndexModel : PageModel
                         PageNumber = p.PageNumber,
                         SectionOrder = entry.PageSection.Order,
                         SectionNumber = entry.SectionNumber,
+                        SectionInstruction = entry.PageSection.Instruction,
+                        SectionSubInstruction = entry.PageSection.SubInstruction,
                         Order = q.PageOrder,
                         Instruction = p.Instruction,
                         SubInstruction = p.SubInstruction,
@@ -231,7 +233,7 @@ public class IndexModel : PageModel
         return RedirectToPage(new { SectionId = effectiveSectionId });
     }
 
-    public async Task<IActionResult> OnPostAddSectionAsync(int pageNumber, int questionTypeId, List<Guid>? questionIds)
+    public async Task<IActionResult> OnPostAddSectionAsync(int pageNumber, int questionTypeId, List<Guid>? questionIds, string? instruction, string? subInstruction)
     {
         var effectiveSectionId = await ResolveEffectiveSectionIdAsync();
         if (effectiveSectionId is null)
@@ -262,7 +264,12 @@ public class IndexModel : PageModel
             return RedirectToPage(new { SectionId = effectiveSectionId });
         }
 
-        var pageSection = new PageSection { QuestionTypeId = questionTypeId };
+        var pageSection = new PageSection
+        {
+            QuestionTypeId = questionTypeId,
+            Instruction = NullIfBlank(instruction),
+            SubInstruction = NullIfBlank(subInstruction),
+        };
         examPage.PageSections.Add(pageSection);
 
         await AppendQuestionsAsync(pageSection, questions);
@@ -283,6 +290,38 @@ public class IndexModel : PageModel
         await RemoveEmptyPagesAndSectionsAsync(effectiveSectionId.Value);
 
         TempData["SuccessMessage"] = $"Added a new section with {questions.Count} question(s) to page {pageNumber}.";
+        return RedirectToPage(new { SectionId = effectiveSectionId });
+    }
+
+    public async Task<IActionResult> OnPostSetSectionInstructionAsync(int pageSectionId, string? instruction, string? subInstruction)
+    {
+        var effectiveSectionId = await ResolveEffectiveSectionIdAsync();
+        if (effectiveSectionId is null)
+        {
+            return Forbid();
+        }
+
+        var pageSection = await _context.PageSections
+            .Include(ps => ps.ExamPage)
+            .FirstOrDefaultAsync(ps => ps.Id == pageSectionId);
+
+        if (pageSection is null)
+        {
+            return NotFound();
+        }
+
+        if (pageSection.ExamPage.SectionId != effectiveSectionId.Value)
+        {
+            return Forbid();
+        }
+
+        pageSection.Instruction = NullIfBlank(instruction);
+        pageSection.SubInstruction = NullIfBlank(subInstruction);
+        pageSection.DateUpdated = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        TempData["SuccessMessage"] = $"Instructions updated for the section on page {pageSection.ExamPage.PageNumber}.";
         return RedirectToPage(new { SectionId = effectiveSectionId });
     }
 
@@ -460,6 +499,9 @@ public class IndexModel : PageModel
             orderedQuestions[i].PageOrder = i + 1;
         }
     }
+
+    private static string? NullIfBlank(string? text) =>
+        string.IsNullOrWhiteSpace(text) ? null : text.Trim();
 
     private static void RenumberSections(ExamPage examPage) =>
         RenumberSections(examPage.PageSections.OrderBy(ps => ps.Order).ThenBy(ps => ps.Id).ToList());

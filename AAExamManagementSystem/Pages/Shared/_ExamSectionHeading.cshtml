@@ -1,0 +1,12 @@
+@model (string? Instruction, string? SubInstruction)
+
+<div class="exam-section-heading mb-4">
+    @if (!string.IsNullOrWhiteSpace(Model.Instruction))
+    {
+        <h5 class="exam-section-instruction fw-bold mb-1">@Model.Instruction</h5>
+    }
+    @if (!string.IsNullOrWhiteSpace(Model.SubInstruction))
+    {
+        <p class="exam-section-subinstruction text-muted mb-0">@Model.SubInstruction</p>
+    }
+</div>

@@ -69,6 +69,10 @@
                     var question = Model.CurrentPageQuestions[qi];
                     var selectedChoiceId = Model.Answers.GetValueOrDefault(question.Id);
                     var existingText = Model.AnswerTexts.GetValueOrDefault(question.Id, string.Empty);
+                    if (Model.SectionHeadings.TryGetValue(question.Id, out var sectionHeading))
+                    {
+                        @await Html.PartialAsync("_ExamSectionHeading", (sectionHeading.Instruction, sectionHeading.SubInstruction))
+                    }
                     <div class="exam-sim-question mb-5">
                         <h5 class="fw-semibold mb-1">@(qi + 1). @question.QuestionTitle</h5>
                         @if (QuestionTypes.RequiresChoices(question.QuestionTypeName))

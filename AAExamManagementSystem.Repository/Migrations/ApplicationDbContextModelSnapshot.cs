@@ -618,6 +618,9 @@ namespace AAExamManagementSystem.Repository.Migrations
                     b.Property<int>("ExamPageId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Instruction")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -626,6 +629,9 @@ namespace AAExamManagementSystem.Repository.Migrations
 
                     b.Property<int>("QuestionTypeId")
                         .HasColumnType("int");
+
+                    b.Property<string>("SubInstruction")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 

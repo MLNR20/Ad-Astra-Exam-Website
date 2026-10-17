@@ -28,7 +28,13 @@ public class SimulateAllModel : PageModel
     private readonly QuestionChoiceService _choiceService;
     private readonly IMapper _mapper;
 
-    private sealed record ExamStage(string Title, string Subtitle, string Heading, string Subheading, IList<QuestionDto> Questions);
+    private sealed record ExamStage(
+        string Title,
+        string Subtitle,
+        string Heading,
+        string Subheading,
+        IList<QuestionDto> Questions,
+        IDictionary<Guid, SectionHeadingDto> SectionHeadings);
 
     public SimulateAllModel(
         IGenericRepository<Question> repository,
@@ -75,6 +81,9 @@ public class SimulateAllModel : PageModel
     public string StageSubheading { get; set; } = DefaultSubheading;
 
     public IList<QuestionDto> Questions { get; set; } = new List<QuestionDto>();
+
+    // Keyed by the first question of each section that has its own instruction text.
+    public IDictionary<Guid, SectionHeadingDto> SectionHeadings { get; set; } = new Dictionary<Guid, SectionHeadingDto>();
 
     public int TotalPages { get; set; }
 
@@ -151,22 +160,47 @@ public class SimulateAllModel : PageModel
 
         // Mirrors the applicant's Take page: one stage per exam page, with the page's sections in order and each
         // section's questions in order.
-        List<(ExamPage Page, List<Question> Questions)> GetPagedQuestions(Section department) =>
-            examPages
-                .Where(p => p.SectionId == department.Id)
-                .OrderBy(p => p.PageNumber)
-                .Select(p => (
-                    Page: p,
-                    Questions: activePageSections
-                        .Where(ps => ps.ExamPageId == p.Id)
-                        .OrderBy(ps => ps.Order)
-                        .ThenBy(ps => ps.Id)
-                        .SelectMany(ps => questionsByPageSectionId[ps.Id]
-                            .OrderBy(q => q.PageOrder)
-                            .ThenBy(q => q.DateCreated))
-                        .ToList()))
-                .Where(p => p.Questions.Count > 0)
-                .ToList();
+        List<(ExamPage Page, List<Question> Questions, Dictionary<Guid, SectionHeadingDto> Headings)> GetPagedQuestions(Section department)
+        {
+            var pagedQuestions = new List<(ExamPage, List<Question>, Dictionary<Guid, SectionHeadingDto>)>();
+
+            foreach (var page in examPages.Where(p => p.SectionId == department.Id).OrderBy(p => p.PageNumber))
+            {
+                var pageQuestions = new List<Question>();
+                var headings = new Dictionary<Guid, SectionHeadingDto>();
+
+                foreach (var pageSection in activePageSections
+                             .Where(ps => ps.ExamPageId == page.Id)
+                             .OrderBy(ps => ps.Order)
+                             .ThenBy(ps => ps.Id))
+                {
+                    var sectionQuestions = questionsByPageSectionId[pageSection.Id]
+                        .OrderBy(q => q.PageOrder)
+                        .ThenBy(q => q.DateCreated)
+                        .ToList();
+
+                    if (sectionQuestions.Count == 0)
+                    {
+                        continue;
+                    }
+
+                    // The section's instruction is shown just above its first question.
+                    if (!string.IsNullOrWhiteSpace(pageSection.Instruction) || !string.IsNullOrWhiteSpace(pageSection.SubInstruction))
+                    {
+                        headings[sectionQuestions[0].Id] = new SectionHeadingDto(pageSection.Instruction, pageSection.SubInstruction);
+                    }
+
+                    pageQuestions.AddRange(sectionQuestions);
+                }
+
+                if (pageQuestions.Count > 0)
+                {
+                    pagedQuestions.Add((page, pageQuestions, headings));
+                }
+            }
+
+            return pagedQuestions;
+        }
 
         IList<QuestionDto> ToDtos(IEnumerable<Question> questions) =>
             _mapper.Map<IList<QuestionDto>>(questions.ToList());
@@ -175,20 +209,22 @@ public class SimulateAllModel : PageModel
             string.IsNullOrWhiteSpace(text) ? fallback : text;
 
         var stages = new List<ExamStage>();
+        var noHeadings = new Dictionary<Guid, SectionHeadingDto>();
 
         var departmentSubtitle = $"This section aims to gauge your familiarity in {section.Name} concepts.";
         var departmentPages = GetPagedQuestions(section);
 
         if (departmentPages.Count > 0)
         {
-            foreach (var (page, pageQuestions) in departmentPages)
+            foreach (var (page, pageQuestions, headings) in departmentPages)
             {
                 stages.Add(new ExamStage(
                     section.Name,
                     departmentSubtitle,
                     TextOrDefault(page.Instruction, DefaultHeading),
                     TextOrDefault(page.SubInstruction, DefaultSubheading),
-                    ToDtos(pageQuestions)));
+                    ToDtos(pageQuestions),
+                    headings));
             }
         }
         else
@@ -203,7 +239,7 @@ public class SimulateAllModel : PageModel
                 .ToList();
             var departmentMainQuestions = departmentQuestions.Except(sqlQuestions).ToList();
 
-            stages.Add(new ExamStage(section.Name, departmentSubtitle, DefaultHeading, DefaultSubheading, departmentMainQuestions));
+            stages.Add(new ExamStage(section.Name, departmentSubtitle, DefaultHeading, DefaultSubheading, departmentMainQuestions, noHeadings));
 
             if (sqlQuestions.Count > 0)
             {
@@ -212,7 +248,8 @@ public class SimulateAllModel : PageModel
                     "Write the SQL query that answers each question about the schema shown.",
                     "SQL Query Questions",
                     DefaultSubheading,
-                    sqlQuestions));
+                    sqlQuestions,
+                    noHeadings));
             }
         }
 
@@ -224,14 +261,15 @@ public class SimulateAllModel : PageModel
 
             if (generalKnowledgePages.Count > 0)
             {
-                foreach (var (page, pageQuestions) in generalKnowledgePages)
+                foreach (var (page, pageQuestions, headings) in generalKnowledgePages)
                 {
                     stages.Add(new ExamStage(
                         AppDepartments.GeneralKnowledge,
                         generalKnowledgeSubtitle,
                         TextOrDefault(page.Instruction, DefaultHeading),
                         TextOrDefault(page.SubInstruction, DefaultSubheading),
-                        ToDtos(pageQuestions)));
+                        ToDtos(pageQuestions),
+                        headings));
                 }
             }
             else
@@ -247,7 +285,8 @@ public class SimulateAllModel : PageModel
                         generalKnowledgeSubtitle,
                         DefaultHeading,
                         DefaultSubheading,
-                        generalKnowledgeQuestions));
+                        generalKnowledgeQuestions,
+                        noHeadings));
                 }
             }
         }
@@ -262,6 +301,7 @@ public class SimulateAllModel : PageModel
         StageHeading = currentStage.Heading;
         StageSubheading = currentStage.Subheading;
         Questions = currentStage.Questions;
+        SectionHeadings = currentStage.SectionHeadings;
         HasNextPage = PageNumber < TotalPages;
         HasPreviousPage = PageNumber > 1;
 

@@ -8,6 +8,8 @@ public class PageSection
     public int QuestionTypeId { get; set; }
     public QuestionType QuestionType { get; set; } = null!;
     public int Order { get; set; }
+    public string? Instruction { get; set; }
+    public string? SubInstruction { get; set; }
     public DateTime DateCreated { get; set; } = DateTime.UtcNow;
     public DateTime DateUpdated { get; set; } = DateTime.UtcNow;
     public bool IsActive { get; set; } = true;

@@ -14,6 +14,8 @@ public class PageSectionDto
     public int PageNumber { get; set; }
     public int SectionOrder { get; set; }
     public int SectionNumber { get; set; }
+    public string? SectionInstruction { get; set; }
+    public string? SectionSubInstruction { get; set; }
     public int Order { get; set; }
     public string? Instruction { get; set; }
     public string? SubInstruction { get; set; }

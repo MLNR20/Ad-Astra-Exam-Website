@@ -52,6 +52,9 @@ public class TakeModel : PageModel
 
     private IList<(string? Instruction, string? SubInstruction)> PageInstructions { get; set; } = new List<(string?, string?)>();
 
+    // Keyed by the first question of each section that has its own instruction text.
+    public IDictionary<Guid, SectionHeadingDto> SectionHeadings { get; set; } = new Dictionary<Guid, SectionHeadingDto>();
+
     [TempData]
     public int? SubmittedScore { get; set; }
 
@@ -289,6 +292,24 @@ public class TakeModel : PageModel
             .ToListAsync();
 
         PageInstructions = new List<(string?, string?)>();
+        SectionHeadings = new Dictionary<Guid, SectionHeadingDto>();
+
+        foreach (var pageSection in examPages
+                     .SelectMany(p => p.PageSections)
+                     .Where(ps => ps.IsActive
+                         && (!string.IsNullOrWhiteSpace(ps.Instruction) || !string.IsNullOrWhiteSpace(ps.SubInstruction))))
+        {
+            var firstQuestion = pageSection.Questions
+                .Where(q => q.IsActive)
+                .OrderBy(q => q.PageOrder)
+                .ThenBy(q => q.DateCreated)
+                .FirstOrDefault();
+
+            if (firstQuestion is not null)
+            {
+                SectionHeadings[firstQuestion.Id] = new SectionHeadingDto(pageSection.Instruction, pageSection.SubInstruction);
+            }
+        }
 
         var pagesWithQuestions = examPages
             .Select(p => (
