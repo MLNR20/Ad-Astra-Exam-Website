@@ -16,6 +16,8 @@ namespace AAExamManagementSystem.Pages.Questions;
 public class SimulateAllModel : PageModel
 {
     private const string SqlSchemaImagePrefix = "/images/sql-schema-";
+    private const string DefaultHeading = "Multiple Choice Questions";
+    private const string DefaultSubheading = "Answer every question below, then submit to see your score.";
 
     private readonly IGenericRepository<Question> _repository;
     private readonly IGenericRepository<QuestionType> _questionTypeRepository;
@@ -26,7 +28,7 @@ public class SimulateAllModel : PageModel
     private readonly QuestionChoiceService _choiceService;
     private readonly IMapper _mapper;
 
-    private sealed record QuestionPlacement(int PageNumber, int SectionOrder, int Order, string? Instruction, string? SubInstruction);
+    private sealed record ExamStage(string Title, string Subtitle, string Heading, string Subheading, IList<QuestionDto> Questions);
 
     public SimulateAllModel(
         IGenericRepository<Question> repository,
@@ -68,11 +70,13 @@ public class SimulateAllModel : PageModel
 
     public string StageSubtitle { get; set; } = string.Empty;
 
-    public string StageHeading { get; set; } = "Multiple Choice Questions";
+    public string StageHeading { get; set; } = DefaultHeading;
 
-    public string StageSubheading { get; set; } = "Answer every question below, then submit to see your score.";
+    public string StageSubheading { get; set; } = DefaultSubheading;
 
     public IList<QuestionDto> Questions { get; set; } = new List<QuestionDto>();
+
+    public int TotalPages { get; set; }
 
     public bool HasNextPage { get; set; }
 
@@ -131,112 +135,134 @@ public class SimulateAllModel : PageModel
             .Select(qt => qt.Id)
             .ToHashSet();
 
-        var examPagesById = (await _examPageRepository.GetAllAsync())
-            .Where(p => p.IsActive)
-            .ToDictionary(p => p.Id);
-        var pageSectionsById = (await _pageSectionRepository.GetAllAsync())
-            .Where(ps => ps.IsActive && examPagesById.ContainsKey(ps.ExamPageId))
-            .ToDictionary(ps => ps.Id);
-
-        var allQuestions = (await _repository.GetAllAsync()).ToList();
-
-        var orderLookup = allQuestions
-            .Where(q => q.PageSectionId.HasValue && pageSectionsById.ContainsKey(q.PageSectionId.Value))
-            .ToDictionary(
-                q => q.Id,
-                q =>
-                {
-                    var pageSection = pageSectionsById[q.PageSectionId!.Value];
-                    var examPage = examPagesById[pageSection.ExamPageId];
-                    return new QuestionPlacement(examPage.PageNumber, pageSection.Order, q.PageOrder, examPage.Instruction, examPage.SubInstruction);
-                });
-
-        var activeQuestions = allQuestions
+        var simulatableQuestions = (await _repository.GetAllAsync())
             .Where(q => q.IsActive && simulatedTypeIds.Contains(q.QuestionTypeId))
-            .OrderBy(q => orderLookup.ContainsKey(q.Id) ? 0 : 1)
-            .ThenBy(q => orderLookup.TryGetValue(q.Id, out var placement) ? placement.PageNumber : 0)
-            .ThenBy(q => orderLookup.TryGetValue(q.Id, out var placement) ? placement.SectionOrder : 0)
-            .ThenBy(q => orderLookup.TryGetValue(q.Id, out var placement) ? placement.Order : 0)
-            .ThenBy(q => q.DateCreated)
             .ToList();
 
-        var departmentQuestions = _mapper.Map<IList<QuestionDto>>(
-            activeQuestions.Where(q => q.SectionId == section.Id));
-        var sqlQuestions = departmentQuestions
-            .Where(q => q.Image != null && q.Image.StartsWith(SqlSchemaImagePrefix))
+        var examPages = (await _examPageRepository.GetAllAsync())
+            .Where(p => p.IsActive)
             .ToList();
-        var departmentMainQuestions = departmentQuestions.Except(sqlQuestions).ToList();
+        var activePageSections = (await _pageSectionRepository.GetAllAsync())
+            .Where(ps => ps.IsActive)
+            .ToList();
+        var questionsByPageSectionId = simulatableQuestions
+            .Where(q => q.PageSectionId.HasValue)
+            .ToLookup(q => q.PageSectionId!.Value);
+
+        // Mirrors the applicant's Take page: one stage per exam page, with the page's sections in order and each
+        // section's questions in order.
+        List<(ExamPage Page, List<Question> Questions)> GetPagedQuestions(Section department) =>
+            examPages
+                .Where(p => p.SectionId == department.Id)
+                .OrderBy(p => p.PageNumber)
+                .Select(p => (
+                    Page: p,
+                    Questions: activePageSections
+                        .Where(ps => ps.ExamPageId == p.Id)
+                        .OrderBy(ps => ps.Order)
+                        .ThenBy(ps => ps.Id)
+                        .SelectMany(ps => questionsByPageSectionId[ps.Id]
+                            .OrderBy(q => q.PageOrder)
+                            .ThenBy(q => q.DateCreated))
+                        .ToList()))
+                .Where(p => p.Questions.Count > 0)
+                .ToList();
+
+        IList<QuestionDto> ToDtos(IEnumerable<Question> questions) =>
+            _mapper.Map<IList<QuestionDto>>(questions.ToList());
+
+        static string TextOrDefault(string? text, string fallback) =>
+            string.IsNullOrWhiteSpace(text) ? fallback : text;
+
+        var stages = new List<ExamStage>();
+
+        var departmentSubtitle = $"This section aims to gauge your familiarity in {section.Name} concepts.";
+        var departmentPages = GetPagedQuestions(section);
+
+        if (departmentPages.Count > 0)
+        {
+            foreach (var (page, pageQuestions) in departmentPages)
+            {
+                stages.Add(new ExamStage(
+                    section.Name,
+                    departmentSubtitle,
+                    TextOrDefault(page.Instruction, DefaultHeading),
+                    TextOrDefault(page.SubInstruction, DefaultSubheading),
+                    ToDtos(pageQuestions)));
+            }
+        }
+        else
+        {
+            // No exam pages have been set up for this department yet: fall back to a single stage, plus a
+            // separate stage for the SQL schema questions.
+            var departmentQuestions = ToDtos(simulatableQuestions
+                .Where(q => q.SectionId == section.Id)
+                .OrderBy(q => q.DateCreated));
+            var sqlQuestions = departmentQuestions
+                .Where(q => q.Image != null && q.Image.StartsWith(SqlSchemaImagePrefix))
+                .ToList();
+            var departmentMainQuestions = departmentQuestions.Except(sqlQuestions).ToList();
+
+            stages.Add(new ExamStage(section.Name, departmentSubtitle, DefaultHeading, DefaultSubheading, departmentMainQuestions));
+
+            if (sqlQuestions.Count > 0)
+            {
+                stages.Add(new ExamStage(
+                    "SQL Queries",
+                    "Write the SQL query that answers each question about the schema shown.",
+                    "SQL Query Questions",
+                    DefaultSubheading,
+                    sqlQuestions));
+            }
+        }
 
         var generalKnowledgeSection = allSections.FirstOrDefault(s => s.Name == AppDepartments.GeneralKnowledge);
-        var generalKnowledgeQuestions = generalKnowledgeSection is null
-            ? new List<QuestionDto>()
-            : _mapper.Map<IList<QuestionDto>>(
-                activeQuestions.Where(q => q.SectionId == generalKnowledgeSection.Id));
-
-        (string Heading, string Subheading) ResolveStageText(IEnumerable<QuestionDto> stageQuestions, string defaultHeading, string defaultSubheading)
+        if (generalKnowledgeSection is not null && generalKnowledgeSection.Id != section.Id)
         {
-            var match = stageQuestions
-                .Select(q => orderLookup.GetValueOrDefault(q.Id))
-                .FirstOrDefault(ps => ps != null && (!string.IsNullOrWhiteSpace(ps.Instruction) || !string.IsNullOrWhiteSpace(ps.SubInstruction)));
+            const string generalKnowledgeSubtitle = "Wrap up with a few general knowledge questions about Ad Astra.";
+            var generalKnowledgePages = GetPagedQuestions(generalKnowledgeSection);
 
-            return (
-                string.IsNullOrWhiteSpace(match?.Instruction) ? defaultHeading : match!.Instruction!,
-                string.IsNullOrWhiteSpace(match?.SubInstruction) ? defaultSubheading : match!.SubInstruction!);
+            if (generalKnowledgePages.Count > 0)
+            {
+                foreach (var (page, pageQuestions) in generalKnowledgePages)
+                {
+                    stages.Add(new ExamStage(
+                        AppDepartments.GeneralKnowledge,
+                        generalKnowledgeSubtitle,
+                        TextOrDefault(page.Instruction, DefaultHeading),
+                        TextOrDefault(page.SubInstruction, DefaultSubheading),
+                        ToDtos(pageQuestions)));
+                }
+            }
+            else
+            {
+                var generalKnowledgeQuestions = ToDtos(simulatableQuestions
+                    .Where(q => q.SectionId == generalKnowledgeSection.Id)
+                    .OrderBy(q => q.DateCreated));
+
+                if (generalKnowledgeQuestions.Count > 0)
+                {
+                    stages.Add(new ExamStage(
+                        AppDepartments.GeneralKnowledge,
+                        generalKnowledgeSubtitle,
+                        DefaultHeading,
+                        DefaultSubheading,
+                        generalKnowledgeQuestions));
+                }
+            }
         }
 
-        var mainStageText = ResolveStageText(departmentMainQuestions, "Multiple Choice Questions", "Answer every question below, then submit to see your score.");
+        TotalPages = stages.Count;
+        PageNumber = Math.Clamp(PageNumber, 1, TotalPages);
 
-        var stages = new List<(string Title, string Subtitle, string Heading, string Subheading, IList<QuestionDto> Questions)>
-        {
-            (section.Name,
-                $"This section aims to gauge your familiarity in {section.Name} concepts.",
-                mainStageText.Heading,
-                mainStageText.Subheading,
-                departmentMainQuestions)
-        };
-
-        if (sqlQuestions.Count > 0)
-        {
-            var sqlStageText = ResolveStageText(sqlQuestions, "SQL Query Questions", "Answer every question below, then submit to see your score.");
-            stages.Add(("SQL Queries",
-                "Write the SQL query that answers each question about the schema shown.",
-                sqlStageText.Heading,
-                sqlStageText.Subheading,
-                sqlQuestions));
-        }
-
-        if (generalKnowledgeQuestions.Count > 0)
-        {
-            var generalKnowledgeStageText = ResolveStageText(generalKnowledgeQuestions, "Multiple Choice Questions", "Answer every question below, then submit to see your score.");
-            stages.Add((AppDepartments.GeneralKnowledge,
-                "Wrap up with a few general knowledge questions about Ad Astra.",
-                generalKnowledgeStageText.Heading,
-                generalKnowledgeStageText.Subheading,
-                generalKnowledgeQuestions));
-        }
-
-        if (PageNumber < 1)
-        {
-            PageNumber = 1;
-        }
-        else if (PageNumber > stages.Count && stages.Count > 0)
-        {
-            PageNumber = stages.Count;
-        }
-
-        var currentStage = stages.Count > 0 ? stages[PageNumber - 1] : (
-            Title: section.Name,
-            Subtitle: string.Empty,
-            Heading: "Multiple Choice Questions",
-            Subheading: "Answer every question below, then submit to see your score.",
-            Questions: (IList<QuestionDto>)new List<QuestionDto>());
+        var currentStage = stages[PageNumber - 1];
 
         StageTitle = currentStage.Title;
         StageSubtitle = currentStage.Subtitle;
         StageHeading = currentStage.Heading;
         StageSubheading = currentStage.Subheading;
         Questions = currentStage.Questions;
-        HasNextPage = PageNumber < stages.Count;
+        HasNextPage = PageNumber < TotalPages;
         HasPreviousPage = PageNumber > 1;
 
         foreach (var question in Questions)

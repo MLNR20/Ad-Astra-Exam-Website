@@ -67,7 +67,7 @@ else
             @await Html.PartialAsync("_ExamQuestionHeader", (
                 Heading: Model.StageHeading,
                 Subheading: Model.StageSubheading,
-                BadgeText: (string?)null))
+                BadgeText: Model.TotalPages > 1 ? $"Page {Model.PageNumber} of {Model.TotalPages}" : (string?)null))
 
             @if (Model.Questions.Count == 0)
             {
