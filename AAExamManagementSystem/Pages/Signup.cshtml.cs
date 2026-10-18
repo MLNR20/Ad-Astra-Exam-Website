@@ -1,6 +1,7 @@
 using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
 using AutoMapper;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -16,19 +17,22 @@ public class SignupModel : PageModel
     private readonly IGenericRepository<Applicant> _applicantRepository;
     private readonly IMapper _mapper;
     private readonly ApplicationDbContext _context;
+    private readonly IRegistrationNotifier _registrationNotifier;
 
     public SignupModel(
         UserManager<ApplicationUser> userManager,
         SignInManager<ApplicationUser> signInManager,
         IGenericRepository<Applicant> applicantRepository,
         IMapper mapper,
-        ApplicationDbContext context)
+        ApplicationDbContext context,
+        IRegistrationNotifier registrationNotifier)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _applicantRepository = applicantRepository;
         _mapper = mapper;
         _context = context;
+        _registrationNotifier = registrationNotifier;
     }
 
     [BindProperty]
@@ -99,6 +103,16 @@ public class SignupModel : PageModel
             ModelState.AddModelError(string.Empty, "Failed to save your application. Please try again.");
             return Page();
         }
+
+        var exams = applicant.Attempts
+            .Select(a => a.Section)
+            .OfType<string>()
+            .ToList();
+        _registrationNotifier.NotifyRegistration(
+            $"{applicant.FirstName} {applicant.LastName}".Trim(),
+            applicant.StudentNo,
+            applicant.AcademicYear,
+            exams);
 
         await _signInManager.SignInAsync(user, isPersistent: false);
 

@@ -10,6 +10,9 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Secrets such as the Gmail app password live in a git-ignored .env at the repository root.
+builder.Configuration.AddEnvFile(builder.Environment.ContentRootPath);
+
 // Add services to the container.
 builder.Services.AddRazorPages(options =>
 {
@@ -44,6 +47,11 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<QuestionChoiceService>();
 builder.Services.AddScoped<NotificationService>();
+
+builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
+builder.Services.PostConfigure<EmailSettings>(settings =>
+    settings.Password = builder.Configuration["ad-astra-exam-password"]);
+builder.Services.AddSingleton<IRegistrationNotifier, SmtpRegistrationNotifier>();
 
 builder.Services.AddDistributedMemoryCache();
 builder.Services.AddSession(options =>
