@@ -5,11 +5,14 @@ using System.Text.RegularExpressions;
 namespace AAExamManagementSystem.Models.Entities;
 
 /// <summary>
-/// Builds attempt passwords: "AY" + the last two digits of each academic year + three letters of the
-/// choice + four random digits, e.g. AY2627WEB4821 for "2026-2027" and "Web Dev".
+/// Builds attempt passwords: "AY" + the last two digits of each year in the academic year after the
+/// one typed + three letters of the choice + four random digits. Typing 2026-2027 and choosing
+/// "Web Dev" gives AY2728WEB4821; 2027-2028 gives AY2829, 2028-2029 gives AY2930, and so on.
 /// </summary>
 public static class AttemptPassword
 {
+    private const int YearsAhead = 1;
+
     private static readonly Regex FourDigitYear = new(@"\d{4}", RegexOptions.Compiled);
     private static readonly Regex TwoDigitPair = new(@"(\d{2})\D+(\d{2})", RegexOptions.Compiled);
 
@@ -25,25 +28,25 @@ public static class AttemptPassword
         var years = FourDigitYear.Matches(text);
         if (years.Count >= 2)
         {
-            return $"AY{TwoDigits(years[0].Value)}{TwoDigits(years[1].Value)}";
+            return Format(int.Parse(years[0].Value), int.Parse(years[1].Value));
         }
 
         if (years.Count == 1)
         {
             var start = int.Parse(years[0].Value);
-            return $"AY{start % 100:D2}{(start + 1) % 100:D2}";
+            return Format(start, start + 1);
         }
 
         var pair = TwoDigitPair.Match(text);
         if (pair.Success)
         {
-            return $"AY{pair.Groups[1].Value}{pair.Groups[2].Value}";
+            return Format(int.Parse(pair.Groups[1].Value), int.Parse(pair.Groups[2].Value));
         }
 
         // No usable year typed: assume the academic year that is running now (starts in June).
         var now = today ?? DateTime.UtcNow;
         var startYear = now.Month >= 6 ? now.Year : now.Year - 1;
-        return $"AY{startYear % 100:D2}{(startYear + 1) % 100:D2}";
+        return Format(startYear, startYear + 1);
     }
 
     public static string ChoiceCode(string? choice)
@@ -69,7 +72,8 @@ public static class AttemptPassword
         return code.ToString();
     }
 
-    private static string TwoDigits(string fourDigitYear) => fourDigitYear[2..];
+    private static string Format(int startYear, int endYear) =>
+        $"AY{(startYear + YearsAhead) % 100:D2}{(endYear + YearsAhead) % 100:D2}";
 
     private static string RandomDigits() => RandomNumberGenerator.GetInt32(0, 10000).ToString("D4");
 }
