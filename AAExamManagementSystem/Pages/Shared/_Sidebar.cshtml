@@ -68,6 +68,16 @@
             </ul>
         }
 
+        @if (User.IsInRole(Roles.Editor) && !User.IsInRole(Roles.Admin))
+        {
+            <div class="sidebar-heading sidebar-label text-uppercase text-muted small fw-semibold mt-3 mb-1 px-2">Administration</div>
+            <ul class="nav nav-pills flex-column mb-auto">
+                <li class="nav-item">
+                    <a asp-area="" asp-page="/Staff/Index" class="nav-link text-dark sidebar-link" title="Department Staff"><i class="bi bi-people" aria-hidden="true"></i> <span class="sidebar-label">Department Staff</span></a>
+                </li>
+            </ul>
+        }
+
         <hr>
         <form method="post" asp-area="" asp-page="/Logout">
             <button type="submit" class="nav-link text-danger sidebar-link w-100 text-start border-0 bg-transparent px-3 py-2" title="Logout">
