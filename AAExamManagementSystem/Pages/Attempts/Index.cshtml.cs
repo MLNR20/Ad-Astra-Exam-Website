@@ -43,6 +43,7 @@ public class IndexModel : PageModel
         }
 
         var query = _context.Attempts
+            .Where(a => a.DateTaken != null)
             .Include(a => a.Applicant)
             .Include(a => a.Answers)
             .ThenInclude(ans => ans.Question)

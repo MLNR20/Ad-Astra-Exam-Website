@@ -43,6 +43,13 @@
         }
         else
         {
+            @if (Model.SubmittedScore.HasValue)
+            {
+                <div class="alert alert-success">
+                    Your previous exam is submitted: you scored @Model.SubmittedScore out of @Model.SubmittedMaxScore.
+                    Your next exam is below.
+                </div>
+            }
             @if (!ViewData.ModelState.IsValid)
             {
                 <div class="alert alert-danger">

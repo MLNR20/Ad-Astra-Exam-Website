@@ -66,7 +66,7 @@ public class IndexModel : PageModel
         var noSectionAssigned = !IsAdmin && CurrentUserSectionName is null;
 
         var applicants = _db.Applicants.AsNoTracking().AsQueryable();
-        var attempts = _db.Attempts.AsNoTracking().Where(a => a.IsActive);
+        var attempts = _db.Attempts.AsNoTracking().Where(a => a.IsActive && a.DateTaken != null);
         var questions = _db.Questions.AsNoTracking().Where(q => q.IsActive);
         var staff = _db.Users.AsNoTracking().Where(u => u.Applicant == null);
 

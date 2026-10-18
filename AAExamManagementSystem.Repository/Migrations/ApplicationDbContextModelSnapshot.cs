@@ -363,6 +363,9 @@ namespace AAExamManagementSystem.Repository.Migrations
                     b.Property<bool>("IsApproved")
                         .HasColumnType("bit");
 
+                    b.Property<string>("Password")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<string>("Section")
                         .HasColumnType("nvarchar(max)");
 
@@ -378,6 +381,10 @@ namespace AAExamManagementSystem.Repository.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ApplicantId");
+
+                    b.HasIndex("Password")
+                        .IsUnique()
+                        .HasFilter("[Password] IS NOT NULL");
 
                     b.ToTable("Attempts", "AAExam");
                 });

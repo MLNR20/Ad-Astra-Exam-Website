@@ -27,6 +27,9 @@ public class ApplicantPortalModel : PageModel
     public ApplicantDto? Applicant { get; set; }
     public int AttemptCount { get; set; }
     public AttemptListItemDto? LatestAttempt { get; set; }
+    public IList<PendingAttemptItem> PendingAttempts { get; set; } = new List<PendingAttemptItem>();
+
+    public record PendingAttemptItem(string? Section, string? Password);
 
     public async Task OnGetAsync()
     {
@@ -43,9 +46,17 @@ public class ApplicantPortalModel : PageModel
         }
 
         Applicant = _mapper.Map<ApplicantDto>(applicant);
-        AttemptCount = applicant.Attempts.Count;
+        // Attempts are created at signup, so only the ones with a date taken have actually been sat.
+        var takenAttempts = applicant.Attempts.Where(a => a.DateTaken is not null).ToList();
+        AttemptCount = takenAttempts.Count;
 
-        var attempt = applicant.Attempts.OrderByDescending(a => a.DateCreated).FirstOrDefault();
+        PendingAttempts = applicant.Attempts
+            .Where(a => a.DateTaken is null)
+            .OrderBy(a => a.Id)
+            .Select(a => new PendingAttemptItem(a.Section, a.Password))
+            .ToList();
+
+        var attempt = takenAttempts.OrderByDescending(a => a.DateCreated).FirstOrDefault();
         if (attempt is not null)
         {
             LatestAttempt = new AttemptListItemDto

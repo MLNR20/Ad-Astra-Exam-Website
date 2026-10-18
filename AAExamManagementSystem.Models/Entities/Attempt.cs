@@ -12,6 +12,7 @@ public class Attempt
     public string? AcademicYear { get; set; }
     public string? Term { get; set; }
     public string? Section { get; set; }
+    public string? Password { get; set; }
     public DateTime DateCreated { get; set; } = DateTime.UtcNow;
     public DateTime DateUpdated { get; set; } = DateTime.UtcNow;
     public bool IsActive { get; set; } = true;

@@ -118,6 +118,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             .HasIndex(a => a.UserId)
             .IsUnique();
 
+        builder.Entity<Attempt>()
+            .HasIndex(a => a.Password)
+            .IsUnique();
+
         builder.Entity<AuditLog>()
             .HasOne(a => a.CreatedBy)
             .WithMany()

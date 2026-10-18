@@ -35,7 +35,7 @@ public class MyAttemptsModel : PageModel
         var attempts = await _context.Attempts
             .Include(a => a.Answers)
             .ThenInclude(ans => ans.Question)
-            .Where(a => a.ApplicantId == applicant.Id)
+            .Where(a => a.ApplicantId == applicant.Id && a.DateTaken != null)
             .OrderByDescending(a => a.DateCreated)
             .ToListAsync();
 

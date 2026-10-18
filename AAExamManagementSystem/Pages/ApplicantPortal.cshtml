@@ -93,19 +93,48 @@ else
     </div>
 
     <div class="d-flex flex-wrap gap-2 mb-4">
-        @if (Model.AttemptCount == 0)
+        @if (Model.PendingAttempts.Count > 0 || Model.AttemptCount == 0)
         {
             <a asp-page="/Attempts/Take" class="btn btn-primary">
                 <i class="bi bi-pencil-square me-1" aria-hidden="true"></i> Take Assessment
             </a>
         }
-        else
+        @if (Model.AttemptCount > 0)
         {
             <a asp-page="/Attempts/MyAttempts" class="btn btn-outline-primary">
                 <i class="bi bi-clipboard-check me-1" aria-hidden="true"></i> View My Attempts
             </a>
         }
     </div>
+
+    @if (Model.PendingAttempts.Count > 0)
+    {
+        <div class="card border rounded-2 p-3 mb-4">
+            <div class="card-header bg-white border-bottom-0">
+                <h5 class="mb-0">Your Exam Passwords</h5>
+            </div>
+            <div class="card-body">
+                <p class="text-muted">You have one exam for each choice you picked. Each exam has its own password.</p>
+                <table class="table align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="text-start">Exam</th>
+                            <th class="text-start">Password</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var pending in Model.PendingAttempts)
+                        {
+                            <tr>
+                                <td class="text-start">@(pending.Section ?? "-")</td>
+                                <td class="text-start"><code class="fs-6">@(pending.Password ?? "-")</code></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
 
     <div class="card border rounded-2 p-3 mb-4">
         <div class="card-header bg-white border-bottom-0">

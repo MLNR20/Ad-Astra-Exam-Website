@@ -64,6 +64,9 @@ public class TakeModel : PageModel
     [TempData]
     public string? ExamError { get; set; }
 
+    // The signup-created attempt this request is taking; null for applicants who have none.
+    private Attempt? _activeAttempt;
+
     [BindProperty]
     public Dictionary<Guid, Guid> Answers { get; set; } = new();
 
@@ -82,20 +85,18 @@ public class TakeModel : PageModel
         FirstChoice = applicant.FirstChoice;
         SecondChoice = applicant.SecondChoice;
 
-        var existingAttempt = await _context.Attempts
-            .Where(a => a.ApplicantId == applicant.Id)
-            .OrderByDescending(a => a.DateCreated)
-            .FirstOrDefaultAsync();
+        var attempts = await LoadAttemptsAsync(applicant);
+        var hasPendingAttempt = attempts.Any(a => a.DateTaken is null);
 
-        AlreadyAttempted = existingAttempt is not null;
+        AlreadyAttempted = attempts.Count > 0 && !hasPendingAttempt;
         if (AlreadyAttempted)
         {
-            SectionName = existingAttempt!.Section;
+            SectionName = attempts.OrderByDescending(a => a.DateCreated).First().Section;
             ClearProgress(applicant.Id);
             return Page();
         }
 
-        await LoadExamPagesAsync(applicant);
+        await LoadExamPagesAsync(applicant, attempts);
 
         if (TotalPages == 0)
         {
@@ -124,13 +125,14 @@ public class TakeModel : PageModel
         FirstChoice = applicant.FirstChoice;
         SecondChoice = applicant.SecondChoice;
 
-        if (await _context.Attempts.AnyAsync(a => a.ApplicantId == applicant.Id))
+        var attempts = await LoadAttemptsAsync(applicant);
+        if (attempts.Count > 0 && attempts.All(a => a.DateTaken is not null))
         {
             AlreadyAttempted = true;
             return Page();
         }
 
-        await LoadExamPagesAsync(applicant);
+        await LoadExamPagesAsync(applicant, attempts);
 
         if (TotalPages == 0)
         {
@@ -202,13 +204,22 @@ public class TakeModel : PageModel
 
             var allQuestions = Pages.SelectMany(p => p).ToList();
 
-            var attempt = new Attempt
+            // Fill in the attempt that was created at signup; applicants who registered before that
+            // existed have none, so they still get a new one here.
+            var attempt = _activeAttempt;
+            if (attempt is null)
             {
-                ApplicantId = applicant.Id,
-                AcademicYear = applicant.AcademicYear,
-                Section = SectionName,
-                DateTaken = DateTime.UtcNow.ToString("o"),
-            };
+                attempt = new Attempt
+                {
+                    ApplicantId = applicant.Id,
+                    AcademicYear = applicant.AcademicYear,
+                };
+                _context.Attempts.Add(attempt);
+            }
+
+            attempt.Section = SectionName;
+            attempt.DateTaken = DateTime.UtcNow.ToString("o");
+            attempt.DateUpdated = DateTime.UtcNow;
 
             var totalScore = 0;
             foreach (var question in allQuestions)
@@ -248,7 +259,6 @@ public class TakeModel : PageModel
             }
 
             attempt.TotalScore = totalScore;
-            _context.Attempts.Add(attempt);
             await _context.SaveChangesAsync();
 
             ClearProgress(applicant.Id);
@@ -268,10 +278,35 @@ public class TakeModel : PageModel
         return await _context.Applicants.FirstOrDefaultAsync(a => a.UserId == userId);
     }
 
-    private async Task LoadExamPagesAsync(Applicant applicant)
+    private async Task<IList<Attempt>> LoadAttemptsAsync(Applicant applicant)
     {
-        SectionName = await ResolveSectionNameAsync(applicant.FirstChoice)
-            ?? await ResolveSectionNameAsync(applicant.SecondChoice);
+        return await _context.Attempts
+            .Where(a => a.ApplicantId == applicant.Id)
+            .OrderBy(a => a.Id)
+            .ToListAsync();
+    }
+
+    private async Task LoadExamPagesAsync(Applicant applicant, IList<Attempt> attempts)
+    {
+        // The next exam is the first untaken attempt (in signup order) whose section has questions.
+        _activeAttempt = null;
+        SectionName = null;
+        foreach (var pending in attempts.Where(a => a.DateTaken is null))
+        {
+            var resolved = await ResolveSectionNameAsync(pending.Section);
+            if (resolved is not null)
+            {
+                _activeAttempt = pending;
+                SectionName = resolved;
+                break;
+            }
+        }
+
+        if (SectionName is null && attempts.Count == 0)
+        {
+            SectionName = await ResolveSectionNameAsync(applicant.FirstChoice)
+                ?? await ResolveSectionNameAsync(applicant.SecondChoice);
+        }
 
         Pages = new List<IList<QuestionDto>>();
 
