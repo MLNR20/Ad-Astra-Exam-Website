@@ -6,7 +6,7 @@
 
 <div class="card border rounded-2 p-4">
     <div class="card-header bg-white border-bottom-0">
-        <h5 class="mb-0 fw-semibold entity-table-title"><i class="bi bi-layout-text-sidebar-reverse" aria-hidden="true"></i> Exam Pages</h5>
+        <h5 class="mb-0 fw-semibold entity-table-title">Exam Pages</h5>
     </div>
     <div class="card-body">
         @if (Model.IsAdmin)
@@ -80,10 +80,10 @@
                         <span>Page @pageGroup.Key</span>
                         <div class="d-flex gap-2">
                             <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addSectionModal-@pageGroup.Key">
-                                <i class="bi bi-plus-circle" aria-hidden="true"></i> Add Section
+                                Add Section
                             </button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#editInstructionModal-@pageGroup.Key">
-                                <i class="bi bi-pencil-square" aria-hidden="true"></i> Edit Instruction
+                                Edit Instruction
                             </button>
                         </div>
                     </div>
@@ -113,10 +113,10 @@
                                     </span>
                                     <span class="d-flex gap-2">
                                         <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#sectionInstructionModal-@sectionGroup.Key">
-                                            <i class="bi bi-pencil-square" aria-hidden="true"></i> Edit Instruction
+                                            Edit Instruction
                                         </button>
                                         <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#assignQuestionsModal-@sectionGroup.Key">
-                                            <i class="bi bi-plus-lg" aria-hidden="true"></i> Assign Questions
+                                            Assign Questions
                                         </button>
                                     </span>
                                 </h6>
