@@ -409,6 +409,15 @@ header .navbar {
 
 .signup-wizard-card .form-control {
   border-color: #000;
+  padding-block: calc(.375rem + .1rem);
+}
+
+.signup-wizard-card .btn {
+  padding-block: calc(.375rem + .1rem);
+}
+
+.signup-subtitle {
+  font-size: 1.2rem;
 }
 
 .signup-steps {
