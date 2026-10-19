@@ -1,12 +1,12 @@
 @model (string? Instruction, string? SubInstruction)
 
-<div class="exam-section-heading mb-4">
+<div class="exam-section-heading d-flex flex-column gap-3 mb-4 py-3 px-0">
     @if (!string.IsNullOrWhiteSpace(Model.Instruction))
     {
-        <h5 class="exam-section-instruction fw-bold mb-1">@Model.Instruction</h5>
+        <h4 class="exam-question-header fw-extrabold mb-0">@Model.Instruction</h4>
     }
     @if (!string.IsNullOrWhiteSpace(Model.SubInstruction))
     {
-        <p class="exam-section-subinstruction text-muted mb-0">@Model.SubInstruction</p>
+        <h5 class="exam-question-subheader text-muted fw-normal mb-0">@Model.SubInstruction</h5>
     }
 </div>

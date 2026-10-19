@@ -66,8 +66,7 @@ else
         <div class="mx-auto exam-sim-wrap">
             @await Html.PartialAsync("_ExamQuestionHeader", (
                 Heading: Model.StageHeading,
-                Subheading: Model.StageSubheading,
-                BadgeText: Model.TotalPages > 1 ? $"Page {Model.PageNumber} of {Model.TotalPages}" : (string?)null))
+                Subheading: Model.StageSubheading))
 
             @if (Model.Questions.Count == 0)
             {
@@ -80,22 +79,42 @@ else
                 {
                     var question = Model.Questions[qi];
                     var isIdentification = question.QuestionTypeName == AAExamManagementSystem.Models.Entities.QuestionTypes.Identification;
+                    var imageName = question.Image ?? string.Empty;
+                    var isSqlQuestion = imageName.Contains("sql-schema");
+                    var isDebugQuestion = imageName.Contains("debug-");
+                    var isWideImage = isSqlQuestion || isDebugQuestion;
                     if (Model.SectionHeadings.TryGetValue(question.Id, out var sectionHeading))
                     {
                         @await Html.PartialAsync("_ExamSectionHeading", (sectionHeading.Instruction, sectionHeading.SubInstruction))
                     }
-                    <div class="exam-sim-question mb-5" data-question-index="@qi" data-question-type="@question.QuestionTypeName">
+                    <div class="exam-sim-question mb-4" data-question-index="@qi" data-question-type="@question.QuestionTypeName" data-up-to-evaluation="@question.IsUpToEvaluation.ToString().ToLowerInvariant()">
                         <h5 class="fw-semibold mb-1">
                             @(qi + 1). @question.QuestionTitle
                         </h5>
+                        @if (!string.IsNullOrEmpty(question.Image))
+                        {
+                            var imageClass = isWideImage
+                                ? "exam-sim-question-image exam-sim-question-image-wide img-fluid rounded mt-3 mb-3 d-block mx-auto"
+                                : "exam-sim-question-image img-fluid rounded mt-3 mb-3 d-block mx-auto";
+                            <img src="@question.Image" class="@imageClass" alt="" />
+                        }
                         <div class="exam-sim-choices mt-2">
                             @if (isIdentification)
                             {
                                 var correctAnswer = question.Choices.FirstOrDefault(c => c.IsCorrect)?.ChoiceText ?? string.Empty;
-                                var isSqlQuestion = question.Image != null && question.Image.Contains("sql-schema");
-                                var inputPlaceholder = isSqlQuestion ? "Type your SQL query" : "Type the programming language name";
-                                var inputClass = isSqlQuestion ? "form-control exam-sim-input exam-sim-input-sql" : "form-control exam-sim-input";
-                                <input type="text" class="@inputClass" name="q@(qi)" id="q@(qi)_input" data-answer="@correctAnswer" placeholder="@inputPlaceholder" autocomplete="off" />
+                                var useTextArea = isSqlQuestion || isDebugQuestion;
+                                var inputPlaceholder = isSqlQuestion
+                                    ? "Type your SQL query"
+                                    : isDebugQuestion ? "Type the line numbers that have an error" : "Type the programming language name";
+                                var inputClass = useTextArea ? "form-control exam-sim-input exam-sim-input-sql" : "form-control exam-sim-input";
+                                @if (useTextArea)
+                                {
+                                    <textarea class="@inputClass" name="q@(qi)" id="q@(qi)_input" rows="@(isSqlQuestion ? 6 : 3)" data-answer="@correctAnswer" placeholder="@inputPlaceholder" autocomplete="off" spellcheck="false"></textarea>
+                                }
+                                else
+                                {
+                                    <input type="text" class="@inputClass" name="q@(qi)" id="q@(qi)_input" data-answer="@correctAnswer" placeholder="@inputPlaceholder" autocomplete="off" />
+                                }
                             }
                             else
                             {
@@ -109,20 +128,12 @@ else
                                 }
                             }
                         </div>
-                        @if (!string.IsNullOrEmpty(question.Image))
-                        {
-                            var isSqlSchemaImage = question.Image.Contains("sql-schema");
-                            var imageClass = isSqlSchemaImage
-                                ? "exam-sim-question-image exam-sim-question-image-wide img-fluid rounded mt-3 d-block mx-auto"
-                                : "exam-sim-question-image img-fluid rounded mt-3 d-block mx-auto";
-                            <img src="@question.Image" class="@imageClass" alt="" />
-                        }
                         <div class="exam-sim-result mt-2" id="result@(qi)"></div>
                     </div>
                 }
                 <div id="simSummary" class="d-none text-center mb-4"></div>
 
-                <div class="d-flex justify-content-between mb-5">
+                <div class="d-flex flex-wrap align-items-center gap-2 mb-5">
                     @if (Model.HasPreviousPage)
                     {
                         <a href="?SectionId=@Model.SectionId&PageNumber=@(Model.PageNumber - 1)" class="btn btn-outline-secondary">Previous</a>
@@ -137,20 +148,6 @@ else
                     }
                     <button type="button" id="submitAllSim" class="btn btn-primary">Submit All Answers</button>
                 </div>
-
-                <div class="alert alert-secondary">
-                    <h2 class="h6 fw-bold mb-2">Instructions</h2>
-                    <ul class="mb-0 ps-3">
-                        <li>Select exactly one answer for each multiple choice question.</li>
-                        @if (Model.Questions.Any(q => q.QuestionTypeName == AAExamManagementSystem.Models.Entities.QuestionTypes.Identification))
-                        {
-                            <li>For identification questions, type your exact answer in the text box provided.</li>
-                        }
-                        <li>All questions must be answered before you can submit.</li>
-                        <li>Once you submit, your answers are final and cannot be changed.</li>
-                        <li>Each question's point value is shown next to its title.</li>
-                    </ul>
-                </div>
             }
         </div>
     </div>
@@ -164,7 +161,7 @@ else
         }
 
         .exam-sim-question-image {
-            width: 26%;
+            width: 19.5%;
         }
 
         .exam-sim-question-image-wide {
@@ -183,6 +180,8 @@ else
 
         .exam-sim-input-sql {
             width: 100%;
+            resize: vertical;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         }
 
         .exam-sim-hero {
@@ -223,6 +222,8 @@ else
         <script>
             (function () {
                 var questionCount = @Model.Questions.Count;
+                var evaluationCount = document.querySelectorAll('.exam-sim-question[data-up-to-evaluation="true"]').length;
+                var gradedCount = questionCount - evaluationCount;
                 var hasNextPage = @Json.Serialize(Model.HasNextPage);
                 var nextPageUrl = '?SectionId=@Model.SectionId&PageNumber=@(Model.PageNumber + 1)';
                 var submitBtn = document.getElementById('submitAllSim');
@@ -268,6 +269,13 @@ else
                     for (var i = 0; i < questionCount; i++) {
                         var resultEl = document.getElementById('result' + i);
                         var isCorrect;
+                        var questionEl = document.querySelector('.exam-sim-question[data-question-index="' + i + '"]');
+
+                        if (questionEl && questionEl.dataset.upToEvaluation === 'true') {
+                            document.getElementById('q' + i + '_input').readOnly = true;
+                            resultEl.innerHTML = '<div class="alert alert-info mb-0">Submitted for evaluation. A reviewer will mark this answer.</div>';
+                            continue;
+                        }
 
                         if (questionType(i) === 'Identification') {
                             var input = document.getElementById('q' + i + '_input');
@@ -291,8 +299,11 @@ else
                     var nextAction = hasNextPage
                         ? '<a href="' + nextPageUrl + '" class="btn btn-primary">Continue</a>'
                         : '<a href="/Questions" class="btn btn-primary">Back to Questions</a>';
+                    var evaluationNotice = evaluationCount > 0
+                        ? '<p class="text-muted">' + evaluationCount + ' question(s) will be marked by a reviewer and are not included in this score.</p>'
+                        : '';
                     var timeUpNotice = timedOut ? '<p class="fs-5 text-danger fw-semibold mb-1">Time is up!</p>' : '';
-                    summaryEl.innerHTML = timeUpNotice + '<p class="fs-5">You answered ' + score + ' out of ' + questionCount + ' correctly.</p>' +
+                    summaryEl.innerHTML = timeUpNotice + '<p class="fs-5">You answered ' + score + ' out of ' + gradedCount + ' correctly.</p>' + evaluationNotice +
                         nextAction;
                 }
 

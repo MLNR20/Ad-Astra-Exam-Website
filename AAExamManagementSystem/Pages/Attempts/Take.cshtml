@@ -68,8 +68,7 @@
                 <input type="hidden" name="pageNum" value="@Model.CurrentPage" />
                 @await Html.PartialAsync("_ExamQuestionHeader", (
                     Heading: Model.CurrentPageHeading,
-                    Subheading: Model.CurrentPageSubheading,
-                    BadgeText: Model.TotalPages > 1 ? $"Page {Model.CurrentPage} of {Model.TotalPages}" : (string?)null))
+                    Subheading: Model.CurrentPageSubheading))
 
                 @for (var qi = 0; qi < Model.CurrentPageQuestions.Count; qi++)
                 {

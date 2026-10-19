@@ -118,6 +118,7 @@ public static class IdentitySeeder
         await SeedProgrammingLanguageIdentificationQuestionsAsync(dbContext);
         await SeedProgrammingLanguageIconQuestionsAsync(dbContext);
         await SeedSqlQueryQuestionsAsync(dbContext);
+        await SeedDebuggingQuestionsAsync(dbContext);
         await SeedPersonalityQuestionsAsync(dbContext);
         await SeedGeneralKnowledgeQuestionsAsync(dbContext);
         await SeedJavaScriptCodeSnippetQuestionsAsync(dbContext);
@@ -863,8 +864,7 @@ public static class IdentitySeeder
         ("https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg", "C++"),
         ("https://cdn.jsdelivr.net/gh/devicons/devicon/icons/ruby/ruby-original.svg", "Ruby"),
         ("https://cdn.jsdelivr.net/gh/devicons/devicon/icons/php/php-original.svg", "PHP"),
-        ("https://cdn.jsdelivr.net/gh/devicons/devicon/icons/go/go-original.svg", "Go"),
-        ("https://cdn.jsdelivr.net/gh/devicons/devicon/icons/rust/rust-plain.svg", "Rust")
+        ("https://cdn.jsdelivr.net/gh/devicons/devicon/icons/go/go-original.svg", "Go")
     };
 
     private static async Task SeedProgrammingLanguageIconQuestionsAsync(ApplicationDbContext dbContext)
@@ -964,6 +964,75 @@ public static class IdentitySeeder
                 SectionId = section.Id,
                 QuestionTitle = questionTitle,
                 Image = image,
+                Score = 1
+            };
+
+            dbContext.Questions.Add(question);
+            AddIdentificationAnswer(dbContext, question, answer);
+        }
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private static readonly (string Image, string QuestionTitle, string Answer)[] DebuggingQuestions =
+    {
+        ("/images/debug-javascript.svg",
+            "Debugging (JavaScript): The code below contains errors. Identify the line numbers that have an error.",
+            "Lines 3 and 7"),
+        ("/images/debug-php.svg",
+            "Debugging (PHP): The code below contains errors. Identify the line numbers that have an error.",
+            "Lines 3 and 9")
+    };
+
+    // Both questions are placed on page 2 of the Web Development exam, after the SQL questions. The reference
+    // answer is stored for the evaluator; an evaluator marks the applicant's answer by hand.
+    private static async Task SeedDebuggingQuestionsAsync(ApplicationDbContext dbContext)
+    {
+        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.WebDevelopment);
+        if (section is null)
+        {
+            return;
+        }
+
+        var identificationType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Identification);
+        if (identificationType is null)
+        {
+            return;
+        }
+
+        var pageSection = await dbContext.PageSections
+            .Where(ps => ps.IsActive
+                && ps.QuestionTypeId == identificationType.Id
+                && ps.ExamPage.IsActive
+                && ps.ExamPage.SectionId == section.Id
+                && ps.ExamPage.PageNumber == 2)
+            .OrderBy(ps => ps.Order)
+            .FirstOrDefaultAsync();
+
+        var nextPageOrder = pageSection is null
+            ? 0
+            : await dbContext.Questions
+                .Where(q => q.PageSectionId == pageSection.Id)
+                .Select(q => (int?)q.PageOrder)
+                .MaxAsync() ?? 0;
+
+        foreach (var (image, questionTitle, answer) in DebuggingQuestions)
+        {
+            var exists = dbContext.Questions.Any(q => q.QuestionTitle == questionTitle && q.SectionId == section.Id);
+            if (exists)
+            {
+                continue;
+            }
+
+            var question = new Question
+            {
+                QuestionTypeId = identificationType.Id,
+                SectionId = section.Id,
+                PageSectionId = pageSection?.Id,
+                PageOrder = pageSection is null ? 0 : ++nextPageOrder,
+                QuestionTitle = questionTitle,
+                Image = image,
+                IsUpToEvaluation = true,
                 Score = 1
             };
 
