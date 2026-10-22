@@ -1,8 +1,6 @@
 using AAExamManagementSystem.Models.Dtos;
-using AAExamManagementSystem.Models.Entities;
-using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
 using Asp.Versioning;
-using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,60 +12,45 @@ namespace AAExamManagementSystem.Controllers;
 [Authorize]
 public class SectionsController : ControllerBase
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly IMapper _mapper;
+    private readonly ISectionService _sectionService;
 
-    public SectionsController(IUnitOfWork unitOfWork, IMapper mapper)
+    public SectionsController(ISectionService sectionService)
     {
-        _unitOfWork = unitOfWork;
-        _mapper = mapper;
+        _sectionService = sectionService;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<SectionDto>>> GetAll()
     {
-        var sections = await _unitOfWork.Sections.GetAllAsync();
-        return Ok(_mapper.Map<IEnumerable<SectionDto>>(sections));
+        return Ok(await _sectionService.GetAllAsync());
     }
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<SectionDto>> GetById(int id)
     {
-        var section = await _unitOfWork.Sections.GetByIdAsync(id);
+        var section = await _sectionService.GetByIdAsync(id);
         if (section is null) return NotFound();
-        return Ok(_mapper.Map<SectionDto>(section));
+        return Ok(section);
     }
 
     [HttpPost]
     public async Task<ActionResult<SectionDto>> Create(SectionCreateUpdateDto dto)
     {
-        var section = _mapper.Map<Section>(dto);
-        await _unitOfWork.Sections.AddAsync(section);
-        await _unitOfWork.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetById), new { id = section.Id, version = "1.0" }, _mapper.Map<SectionDto>(section));
+        var section = await _sectionService.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = section.Id, version = "1.0" }, section);
     }
 
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, SectionCreateUpdateDto dto)
     {
-        var section = await _unitOfWork.Sections.GetByIdAsync(id);
-        if (section is null) return NotFound();
-
-        section.Name = dto.Name;
-        _unitOfWork.Sections.Update(section);
-        await _unitOfWork.SaveChangesAsync();
-        return NoContent();
+        var result = await _sectionService.UpdateAsync(id, dto);
+        return result.Succeeded ? NoContent() : NotFound();
     }
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var section = await _unitOfWork.Sections.GetByIdAsync(id);
-        if (section is null) return NotFound();
-
-        section.IsActive = false;
-        _unitOfWork.Sections.Update(section);
-        await _unitOfWork.SaveChangesAsync();
-        return NoContent();
+        var result = await _sectionService.DeleteAsync(id);
+        return result.Succeeded ? NoContent() : NotFound();
     }
 }

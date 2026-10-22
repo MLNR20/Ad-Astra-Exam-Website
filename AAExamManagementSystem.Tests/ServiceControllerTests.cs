@@ -1,0 +1,107 @@
+using AAExamManagementSystem.Controllers;
+using AAExamManagementSystem.Models.Dtos;
+using AAExamManagementSystem.Services;
+using Microsoft.AspNetCore.Mvc;
+using Moq;
+
+namespace AAExamManagementSystem.Tests;
+
+// The controllers only translate service outcomes into HTTP results.
+public class ServiceControllerTests
+{
+    [Fact]
+    public async Task Roles_GetById_WithMissingRole_ReturnsNotFound()
+    {
+        var service = new Mock<IRoleService>();
+        service.Setup(s => s.GetByIdAsync("missing")).ReturnsAsync((RoleDto?)null);
+
+        var result = await new RolesController(service.Object).GetById("missing");
+
+        Assert.IsType<NotFoundResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task Roles_Create_WithInvalidResult_ReturnsBadRequest()
+    {
+        var service = new Mock<IRoleService>();
+        service.Setup(s => s.CreateAsync(It.IsAny<RoleCreateUpdateDto>()))
+            .ReturnsAsync(ServiceResult<RoleDto>.Invalid("exists"));
+
+        var result = await new RolesController(service.Object).Create(new RoleCreateUpdateDto { Name = "Admin" });
+
+        Assert.IsType<BadRequestObjectResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task Roles_Create_WithSuccess_ReturnsCreatedAtAction()
+    {
+        var service = new Mock<IRoleService>();
+        service.Setup(s => s.CreateAsync(It.IsAny<RoleCreateUpdateDto>()))
+            .ReturnsAsync(ServiceResult<RoleDto>.Success(new RoleDto { Id = "r1", Name = "Grader" }));
+
+        var result = await new RolesController(service.Object).Create(new RoleCreateUpdateDto { Name = "Grader" });
+
+        var created = Assert.IsType<CreatedAtActionResult>(result.Result);
+        Assert.Equal("Grader", Assert.IsType<RoleDto>(created.Value).Name);
+    }
+
+    [Theory]
+    [InlineData(ServiceStatus.Success, typeof(NoContentResult))]
+    [InlineData(ServiceStatus.NotFound, typeof(NotFoundResult))]
+    [InlineData(ServiceStatus.Invalid, typeof(BadRequestObjectResult))]
+    public async Task Roles_Update_MapsServiceStatusToHttpResult(ServiceStatus status, Type expected)
+    {
+        var service = new Mock<IRoleService>();
+        service.Setup(s => s.UpdateAsync("r1", It.IsAny<RoleCreateUpdateDto>()))
+            .ReturnsAsync(new ServiceResult { Status = status, Error = "error" });
+
+        var result = await new RolesController(service.Object).Update("r1", new RoleCreateUpdateDto { Name = "Grader" });
+
+        Assert.IsType(expected, result);
+    }
+
+    [Fact]
+    public async Task Sections_Delete_WithMissingSection_ReturnsNotFound()
+    {
+        var service = new Mock<ISectionService>();
+        service.Setup(s => s.DeleteAsync(99)).ReturnsAsync(ServiceResult.NotFound());
+
+        var result = await new SectionsController(service.Object).Delete(99);
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task Sections_Create_ReturnsCreatedAtAction()
+    {
+        var service = new Mock<ISectionService>();
+        service.Setup(s => s.CreateAsync(It.IsAny<SectionCreateUpdateDto>()))
+            .ReturnsAsync(new SectionDto { Id = 1, Name = "New Section" });
+
+        var result = await new SectionsController(service.Object).Create(new SectionCreateUpdateDto { Name = "New Section" });
+
+        Assert.IsType<CreatedAtActionResult>(result.Result);
+    }
+
+    [Fact]
+    public async Task Departments_Update_WithExistingDepartment_ReturnsNoContent()
+    {
+        var service = new Mock<IDepartmentService>();
+        service.Setup(s => s.UpdateAsync("d1", It.IsAny<DepartmentCreateUpdateDto>())).ReturnsAsync(ServiceResult.Success());
+
+        var result = await new DepartmentsController(service.Object).Update("d1", new DepartmentCreateUpdateDto { Name = "A" });
+
+        Assert.IsType<NoContentResult>(result);
+    }
+
+    [Fact]
+    public async Task Departments_GetById_WithMissingDepartment_ReturnsNotFound()
+    {
+        var service = new Mock<IDepartmentService>();
+        service.Setup(s => s.GetByIdAsync("missing")).ReturnsAsync((DepartmentDto?)null);
+
+        var result = await new DepartmentsController(service.Object).GetById("missing");
+
+        Assert.IsType<NotFoundResult>(result.Result);
+    }
+}

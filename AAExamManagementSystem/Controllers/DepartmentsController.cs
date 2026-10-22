@@ -1,8 +1,6 @@
 using AAExamManagementSystem.Models.Dtos;
-using AAExamManagementSystem.Models.Entities;
-using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
 using Asp.Versioning;
-using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,63 +12,45 @@ namespace AAExamManagementSystem.Controllers;
 [Authorize]
 public class DepartmentsController : ControllerBase
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly IMapper _mapper;
+    private readonly IDepartmentService _departmentService;
 
-    public DepartmentsController(IUnitOfWork unitOfWork, IMapper mapper)
+    public DepartmentsController(IDepartmentService departmentService)
     {
-        _unitOfWork = unitOfWork;
-        _mapper = mapper;
+        _departmentService = departmentService;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<DepartmentDto>>> GetAll()
     {
-        var departments = await _unitOfWork.Departments.GetAllAsync();
-        return Ok(_mapper.Map<IEnumerable<DepartmentDto>>(departments));
+        return Ok(await _departmentService.GetAllAsync());
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<DepartmentDto>> GetById(string id)
     {
-        var department = await _unitOfWork.Departments.GetByIdAsync(id);
+        var department = await _departmentService.GetByIdAsync(id);
         if (department is null) return NotFound();
-        return Ok(_mapper.Map<DepartmentDto>(department));
+        return Ok(department);
     }
 
     [HttpPost]
     public async Task<ActionResult<DepartmentDto>> Create(DepartmentCreateUpdateDto dto)
     {
-        var department = _mapper.Map<Department>(dto);
-        await _unitOfWork.Departments.AddAsync(department);
-        await _unitOfWork.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetById), new { id = department.Id, version = "1.0" }, _mapper.Map<DepartmentDto>(department));
+        var department = await _departmentService.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = department.Id, version = "1.0" }, department);
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, DepartmentCreateUpdateDto dto)
     {
-        var department = await _unitOfWork.Departments.GetByIdAsync(id);
-        if (department is null) return NotFound();
-
-        department.Name = dto.Name;
-        department.IsActive = dto.IsActive;
-        department.DateUpdated = DateTime.UtcNow;
-        _unitOfWork.Departments.Update(department);
-        await _unitOfWork.SaveChangesAsync();
-        return NoContent();
+        var result = await _departmentService.UpdateAsync(id, dto);
+        return result.Succeeded ? NoContent() : NotFound();
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        var department = await _unitOfWork.Departments.GetByIdAsync(id);
-        if (department is null) return NotFound();
-
-        department.IsActive = false;
-        department.DateUpdated = DateTime.UtcNow;
-        _unitOfWork.Departments.Update(department);
-        await _unitOfWork.SaveChangesAsync();
-        return NoContent();
+        var result = await _departmentService.DeleteAsync(id);
+        return result.Succeeded ? NoContent() : NotFound();
     }
 }

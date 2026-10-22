@@ -1,8 +1,6 @@
 using AAExamManagementSystem.Models.Dtos;
-using AAExamManagementSystem.Models.Entities;
-using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
 using Asp.Versioning;
-using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,73 +12,52 @@ namespace AAExamManagementSystem.Controllers;
 [Authorize]
 public class RolesController : ControllerBase
 {
-    private readonly IUnitOfWork _unitOfWork;
-    private readonly IMapper _mapper;
+    private readonly IRoleService _roleService;
 
-    public RolesController(IUnitOfWork unitOfWork, IMapper mapper)
+    public RolesController(IRoleService roleService)
     {
-        _unitOfWork = unitOfWork;
-        _mapper = mapper;
+        _roleService = roleService;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<RoleDto>>> GetAll()
     {
-        var roles = await _unitOfWork.Roles.GetAllAsync();
-        return Ok(_mapper.Map<IEnumerable<RoleDto>>(roles));
+        return Ok(await _roleService.GetAllAsync());
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<RoleDto>> GetById(string id)
     {
-        var role = await _unitOfWork.Roles.GetByIdAsync(id);
+        var role = await _roleService.GetByIdAsync(id);
         if (role is null) return NotFound();
-        return Ok(_mapper.Map<RoleDto>(role));
+        return Ok(role);
     }
 
     [HttpPost]
     public async Task<ActionResult<RoleDto>> Create(RoleCreateUpdateDto dto)
     {
-        if (await _unitOfWork.Roles.NameExistsAsync(dto.Name))
-            return BadRequest($"Role '{dto.Name}' already exists.");
+        var result = await _roleService.CreateAsync(dto);
+        if (!result.Succeeded) return BadRequest(result.Error);
 
-        var role = new ApplicationRole(dto.Name) { IsActive = dto.IsActive };
-        await _unitOfWork.Roles.AddAsync(role);
-        await _unitOfWork.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetById), new { id = role.Id, version = "1.0" }, _mapper.Map<RoleDto>(role));
+        return CreatedAtAction(nameof(GetById), new { id = result.Value!.Id, version = "1.0" }, result.Value);
     }
 
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, RoleCreateUpdateDto dto)
     {
-        var role = await _unitOfWork.Roles.GetByIdAsync(id);
-        if (role is null) return NotFound();
-
-        if (!string.Equals(role.Name, dto.Name, StringComparison.OrdinalIgnoreCase)
-            && await _unitOfWork.Roles.NameExistsAsync(dto.Name))
-            return BadRequest($"Role '{dto.Name}' already exists.");
-
-        role.Name = dto.Name;
-        role.IsActive = dto.IsActive;
-        role.DateUpdated = DateTime.UtcNow;
-        _unitOfWork.Roles.Update(role);
-        await _unitOfWork.SaveChangesAsync();
-
-        return NoContent();
+        return ToActionResult(await _roleService.UpdateAsync(id, dto));
     }
 
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        var role = await _unitOfWork.Roles.GetByIdAsync(id);
-        if (role is null) return NotFound();
-
-        role.IsActive = false;
-        role.DateUpdated = DateTime.UtcNow;
-        _unitOfWork.Roles.Update(role);
-        await _unitOfWork.SaveChangesAsync();
-
-        return NoContent();
+        return ToActionResult(await _roleService.DeleteAsync(id));
     }
+
+    private IActionResult ToActionResult(ServiceResult result) => result.Status switch
+    {
+        ServiceStatus.NotFound => NotFound(),
+        ServiceStatus.Invalid => BadRequest(result.Error),
+        _ => NoContent()
+    };
 }
