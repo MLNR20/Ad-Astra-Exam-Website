@@ -10,6 +10,13 @@ namespace AAExamManagementSystem.Tests;
 
 public class DepartmentsControllerTests
 {
+    private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IGenericRepository<Department>> repository)
+    {
+        var unitOfWork = new Mock<IUnitOfWork>();
+        unitOfWork.Setup(u => u.Departments).Returns(repository.Object);
+        return unitOfWork;
+    }
+
     private static IMapper CreateMapper()
     {
         var configuration = new MapperConfiguration(
@@ -32,7 +39,8 @@ public class DepartmentsControllerTests
             new Department { Id = "dept-2", Name = "Department B" },
         });
 
-        var controller = new DepartmentsController(repository.Object, CreateMapper());
+        var unitOfWork = CreateUnitOfWork(repository);
+        var controller = new DepartmentsController(unitOfWork.Object, CreateMapper());
 
         var result = await controller.GetAll();
 
@@ -47,7 +55,8 @@ public class DepartmentsControllerTests
         var repository = new Mock<IGenericRepository<Department>>();
         repository.Setup(r => r.GetByIdAsync("dept-1")).ReturnsAsync(new Department { Id = "dept-1", Name = "Department A" });
 
-        var controller = new DepartmentsController(repository.Object, CreateMapper());
+        var unitOfWork = CreateUnitOfWork(repository);
+        var controller = new DepartmentsController(unitOfWork.Object, CreateMapper());
 
         var result = await controller.GetById("dept-1");
 
@@ -62,7 +71,8 @@ public class DepartmentsControllerTests
         var repository = new Mock<IGenericRepository<Department>>();
         repository.Setup(r => r.GetByIdAsync(It.IsAny<object>())).ReturnsAsync((Department?)null);
 
-        var controller = new DepartmentsController(repository.Object, CreateMapper());
+        var unitOfWork = CreateUnitOfWork(repository);
+        var controller = new DepartmentsController(unitOfWork.Object, CreateMapper());
 
         var result = await controller.GetById("missing");
 
@@ -74,7 +84,8 @@ public class DepartmentsControllerTests
     {
         var repository = new Mock<IGenericRepository<Department>>();
 
-        var controller = new DepartmentsController(repository.Object, CreateMapper());
+        var unitOfWork = CreateUnitOfWork(repository);
+        var controller = new DepartmentsController(unitOfWork.Object, CreateMapper());
 
         var result = await controller.Create(new DepartmentCreateUpdateDto { Name = "New Department", IsActive = true });
 
@@ -82,7 +93,7 @@ public class DepartmentsControllerTests
         var dto = Assert.IsType<DepartmentDto>(created.Value);
         Assert.Equal("New Department", dto.Name);
         repository.Verify(r => r.AddAsync(It.Is<Department>(d => d.Name == "New Department")), Times.Once);
-        repository.Verify(r => r.SaveChangesAsync(), Times.Once);
+        unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -92,7 +103,8 @@ public class DepartmentsControllerTests
         var repository = new Mock<IGenericRepository<Department>>();
         repository.Setup(r => r.GetByIdAsync("dept-1")).ReturnsAsync(department);
 
-        var controller = new DepartmentsController(repository.Object, CreateMapper());
+        var unitOfWork = CreateUnitOfWork(repository);
+        var controller = new DepartmentsController(unitOfWork.Object, CreateMapper());
 
         var result = await controller.Update("dept-1", new DepartmentCreateUpdateDto { Name = "New Name", IsActive = false });
 
@@ -100,7 +112,7 @@ public class DepartmentsControllerTests
         Assert.Equal("New Name", department.Name);
         Assert.False(department.IsActive);
         repository.Verify(r => r.Update(department), Times.Once);
-        repository.Verify(r => r.SaveChangesAsync(), Times.Once);
+        unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -109,12 +121,13 @@ public class DepartmentsControllerTests
         var repository = new Mock<IGenericRepository<Department>>();
         repository.Setup(r => r.GetByIdAsync(It.IsAny<object>())).ReturnsAsync((Department?)null);
 
-        var controller = new DepartmentsController(repository.Object, CreateMapper());
+        var unitOfWork = CreateUnitOfWork(repository);
+        var controller = new DepartmentsController(unitOfWork.Object, CreateMapper());
 
         var result = await controller.Update("missing", new DepartmentCreateUpdateDto { Name = "New Name" });
 
         Assert.IsType<NotFoundResult>(result);
-        repository.Verify(r => r.SaveChangesAsync(), Times.Never);
+        unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -124,14 +137,15 @@ public class DepartmentsControllerTests
         var repository = new Mock<IGenericRepository<Department>>();
         repository.Setup(r => r.GetByIdAsync("dept-1")).ReturnsAsync(department);
 
-        var controller = new DepartmentsController(repository.Object, CreateMapper());
+        var unitOfWork = CreateUnitOfWork(repository);
+        var controller = new DepartmentsController(unitOfWork.Object, CreateMapper());
 
         var result = await controller.Delete("dept-1");
 
         Assert.IsType<NoContentResult>(result);
         Assert.False(department.IsActive);
         repository.Verify(r => r.Update(department), Times.Once);
-        repository.Verify(r => r.SaveChangesAsync(), Times.Once);
+        unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -140,11 +154,12 @@ public class DepartmentsControllerTests
         var repository = new Mock<IGenericRepository<Department>>();
         repository.Setup(r => r.GetByIdAsync(It.IsAny<object>())).ReturnsAsync((Department?)null);
 
-        var controller = new DepartmentsController(repository.Object, CreateMapper());
+        var unitOfWork = CreateUnitOfWork(repository);
+        var controller = new DepartmentsController(unitOfWork.Object, CreateMapper());
 
         var result = await controller.Delete("missing");
 
         Assert.IsType<NotFoundResult>(result);
-        repository.Verify(r => r.SaveChangesAsync(), Times.Never);
+        unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 }

@@ -10,6 +10,13 @@ namespace AAExamManagementSystem.Tests;
 
 public class SectionsControllerTests
 {
+    private static Mock<IUnitOfWork> CreateUnitOfWork(Mock<IGenericRepository<Section>> repository)
+    {
+        var unitOfWork = new Mock<IUnitOfWork>();
+        unitOfWork.Setup(u => u.Sections).Returns(repository.Object);
+        return unitOfWork;
+    }
+
     private static IMapper CreateMapper()
     {
         var configuration = new MapperConfiguration(
@@ -32,7 +39,8 @@ public class SectionsControllerTests
             new Section { Id = 2, Name = "Section B" },
         });
 
-        var controller = new SectionsController(repository.Object, CreateMapper());
+        var unitOfWork = CreateUnitOfWork(repository);
+        var controller = new SectionsController(unitOfWork.Object, CreateMapper());
 
         var result = await controller.GetAll();
 
@@ -47,7 +55,8 @@ public class SectionsControllerTests
         var repository = new Mock<IGenericRepository<Section>>();
         repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(new Section { Id = 1, Name = "Section A" });
 
-        var controller = new SectionsController(repository.Object, CreateMapper());
+        var unitOfWork = CreateUnitOfWork(repository);
+        var controller = new SectionsController(unitOfWork.Object, CreateMapper());
 
         var result = await controller.GetById(1);
 
@@ -62,7 +71,8 @@ public class SectionsControllerTests
         var repository = new Mock<IGenericRepository<Section>>();
         repository.Setup(r => r.GetByIdAsync(It.IsAny<object>())).ReturnsAsync((Section?)null);
 
-        var controller = new SectionsController(repository.Object, CreateMapper());
+        var unitOfWork = CreateUnitOfWork(repository);
+        var controller = new SectionsController(unitOfWork.Object, CreateMapper());
 
         var result = await controller.GetById(99);
 
@@ -74,7 +84,8 @@ public class SectionsControllerTests
     {
         var repository = new Mock<IGenericRepository<Section>>();
 
-        var controller = new SectionsController(repository.Object, CreateMapper());
+        var unitOfWork = CreateUnitOfWork(repository);
+        var controller = new SectionsController(unitOfWork.Object, CreateMapper());
 
         var result = await controller.Create(new SectionCreateUpdateDto { Name = "New Section" });
 
@@ -82,7 +93,7 @@ public class SectionsControllerTests
         var dto = Assert.IsType<SectionDto>(created.Value);
         Assert.Equal("New Section", dto.Name);
         repository.Verify(r => r.AddAsync(It.Is<Section>(s => s.Name == "New Section")), Times.Once);
-        repository.Verify(r => r.SaveChangesAsync(), Times.Once);
+        unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -92,14 +103,15 @@ public class SectionsControllerTests
         var repository = new Mock<IGenericRepository<Section>>();
         repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(section);
 
-        var controller = new SectionsController(repository.Object, CreateMapper());
+        var unitOfWork = CreateUnitOfWork(repository);
+        var controller = new SectionsController(unitOfWork.Object, CreateMapper());
 
         var result = await controller.Update(1, new SectionCreateUpdateDto { Name = "New Name" });
 
         Assert.IsType<NoContentResult>(result);
         Assert.Equal("New Name", section.Name);
         repository.Verify(r => r.Update(section), Times.Once);
-        repository.Verify(r => r.SaveChangesAsync(), Times.Once);
+        unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -108,12 +120,13 @@ public class SectionsControllerTests
         var repository = new Mock<IGenericRepository<Section>>();
         repository.Setup(r => r.GetByIdAsync(It.IsAny<object>())).ReturnsAsync((Section?)null);
 
-        var controller = new SectionsController(repository.Object, CreateMapper());
+        var unitOfWork = CreateUnitOfWork(repository);
+        var controller = new SectionsController(unitOfWork.Object, CreateMapper());
 
         var result = await controller.Update(99, new SectionCreateUpdateDto { Name = "New Name" });
 
         Assert.IsType<NotFoundResult>(result);
-        repository.Verify(r => r.SaveChangesAsync(), Times.Never);
+        unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]
@@ -123,14 +136,15 @@ public class SectionsControllerTests
         var repository = new Mock<IGenericRepository<Section>>();
         repository.Setup(r => r.GetByIdAsync(1)).ReturnsAsync(section);
 
-        var controller = new SectionsController(repository.Object, CreateMapper());
+        var unitOfWork = CreateUnitOfWork(repository);
+        var controller = new SectionsController(unitOfWork.Object, CreateMapper());
 
         var result = await controller.Delete(1);
 
         Assert.IsType<NoContentResult>(result);
         Assert.False(section.IsActive);
         repository.Verify(r => r.Update(section), Times.Once);
-        repository.Verify(r => r.SaveChangesAsync(), Times.Once);
+        unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
     }
 
     [Fact]
@@ -139,11 +153,12 @@ public class SectionsControllerTests
         var repository = new Mock<IGenericRepository<Section>>();
         repository.Setup(r => r.GetByIdAsync(It.IsAny<object>())).ReturnsAsync((Section?)null);
 
-        var controller = new SectionsController(repository.Object, CreateMapper());
+        var unitOfWork = CreateUnitOfWork(repository);
+        var controller = new SectionsController(unitOfWork.Object, CreateMapper());
 
         var result = await controller.Delete(99);
 
         Assert.IsType<NotFoundResult>(result);
-        repository.Verify(r => r.SaveChangesAsync(), Times.Never);
+        unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 }

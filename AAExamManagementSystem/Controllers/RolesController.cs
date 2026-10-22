@@ -1,9 +1,9 @@
 using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Models.Entities;
+using AAExamManagementSystem.Repository;
 using Asp.Versioning;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AAExamManagementSystem.Controllers;
@@ -14,26 +14,26 @@ namespace AAExamManagementSystem.Controllers;
 [Authorize]
 public class RolesController : ControllerBase
 {
-    private readonly RoleManager<ApplicationRole> _roleManager;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
 
-    public RolesController(RoleManager<ApplicationRole> roleManager, IMapper mapper)
+    public RolesController(IUnitOfWork unitOfWork, IMapper mapper)
     {
-        _roleManager = roleManager;
+        _unitOfWork = unitOfWork;
         _mapper = mapper;
     }
 
     [HttpGet]
-    public ActionResult<IEnumerable<RoleDto>> GetAll()
+    public async Task<ActionResult<IEnumerable<RoleDto>>> GetAll()
     {
-        var roles = _roleManager.Roles.ToList();
+        var roles = await _unitOfWork.Roles.GetAllAsync();
         return Ok(_mapper.Map<IEnumerable<RoleDto>>(roles));
     }
 
     [HttpGet("{id}")]
     public async Task<ActionResult<RoleDto>> GetById(string id)
     {
-        var role = await _roleManager.FindByIdAsync(id);
+        var role = await _unitOfWork.Roles.GetByIdAsync(id);
         if (role is null) return NotFound();
         return Ok(_mapper.Map<RoleDto>(role));
     }
@@ -41,12 +41,12 @@ public class RolesController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<RoleDto>> Create(RoleCreateUpdateDto dto)
     {
-        if (await _roleManager.RoleExistsAsync(dto.Name))
+        if (await _unitOfWork.Roles.NameExistsAsync(dto.Name))
             return BadRequest($"Role '{dto.Name}' already exists.");
 
         var role = new ApplicationRole(dto.Name) { IsActive = dto.IsActive };
-        var result = await _roleManager.CreateAsync(role);
-        if (!result.Succeeded) return BadRequest(result.Errors);
+        await _unitOfWork.Roles.AddAsync(role);
+        await _unitOfWork.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetById), new { id = role.Id, version = "1.0" }, _mapper.Map<RoleDto>(role));
     }
@@ -54,18 +54,18 @@ public class RolesController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(string id, RoleCreateUpdateDto dto)
     {
-        var role = await _roleManager.FindByIdAsync(id);
+        var role = await _unitOfWork.Roles.GetByIdAsync(id);
         if (role is null) return NotFound();
 
         if (!string.Equals(role.Name, dto.Name, StringComparison.OrdinalIgnoreCase)
-            && await _roleManager.RoleExistsAsync(dto.Name))
+            && await _unitOfWork.Roles.NameExistsAsync(dto.Name))
             return BadRequest($"Role '{dto.Name}' already exists.");
 
         role.Name = dto.Name;
         role.IsActive = dto.IsActive;
         role.DateUpdated = DateTime.UtcNow;
-        var result = await _roleManager.UpdateAsync(role);
-        if (!result.Succeeded) return BadRequest(result.Errors);
+        _unitOfWork.Roles.Update(role);
+        await _unitOfWork.SaveChangesAsync();
 
         return NoContent();
     }
@@ -73,13 +73,13 @@ public class RolesController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<IActionResult> Delete(string id)
     {
-        var role = await _roleManager.FindByIdAsync(id);
+        var role = await _unitOfWork.Roles.GetByIdAsync(id);
         if (role is null) return NotFound();
 
         role.IsActive = false;
         role.DateUpdated = DateTime.UtcNow;
-        var result = await _roleManager.UpdateAsync(role);
-        if (!result.Succeeded) return BadRequest(result.Errors);
+        _unitOfWork.Roles.Update(role);
+        await _unitOfWork.SaveChangesAsync();
 
         return NoContent();
     }

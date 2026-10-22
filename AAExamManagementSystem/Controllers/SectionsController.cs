@@ -14,26 +14,26 @@ namespace AAExamManagementSystem.Controllers;
 [Authorize]
 public class SectionsController : ControllerBase
 {
-    private readonly IGenericRepository<Section> _repository;
+    private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
 
-    public SectionsController(IGenericRepository<Section> repository, IMapper mapper)
+    public SectionsController(IUnitOfWork unitOfWork, IMapper mapper)
     {
-        _repository = repository;
+        _unitOfWork = unitOfWork;
         _mapper = mapper;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<SectionDto>>> GetAll()
     {
-        var sections = await _repository.GetAllAsync();
+        var sections = await _unitOfWork.Sections.GetAllAsync();
         return Ok(_mapper.Map<IEnumerable<SectionDto>>(sections));
     }
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<SectionDto>> GetById(int id)
     {
-        var section = await _repository.GetByIdAsync(id);
+        var section = await _unitOfWork.Sections.GetByIdAsync(id);
         if (section is null) return NotFound();
         return Ok(_mapper.Map<SectionDto>(section));
     }
@@ -42,32 +42,32 @@ public class SectionsController : ControllerBase
     public async Task<ActionResult<SectionDto>> Create(SectionCreateUpdateDto dto)
     {
         var section = _mapper.Map<Section>(dto);
-        await _repository.AddAsync(section);
-        await _repository.SaveChangesAsync();
+        await _unitOfWork.Sections.AddAsync(section);
+        await _unitOfWork.SaveChangesAsync();
         return CreatedAtAction(nameof(GetById), new { id = section.Id, version = "1.0" }, _mapper.Map<SectionDto>(section));
     }
 
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, SectionCreateUpdateDto dto)
     {
-        var section = await _repository.GetByIdAsync(id);
+        var section = await _unitOfWork.Sections.GetByIdAsync(id);
         if (section is null) return NotFound();
 
         section.Name = dto.Name;
-        _repository.Update(section);
-        await _repository.SaveChangesAsync();
+        _unitOfWork.Sections.Update(section);
+        await _unitOfWork.SaveChangesAsync();
         return NoContent();
     }
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var section = await _repository.GetByIdAsync(id);
+        var section = await _unitOfWork.Sections.GetByIdAsync(id);
         if (section is null) return NotFound();
 
         section.IsActive = false;
-        _repository.Update(section);
-        await _repository.SaveChangesAsync();
+        _unitOfWork.Sections.Update(section);
+        await _unitOfWork.SaveChangesAsync();
         return NoContent();
     }
 }
