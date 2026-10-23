@@ -49,7 +49,11 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<ISectionService, SectionService>();
 builder.Services.AddScoped<IDepartmentService, DepartmentService>();
+builder.Services.AddScoped<ICourseService, CourseService>();
+builder.Services.AddScoped<IChoiceService, ChoiceService>();
+builder.Services.AddScoped<IQuestionService, QuestionService>();
 builder.Services.AddScoped<QuestionChoiceService>();
+builder.Services.AddScoped<IQuestionChoiceService>(sp => sp.GetRequiredService<QuestionChoiceService>());
 builder.Services.AddScoped<NotificationService>();
 
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));

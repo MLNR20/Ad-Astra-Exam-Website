@@ -1,8 +1,6 @@
 using AAExamManagementSystem.Models.Dtos;
-using AAExamManagementSystem.Models.Entities;
-using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
 using Asp.Versioning;
-using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,67 +12,45 @@ namespace AAExamManagementSystem.Controllers;
 [Authorize]
 public class ChoicesController : ControllerBase
 {
-    private readonly IGenericRepository<Choice> _repository;
-    private readonly IMapper _mapper;
+    private readonly IChoiceService _choiceService;
 
-    public ChoicesController(IGenericRepository<Choice> repository, IMapper mapper)
+    public ChoicesController(IChoiceService choiceService)
     {
-        _repository = repository;
-        _mapper = mapper;
+        _choiceService = choiceService;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<ChoiceDto>>> GetAll()
     {
-        var choices = await _repository.GetAllAsync();
-        var dtos = _mapper.Map<IList<ChoiceDto>>(choices);
-        return Ok(dtos);
+        return Ok(await _choiceService.GetAllAsync());
     }
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<ChoiceDto>> GetById(Guid id)
     {
-        var choice = await _repository.GetByIdAsync(id);
+        var choice = await _choiceService.GetByIdAsync(id);
         if (choice is null) return NotFound();
-
-        var dto = _mapper.Map<ChoiceDto>(choice);
-        return Ok(dto);
+        return Ok(choice);
     }
 
     [HttpPost]
     public async Task<ActionResult<ChoiceDto>> Create(ChoiceCreateUpdateDto dto)
     {
-        var choice = _mapper.Map<Choice>(dto);
-        await _repository.AddAsync(choice);
-        await _repository.SaveChangesAsync();
-
-        var result = _mapper.Map<ChoiceDto>(choice);
-        return CreatedAtAction(nameof(GetById), new { id = choice.Id, version = "1.0" }, result);
+        var choice = await _choiceService.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = choice.Id, version = "1.0" }, choice);
     }
 
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, ChoiceCreateUpdateDto dto)
     {
-        var choice = await _repository.GetByIdAsync(id);
-        if (choice is null) return NotFound();
-
-        choice.ChoiceText = dto.ChoiceText;
-        choice.IsCorrect = dto.IsCorrect;
-        choice.IsActive = dto.IsActive;
-        choice.DateUpdated = DateTime.UtcNow;
-        _repository.Update(choice);
-        await _repository.SaveChangesAsync();
-        return NoContent();
+        var result = await _choiceService.UpdateAsync(id, dto);
+        return result.Succeeded ? NoContent() : NotFound();
     }
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
-        var choice = await _repository.GetByIdAsync(id);
-        if (choice is null) return NotFound();
-
-        _repository.Remove(choice);
-        await _repository.SaveChangesAsync();
-        return NoContent();
+        var result = await _choiceService.DeleteAsync(id);
+        return result.Succeeded ? NoContent() : NotFound();
     }
 }

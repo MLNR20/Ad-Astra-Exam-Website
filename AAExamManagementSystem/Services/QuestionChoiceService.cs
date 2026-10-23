@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AAExamManagementSystem.Services;
 
-public class QuestionChoiceService
+public class QuestionChoiceService : IQuestionChoiceService
 {
     public const int MinimumChoices = 2;
     public const int MaximumChoices = 4;

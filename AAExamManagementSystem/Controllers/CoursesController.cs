@@ -1,8 +1,6 @@
 using AAExamManagementSystem.Models.Dtos;
-using AAExamManagementSystem.Models.Entities;
-using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
 using Asp.Versioning;
-using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -14,63 +12,45 @@ namespace AAExamManagementSystem.Controllers;
 [Authorize]
 public class CoursesController : ControllerBase
 {
-    private readonly IGenericRepository<Course> _repository;
-    private readonly IMapper _mapper;
+    private readonly ICourseService _courseService;
 
-    public CoursesController(IGenericRepository<Course> repository, IMapper mapper)
+    public CoursesController(ICourseService courseService)
     {
-        _repository = repository;
-        _mapper = mapper;
+        _courseService = courseService;
     }
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<CourseDto>>> GetAll()
     {
-        var courses = await _repository.GetAllAsync();
-        return Ok(_mapper.Map<IEnumerable<CourseDto>>(courses));
+        return Ok(await _courseService.GetAllAsync());
     }
 
     [HttpGet("{id:int}")]
     public async Task<ActionResult<CourseDto>> GetById(int id)
     {
-        var course = await _repository.GetByIdAsync(id);
+        var course = await _courseService.GetByIdAsync(id);
         if (course is null) return NotFound();
-        return Ok(_mapper.Map<CourseDto>(course));
+        return Ok(course);
     }
 
     [HttpPost]
     public async Task<ActionResult<CourseDto>> Create(CourseCreateUpdateDto dto)
     {
-        var course = _mapper.Map<Course>(dto);
-        await _repository.AddAsync(course);
-        await _repository.SaveChangesAsync();
-        return CreatedAtAction(nameof(GetById), new { id = course.Id, version = "1.0" }, _mapper.Map<CourseDto>(course));
+        var course = await _courseService.CreateAsync(dto);
+        return CreatedAtAction(nameof(GetById), new { id = course.Id, version = "1.0" }, course);
     }
 
     [HttpPut("{id:int}")]
     public async Task<IActionResult> Update(int id, CourseCreateUpdateDto dto)
     {
-        var course = await _repository.GetByIdAsync(id);
-        if (course is null) return NotFound();
-
-        course.Name = dto.Name;
-        course.IsActive = dto.IsActive;
-        course.DateUpdated = DateTime.UtcNow;
-        _repository.Update(course);
-        await _repository.SaveChangesAsync();
-        return NoContent();
+        var result = await _courseService.UpdateAsync(id, dto);
+        return result.Succeeded ? NoContent() : NotFound();
     }
 
     [HttpDelete("{id:int}")]
     public async Task<IActionResult> Delete(int id)
     {
-        var course = await _repository.GetByIdAsync(id);
-        if (course is null) return NotFound();
-
-        course.IsActive = false;
-        course.DateUpdated = DateTime.UtcNow;
-        _repository.Update(course);
-        await _repository.SaveChangesAsync();
-        return NoContent();
+        var result = await _courseService.DeleteAsync(id);
+        return result.Succeeded ? NoContent() : NotFound();
     }
 }
