@@ -16,6 +16,7 @@ namespace AAExamManagementSystem.Pages.Questions;
 public class SimulateAllModel : PageModel
 {
     private const string SqlSchemaImagePrefix = "/images/sql-schema-";
+    private const string DebugImagePrefix = "/images/debug-";
     private const string DefaultHeading = "Multiple Choice Questions";
     private const string DefaultSubheading = "Answer every question below, then submit to see your score.";
 
@@ -237,18 +238,29 @@ public class SimulateAllModel : PageModel
             var sqlQuestions = departmentQuestions
                 .Where(q => q.Image != null && q.Image.StartsWith(SqlSchemaImagePrefix))
                 .ToList();
-            var departmentMainQuestions = departmentQuestions.Except(sqlQuestions).ToList();
+            var debugQuestions = departmentQuestions
+                .Where(q => q.Image != null && q.Image.StartsWith(DebugImagePrefix))
+                .ToList();
+            var departmentMainQuestions = departmentQuestions.Except(sqlQuestions).Except(debugQuestions).ToList();
 
             stages.Add(new ExamStage(section.Name, departmentSubtitle, DefaultHeading, DefaultSubheading, departmentMainQuestions, noHeadings));
 
-            if (sqlQuestions.Count > 0)
+            // Page 2 holds the SQL schema questions followed by the debugging questions.
+            var secondPageQuestions = sqlQuestions.Concat(debugQuestions).ToList();
+            if (secondPageQuestions.Count > 0)
             {
+                var hasSql = sqlQuestions.Count > 0;
+                var hasDebug = debugQuestions.Count > 0;
                 stages.Add(new ExamStage(
-                    "SQL Queries",
-                    "Write the SQL query that answers each question about the schema shown.",
-                    "SQL Query Questions",
+                    hasSql && hasDebug ? "SQL Queries and Debugging" : hasSql ? "SQL Queries" : "Debugging",
+                    hasSql && hasDebug
+                        ? "Write the SQL query for each schema shown, then find the errors in each code sample."
+                        : hasSql
+                            ? "Write the SQL query that answers each question about the schema shown."
+                            : "Find the errors in each code sample.",
+                    hasSql && hasDebug ? "SQL Query and Debugging Questions" : hasSql ? "SQL Query Questions" : "Debugging Questions",
                     DefaultSubheading,
-                    sqlQuestions,
+                    secondPageQuestions,
                     noHeadings));
             }
         }
