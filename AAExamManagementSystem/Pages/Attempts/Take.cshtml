@@ -79,8 +79,9 @@
                     {
                         @await Html.PartialAsync("_ExamSectionHeading", (sectionHeading.Instruction, sectionHeading.SubInstruction))
                     }
-                    <div class="exam-sim-question mb-5">
-                        <h5 class="fw-semibold mb-1">@(qi + 1). @question.QuestionTitle</h5>
+                    <div class="d-flex flex-column mt-2">
+                    <div class="exam-sim-question mb-4">
+                        <h5 class="fw-semibold mb-3">@(qi + 1). @question.QuestionTitle</h5>
                         @if (QuestionTypes.RequiresChoices(question.QuestionTypeName))
                         {
                             <div class="exam-sim-choices mt-2">
@@ -106,6 +107,7 @@
                         {
                             <img src="@question.Image" class="exam-sim-question-image img-fluid rounded mt-3 d-block mx-auto" alt="" />
                         }
+                    </div>
                     </div>
                 }
 

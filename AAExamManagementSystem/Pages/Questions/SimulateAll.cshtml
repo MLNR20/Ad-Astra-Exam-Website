@@ -87,8 +87,9 @@ else
                     {
                         @await Html.PartialAsync("_ExamSectionHeading", (sectionHeading.Instruction, sectionHeading.SubInstruction))
                     }
+                    <div class="d-flex flex-column mt-2">
                     <div class="exam-sim-question mb-4" data-question-index="@qi" data-question-type="@question.QuestionTypeName" data-up-to-evaluation="@question.IsUpToEvaluation.ToString().ToLowerInvariant()">
-                        <h5 class="fw-semibold mb-1">
+                        <h5 class="fw-semibold mb-3">
                             @(qi + 1). @question.QuestionTitle
                         </h5>
                         @if (!string.IsNullOrEmpty(question.Image))
@@ -129,6 +130,7 @@ else
                             }
                         </div>
                         <div class="exam-sim-result mt-2" id="result@(qi)"></div>
+                    </div>
                     </div>
                 }
                 <div id="simSummary" class="d-none text-center mb-4"></div>
