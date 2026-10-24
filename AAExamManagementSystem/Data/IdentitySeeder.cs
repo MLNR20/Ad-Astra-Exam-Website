@@ -124,6 +124,11 @@ public static class IdentitySeeder
         await SeedJavaScriptCodeSnippetQuestionsAsync(dbContext);
         await SeedMarketingQuestionsAsync(dbContext);
         await SeedMarketingEnumerationQuestionsAsync(dbContext);
+        await SeedMarketingToolQuestionsAsync(dbContext);
+        await SeedMarketingEssayQuestionsAsync(dbContext);
+        await SeedMarketingExamPagesAsync(dbContext);
+        await SeedGeneralKnowledgeBenildeQuestionsAsync(dbContext);
+        await SeedGeneralKnowledgeExamPagesAsync(dbContext);
         await SeedContentDevelopmentSpellingQuestionsAsync(dbContext);
         await SeedContentDevelopmentEssayQuestionsAsync(dbContext);
         await SeedPhotoQuestionsAsync(dbContext);
@@ -392,6 +397,234 @@ public static class IdentitySeeder
             dbContext.Questions.Add(question);
             AddIdentificationAnswer(dbContext, question, answer);
         }
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private const string GeneralKnowledgeSchoolsQuestionTitle = "Enumeration: What are the five schools of Benilde? (5 points)";
+    private const string GeneralKnowledgeOrganizationsQuestionTitle = "How many organizations are there under the Student Publications Unit (SPU)?";
+    private const string GeneralKnowledgeBuildingsQuestionTitle = "List four buildings found in the Taft main campus of DLS-CSB.";
+
+    // Reference answers are kept for the evaluator. The schools list is marked by hand; the organization count is
+    // checked automatically (Ad Astra and the Benildean Press Corps).
+    private static async Task SeedGeneralKnowledgeBenildeQuestionsAsync(ApplicationDbContext dbContext)
+    {
+        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.GeneralKnowledge);
+        var identificationType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Identification);
+        if (section is null || identificationType is null)
+        {
+            return;
+        }
+
+        if (!dbContext.Questions.Any(q => q.QuestionTitle == GeneralKnowledgeSchoolsQuestionTitle && q.SectionId == section.Id))
+        {
+            var schools = new Question
+            {
+                QuestionTypeId = identificationType.Id,
+                SectionId = section.Id,
+                QuestionTitle = GeneralKnowledgeSchoolsQuestionTitle,
+                IsUpToEvaluation = true,
+                Score = 5
+            };
+
+            dbContext.Questions.Add(schools);
+            AddIdentificationAnswer(dbContext, schools,
+                "School of Design and Arts (SDA), School of Management and Information Technology (SMIT), " +
+                "School of Hotel, Restaurant and Institution Management (SHRIM), School of Multidisciplinary Studies (SMS), " +
+                "School of Deaf Education and Applied Studies (SDEAS)");
+        }
+
+        if (!dbContext.Questions.Any(q => q.QuestionTitle == GeneralKnowledgeOrganizationsQuestionTitle && q.SectionId == section.Id))
+        {
+            var organizations = new Question
+            {
+                QuestionTypeId = identificationType.Id,
+                SectionId = section.Id,
+                QuestionTitle = GeneralKnowledgeOrganizationsQuestionTitle,
+                Score = 1
+            };
+
+            dbContext.Questions.Add(organizations);
+            AddIdentificationAnswer(dbContext, organizations, "2");
+        }
+
+        await dbContext.SaveChangesAsync();
+
+        await SeedEssayQuestionsAsync(dbContext, Departments.GeneralKnowledge, new[] { GeneralKnowledgeBuildingsQuestionTitle }, score: 4);
+    }
+
+    // General Knowledge layout: page 1 is the multiple choice and identification questions, page 2 the essay. Only
+    // set up when the department has no exam pages yet, so pages an admin has configured are never overwritten.
+    private static async Task SeedGeneralKnowledgeExamPagesAsync(ApplicationDbContext dbContext)
+    {
+        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.GeneralKnowledge);
+        var multipleChoiceType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.MultipleChoice);
+        var identificationType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Identification);
+        var essayType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Essay);
+        if (section is null || multipleChoiceType is null || identificationType is null || essayType is null)
+        {
+            return;
+        }
+
+        if (dbContext.ExamPages.Any(p => p.SectionId == section.Id))
+        {
+            return;
+        }
+
+        var questions = dbContext.Questions
+            .Where(q => q.SectionId == section.Id && q.IsActive)
+            .OrderBy(q => q.DateCreated)
+            .ToList();
+
+        var multipleChoice = questions.Where(q => q.QuestionTypeId == multipleChoiceType.Id).ToList();
+        var identification = questions.Where(q => q.QuestionTypeId == identificationType.Id).ToList();
+        var essays = questions.Where(q => q.QuestionTypeId == essayType.Id).ToList();
+
+        var pageOne = new ExamPage { SectionId = section.Id, PageNumber = 1 };
+        var pageTwo = new ExamPage
+        {
+            SectionId = section.Id,
+            PageNumber = 2,
+            Instruction = "Essay Questions",
+            SubInstruction = "Answer in a few well-organized sentences."
+        };
+        dbContext.ExamPages.AddRange(pageOne, pageTwo);
+
+        void Place(ExamPage page, int questionTypeId, int order, IList<Question> pageQuestions)
+        {
+            var pageSection = new PageSection { ExamPage = page, QuestionTypeId = questionTypeId, Order = order };
+            dbContext.PageSections.Add(pageSection);
+            for (var i = 0; i < pageQuestions.Count; i++)
+            {
+                pageQuestions[i].PageSection = pageSection;
+                pageQuestions[i].PageOrder = i + 1;
+            }
+        }
+
+        Place(pageOne, multipleChoiceType.Id, 1, multipleChoice);
+        Place(pageOne, identificationType.Id, 2, identification);
+        Place(pageTwo, essayType.Id, 1, essays);
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private const string MarketingToolQuestionTitle = "Identify the marketing tool shown in the logo below:";
+
+    private static readonly (string Icon, string Answer)[] MarketingToolQuestions =
+    {
+        ("https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/hubspot.svg", "HubSpot"),
+        ("https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/mailchimp.svg", "Mailchimp"),
+        ("https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/canva.svg", "Canva"),
+        ("https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/googleanalytics.svg", "Google Analytics"),
+        ("https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/hootsuite.svg", "Hootsuite")
+    };
+
+    private static async Task SeedMarketingToolQuestionsAsync(ApplicationDbContext dbContext)
+    {
+        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.Marketing);
+        var identificationType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Identification);
+        if (section is null || identificationType is null)
+        {
+            return;
+        }
+
+        foreach (var (icon, answer) in MarketingToolQuestions)
+        {
+            var exists = dbContext.Questions.Any(q =>
+                q.QuestionTitle == MarketingToolQuestionTitle && q.Image == icon && q.SectionId == section.Id);
+            if (exists)
+            {
+                continue;
+            }
+
+            var question = new Question
+            {
+                QuestionTypeId = identificationType.Id,
+                SectionId = section.Id,
+                QuestionTitle = MarketingToolQuestionTitle,
+                Image = icon,
+                Score = 1
+            };
+
+            dbContext.Questions.Add(question);
+            AddIdentificationAnswer(dbContext, question, answer);
+        }
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private static readonly string[] MarketingEssayQuestions =
+    {
+        "Campaign Planning: How would you create a marketing campaign for a new product? Describe the steps you would take, from setting goals and choosing your target audience to selecting channels and launching.",
+        "Tracking Engagement: How would you track and measure audience engagement for a marketing campaign? Explain the metrics and tools you would use and how you would act on the results."
+    };
+
+    private static async Task SeedMarketingEssayQuestionsAsync(ApplicationDbContext dbContext)
+    {
+        await SeedEssayQuestionsAsync(dbContext, Departments.Marketing, MarketingEssayQuestions, score: 10);
+    }
+
+    // Marketing exam layout: page 1 is multiple choice then the tool-logo identification questions, page 2 the
+    // enumeration questions, page 3 the essays. Only set up when the department has no exam pages yet, so pages an
+    // admin has configured are never overwritten.
+    private static async Task SeedMarketingExamPagesAsync(ApplicationDbContext dbContext)
+    {
+        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.Marketing);
+        var multipleChoiceType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.MultipleChoice);
+        var identificationType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Identification);
+        var essayType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Essay);
+        if (section is null || multipleChoiceType is null || identificationType is null || essayType is null)
+        {
+            return;
+        }
+
+        if (dbContext.ExamPages.Any(p => p.SectionId == section.Id))
+        {
+            return;
+        }
+
+        var questions = dbContext.Questions
+            .Where(q => q.SectionId == section.Id && q.IsActive)
+            .OrderBy(q => q.DateCreated)
+            .ToList();
+
+        var multipleChoice = questions.Where(q => q.QuestionTypeId == multipleChoiceType.Id).ToList();
+        var tools = questions.Where(q => q.QuestionTitle == MarketingToolQuestionTitle).ToList();
+        var enumeration = questions.Where(q => q.QuestionTitle.StartsWith("Enumeration:")).ToList();
+        var essays = questions.Where(q => q.QuestionTypeId == essayType.Id).ToList();
+
+        var pageOne = new ExamPage { SectionId = section.Id, PageNumber = 1, Instruction = "Multiple Choice and Identification Questions" };
+        var pageTwo = new ExamPage
+        {
+            SectionId = section.Id,
+            PageNumber = 2,
+            Instruction = "Enumeration Questions",
+            SubInstruction = "List every item asked for, separated by commas."
+        };
+        var pageThree = new ExamPage
+        {
+            SectionId = section.Id,
+            PageNumber = 3,
+            Instruction = "Essay Questions",
+            SubInstruction = "Answer each question in a few well-organized paragraphs."
+        };
+        dbContext.ExamPages.AddRange(pageOne, pageTwo, pageThree);
+
+        void Place(ExamPage page, int questionTypeId, int order, IList<Question> pageQuestions)
+        {
+            var pageSection = new PageSection { ExamPage = page, QuestionTypeId = questionTypeId, Order = order };
+            dbContext.PageSections.Add(pageSection);
+            for (var i = 0; i < pageQuestions.Count; i++)
+            {
+                pageQuestions[i].PageSection = pageSection;
+                pageQuestions[i].PageOrder = i + 1;
+            }
+        }
+
+        Place(pageOne, multipleChoiceType.Id, 1, multipleChoice);
+        Place(pageOne, identificationType.Id, 2, tools);
+        Place(pageTwo, identificationType.Id, 1, enumeration);
+        Place(pageThree, essayType.Id, 1, essays);
 
         await dbContext.SaveChangesAsync();
     }

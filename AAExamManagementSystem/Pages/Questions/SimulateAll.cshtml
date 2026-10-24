@@ -82,6 +82,7 @@ else
                 {
                     var question = Model.Questions[qi];
                     var isIdentification = question.QuestionTypeName == AAExamManagementSystem.Models.Entities.QuestionTypes.Identification;
+                    var isEssay = question.QuestionTypeName == AAExamManagementSystem.Models.Entities.QuestionTypes.Essay;
                     var imageName = question.Image ?? string.Empty;
                     var isSqlQuestion = imageName.Contains("sql-schema");
                     var isDebugQuestion = imageName.Contains("debug-");
@@ -91,7 +92,7 @@ else
                         @await Html.PartialAsync("_ExamSectionHeading", (sectionHeading.Instruction, sectionHeading.SubInstruction))
                     }
                     <div class="d-flex flex-column mt-2">
-                    <div class="exam-sim-question mb-4" data-question-index="@qi" data-question-type="@question.QuestionTypeName" data-up-to-evaluation="@question.IsUpToEvaluation.ToString().ToLowerInvariant()">
+                    <div class="exam-sim-question mb-4" data-question-index="@qi" data-question-type="@question.QuestionTypeName" data-up-to-evaluation="@((question.IsUpToEvaluation || isEssay).ToString().ToLowerInvariant())">
                         <h5 class="fw-semibold mb-3">
                             @(qi + 1). @question.QuestionTitle
                         </h5>
@@ -103,13 +104,17 @@ else
                             <img src="@question.Image" class="@imageClass" alt="" />
                         }
                         <div class="exam-sim-choices mt-2">
-                            @if (isIdentification)
+                            @if (isEssay)
+                            {
+                                <textarea class="form-control exam-sim-input exam-sim-essay" name="q@(qi)" id="q@(qi)_input" rows="6" data-answer="" placeholder="Type your answer" autocomplete="off"></textarea>
+                            }
+                            else if (isIdentification)
                             {
                                 var correctAnswer = question.Choices.FirstOrDefault(c => c.IsCorrect)?.ChoiceText ?? string.Empty;
                                 var useTextArea = isSqlQuestion || isDebugQuestion;
                                 var inputPlaceholder = isSqlQuestion
                                     ? "Type your SQL query"
-                                    : isDebugQuestion ? "Type the line numbers that have an error" : "Type the programming language name";
+                                    : isDebugQuestion ? "Type the line numbers that have an error" : "Type your answer";
                                 var inputClass = useTextArea ? "form-control exam-sim-input exam-sim-input-sql" : "form-control exam-sim-input";
                                 @if (useTextArea)
                                 {
@@ -203,6 +208,12 @@ else
             width: 100%;
         }
 
+        .exam-sim-essay {
+            width: 100%;
+            height: 200px;
+            resize: vertical;
+        }
+
         .exam-sim-input-sql {
             width: 100%;
             height: 200px;
@@ -275,7 +286,7 @@ else
                     if (!timedOut) {
                         var unanswered = [];
                         for (var qi = 0; qi < questionCount; qi++) {
-                            if (questionType(qi) === 'Identification') {
+                            if (questionType(qi) === 'Identification' || questionType(qi) === 'Essay') {
                                 var input = document.getElementById('q' + qi + '_input');
                                 if (!input.value.trim()) {
                                     unanswered.push(qi + 1);

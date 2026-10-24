@@ -145,8 +145,12 @@ public class SimulateAllModel : PageModel
             .Select(qt => qt.Id)
             .ToHashSet();
 
+        // Essays are only previewed once an exam page places them, so unpaged essays stay out of the preview.
+        var essayTypeId = questionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Essay)?.Id;
+
         var simulatableQuestions = (await _repository.GetAllAsync())
-            .Where(q => q.IsActive && simulatedTypeIds.Contains(q.QuestionTypeId))
+            .Where(q => q.IsActive && (simulatedTypeIds.Contains(q.QuestionTypeId)
+                || (q.QuestionTypeId == essayTypeId && q.PageSectionId.HasValue)))
             .ToList();
 
         var examPages = (await _examPageRepository.GetAllAsync())
