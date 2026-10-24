@@ -317,12 +317,14 @@ public class TakeModel : PageModel
         }
 
         var sectionName = SectionName;
+        var generalKnowledge = AAExamManagementSystem.Models.Entities.Departments.GeneralKnowledge;
         var questionTypeNames = await _context.QuestionTypes.AsNoTracking().ToDictionaryAsync(qt => qt.Id, qt => qt.Name);
 
         var examPages = await _context.ExamPages
+            .Include(p => p.Section)
             .Include(p => p.PageSections)
             .ThenInclude(ps => ps.Questions)
-            .Where(p => p.IsActive && p.Section.Name == sectionName)
+            .Where(p => p.IsActive && (p.Section.Name == sectionName || p.Section.Name == generalKnowledge))
             .OrderBy(p => p.PageNumber)
             .ToListAsync();
 
@@ -361,9 +363,19 @@ public class TakeModel : PageModel
             .Where(p => p.Questions.Count > 0)
             .ToList();
 
-        if (pagesWithQuestions.Count > 0)
+        // General Knowledge closes every applicant's exam, after the pages of their own department.
+        var departmentPages = pagesWithQuestions
+            .Where(p => p.Page.Section.Name == sectionName)
+            .OrderBy(p => p.Page.PageNumber)
+            .ToList();
+        var generalKnowledgePages = pagesWithQuestions
+            .Where(p => sectionName != generalKnowledge && p.Page.Section.Name == generalKnowledge)
+            .OrderBy(p => p.Page.PageNumber)
+            .ToList();
+
+        if (departmentPages.Count > 0)
         {
-            foreach (var (examPage, questions) in pagesWithQuestions)
+            foreach (var (examPage, questions) in departmentPages)
             {
                 Pages.Add(await BuildQuestionDtosAsync(questions, questionTypeNames));
                 PageInstructions.Add((examPage.Instruction, examPage.SubInstruction));
@@ -380,6 +392,12 @@ public class TakeModel : PageModel
 
             Pages.Add(await BuildQuestionDtosAsync(questions, questionTypeNames));
             PageInstructions.Add((null, null));
+        }
+
+        foreach (var (examPage, questions) in generalKnowledgePages)
+        {
+            Pages.Add(await BuildQuestionDtosAsync(questions, questionTypeNames));
+            PageInstructions.Add((examPage.Instruction, examPage.SubInstruction));
         }
 
         TotalPages = Pages.Count;
