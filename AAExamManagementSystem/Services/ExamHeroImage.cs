@@ -12,9 +12,10 @@ public static class ExamHeroImage
     public static string For(string? sectionName) => sectionName switch
     {
         Departments.Marketing => "~/images/marketing-hero.jpg",
-        Departments.WebDevelopment => "~/images/developer-workstation.png",
+        Departments.WebDevelopment => "~/images/web-development-hero.png",
         Departments.Managing => "~/images/managing-hero.webp",
         Departments.CustomerSupport => "~/images/customer-support-hero.webp",
+        Departments.ArtAndDesign => "~/images/art-design-hero.webp",
         _ => Default
     };
 }
