@@ -137,6 +137,9 @@ public static class IdentitySeeder
         await SeedPhotoAdobeProductQuestionsAsync(dbContext);
         await SeedArtAndDesignAdobeProductQuestionsAsync(dbContext);
         await SeedCustomerSupportEssayQuestionsAsync(dbContext);
+        await SeedCustomerSupportMultipleChoiceQuestionsAsync(dbContext);
+        await SeedCustomerSupportEmailQuestionsAsync(dbContext);
+        await SeedCustomerSupportExamPagesAsync(dbContext);
         await SeedManagingEssayQuestionsAsync(dbContext);
         await SeedWebDevelopmentEssayQuestionsAsync(dbContext);
     }
@@ -504,6 +507,133 @@ public static class IdentitySeeder
         Place(pageOne, multipleChoiceType.Id, 1, multipleChoice);
         Place(pageOne, identificationType.Id, 2, identification);
         Place(pageTwo, essayType.Id, 1, essays);
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private static readonly (string QuestionTitle, string[] Choices, int CorrectIndex)[] CustomerSupportQuestions =
+    {
+        ("An applicant emails asking about the status of their application. What is the best first step?",
+            new[] { "Check their record, then reply with the current status and the next step", "Ask them to call back another day", "Forward the email to a random staffer", "Reply only after they email a second time" }, 0),
+        ("Which response best calms an upset subscriber?",
+            new[] { "Acknowledge their frustration, apologize for the inconvenience, and explain what you will do next", "Explain that the delay is not your fault", "Tell them to read the FAQ", "Ask them to stop complaining" }, 0),
+        ("What should you do when you do not know the answer to a customer's question?",
+            new[] { "Be honest, find the right person or information, and follow up with the customer", "Guess so the customer is not kept waiting", "Ignore the question", "Tell the customer it is not a valid question" }, 0),
+        ("Which of the following belongs in a good customer support email?",
+            new[] { "A polite greeting, a clear answer, the next steps, and a courteous closing", "Only a one-word answer", "Internal jargon the customer may not know", "Blame for the customer's mistake" }, 0),
+        ("Several support requests arrive at once. How should you prioritize them?",
+            new[] { "Handle urgent and time-sensitive issues first, and let the others know when to expect a reply", "Answer only the easiest ones", "Answer them strictly by sender's name", "Leave them all until the next day" }, 0)
+    };
+
+    private static async Task SeedCustomerSupportMultipleChoiceQuestionsAsync(ApplicationDbContext dbContext)
+    {
+        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.CustomerSupport);
+        var multipleChoiceType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.MultipleChoice);
+        if (section is null || multipleChoiceType is null)
+        {
+            return;
+        }
+
+        foreach (var (questionTitle, choices, correctIndex) in CustomerSupportQuestions)
+        {
+            var exists = dbContext.Questions.Any(q => q.QuestionTitle == questionTitle && q.SectionId == section.Id);
+            if (exists)
+            {
+                continue;
+            }
+
+            var question = new Question
+            {
+                QuestionTypeId = multipleChoiceType.Id,
+                SectionId = section.Id,
+                QuestionTitle = questionTitle,
+                Score = 1
+            };
+
+            dbContext.Questions.Add(question);
+
+            for (var i = 0; i < choices.Length; i++)
+            {
+                var choice = new Choice { ChoiceText = choices[i], IsCorrect = i == correctIndex };
+                dbContext.Choices.Add(choice);
+                dbContext.QuestionAndChoices.Add(new QuestionAndChoice { Question = question, Choice = choice });
+            }
+        }
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private static readonly string[] CustomerSupportEmailQuestions =
+    {
+        "Email Response: Write an email to an irate subscriber who is upset that their subscription issue arrived late. Apologize, explain what you will do to fix it, and keep a professional, calm tone.",
+        "Email Response: Write an email replying to a yearbook inquiry from a customer who wants to know how to get a copy. Answer clearly, say what information you need from them, and explain the next steps.",
+        "Email Response: A visitor emails asking, \"When can I walk in?\" to the Ad Astra office. Write a helpful reply that tells them how to confirm the best time and what to expect."
+    };
+
+    private static async Task SeedCustomerSupportEmailQuestionsAsync(ApplicationDbContext dbContext)
+    {
+        await SeedEssayQuestionsAsync(dbContext, Departments.CustomerSupport, CustomerSupportEmailQuestions, score: 15);
+    }
+
+    // Customer Support layout: page 1 is multiple choice, page 2 the general essays, page 3 the three email essays.
+    // Only set up when the department has no exam pages yet, so pages an admin has configured are never overwritten.
+    private static async Task SeedCustomerSupportExamPagesAsync(ApplicationDbContext dbContext)
+    {
+        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.CustomerSupport);
+        var multipleChoiceType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.MultipleChoice);
+        var essayType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Essay);
+        if (section is null || multipleChoiceType is null || essayType is null)
+        {
+            return;
+        }
+
+        if (dbContext.ExamPages.Any(p => p.SectionId == section.Id))
+        {
+            return;
+        }
+
+        var questions = dbContext.Questions
+            .Where(q => q.SectionId == section.Id && q.IsActive)
+            .OrderBy(q => q.DateCreated)
+            .ToList();
+
+        var multipleChoice = questions.Where(q => q.QuestionTypeId == multipleChoiceType.Id).ToList();
+        var emailEssays = questions.Where(q => CustomerSupportEmailQuestions.Contains(q.QuestionTitle)).ToList();
+        var generalEssays = questions
+            .Where(q => q.QuestionTypeId == essayType.Id && !CustomerSupportEmailQuestions.Contains(q.QuestionTitle))
+            .ToList();
+
+        var pageOne = new ExamPage { SectionId = section.Id, PageNumber = 1, Instruction = "Multiple Choice Questions" };
+        var pageTwo = new ExamPage
+        {
+            SectionId = section.Id,
+            PageNumber = 2,
+            Instruction = "Essay Questions",
+            SubInstruction = "Answer each question in a few well-organized sentences."
+        };
+        var pageThree = new ExamPage
+        {
+            SectionId = section.Id,
+            PageNumber = 3,
+            Instruction = "Email Writing",
+            SubInstruction = "Write a complete email for each situation, including a greeting and a closing."
+        };
+        dbContext.ExamPages.AddRange(pageOne, pageTwo, pageThree);
+
+        void Place(ExamPage page, int questionTypeId, IList<Question> pageQuestions)
+        {
+            var pageSection = new PageSection { ExamPage = page, QuestionTypeId = questionTypeId, Order = 1 };
+            dbContext.PageSections.Add(pageSection);
+            for (var i = 0; i < pageQuestions.Count; i++)
+            {
+                pageQuestions[i].PageSection = pageSection;
+                pageQuestions[i].PageOrder = i + 1;
+            }
+        }
+
+        Place(pageOne, multipleChoiceType.Id, multipleChoice);
+        Place(pageTwo, essayType.Id, generalEssays);
+        Place(pageThree, essayType.Id, emailEssays);
 
         await dbContext.SaveChangesAsync();
     }

@@ -13,6 +13,8 @@ public static class ExamHeroImage
     {
         Departments.Marketing => "~/images/marketing-hero.jpg",
         Departments.WebDevelopment => "~/images/developer-workstation.png",
+        Departments.Managing => "~/images/managing-hero.webp",
+        Departments.CustomerSupport => "~/images/customer-support-hero.webp",
         _ => Default
     };
 }
