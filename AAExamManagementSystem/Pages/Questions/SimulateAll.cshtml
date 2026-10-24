@@ -1,5 +1,7 @@
 @page
 @model AAExamManagementSystem.Pages.Questions.SimulateAllModel
+@using AAExamManagementSystem.Services
+@using AppDepartments = AAExamManagementSystem.Models.Entities.Departments
 @{
     ViewData["Title"] = "Exam Simulation";
     Layout = "_ExamLayout";
@@ -54,7 +56,8 @@ else if (Model.NoDepartmentAssigned)
 }
 else
 {
-    <div class="exam-sim-hero d-flex flex-column align-items-center justify-content-center text-center px-3">
+    var heroImage = ExamHeroImage.For(Model.StageTitle == AppDepartments.GeneralKnowledge ? AppDepartments.GeneralKnowledge : Model.CurrentSectionName);
+    <div class="exam-sim-hero d-flex flex-column align-items-center justify-content-center text-center px-3" style="background-image: url('@Url.Content(heroImage)')">
         <div class="exam-sim-hero-overlay"></div>
         <div class="exam-sim-hero-content">
             <h1 class="exam-sim-hero-title text-white fw-bold mb-2">@Model.StageTitle</h1>
@@ -193,6 +196,7 @@ else
 
         .exam-sim-input-sql {
             width: 100%;
+            height: 200px;
             resize: vertical;
             font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         }
@@ -220,6 +224,7 @@ else
 
         .exam-sim-hero-title {
             font-size: 3.5rem;
+            letter-spacing: -0.02rem;
         }
 
         .exam-sim-hero-subtitle {

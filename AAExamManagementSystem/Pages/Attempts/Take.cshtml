@@ -1,12 +1,13 @@
 @page
 @model AAExamManagementSystem.Pages.Attempts.TakeModel
 @using AAExamManagementSystem.Models.Entities
+@using AAExamManagementSystem.Services
 @{
     ViewData["Title"] = "Take Exam";
     Layout = "_ExamLayout";
 }
 
-<div class="exam-sim-hero d-flex flex-column align-items-center justify-content-center text-center px-3">
+<div class="exam-sim-hero d-flex flex-column align-items-center justify-content-center text-center px-3" style="background-image: url('@Url.Content(ExamHeroImage.For(Model.SectionName))')">
     <div class="exam-sim-hero-overlay"></div>
     <div class="exam-sim-hero-content">
         <h1 class="exam-sim-hero-title text-white fw-bold mb-2">@(Model.SectionName ?? "Qualifying") Exam</h1>
@@ -178,6 +179,7 @@
 
         .exam-sim-hero-title {
             font-size: 3.5rem;
+            letter-spacing: -0.02rem;
         }
 
         .exam-sim-hero-subtitle {

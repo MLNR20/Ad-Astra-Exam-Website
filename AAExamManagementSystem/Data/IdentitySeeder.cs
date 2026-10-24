@@ -123,6 +123,7 @@ public static class IdentitySeeder
         await SeedGeneralKnowledgeQuestionsAsync(dbContext);
         await SeedJavaScriptCodeSnippetQuestionsAsync(dbContext);
         await SeedMarketingQuestionsAsync(dbContext);
+        await SeedMarketingEnumerationQuestionsAsync(dbContext);
         await SeedContentDevelopmentSpellingQuestionsAsync(dbContext);
         await SeedContentDevelopmentEssayQuestionsAsync(dbContext);
         await SeedPhotoQuestionsAsync(dbContext);
@@ -326,6 +327,70 @@ public static class IdentitySeeder
                     Choice = choice
                 });
             }
+        }
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private static readonly (string QuestionTitle, string Answer)[] MarketingEnumerationQuestions =
+    {
+        ("Enumeration: List the four Ps of the marketing mix.",
+            "Product, Price, Place, Promotion"),
+        ("Enumeration: List the four stages of the AIDA model.",
+            "Attention, Interest, Desire, Action"),
+        ("Enumeration: List the four parts of a SWOT analysis.",
+            "Strengths, Weaknesses, Opportunities, Threats"),
+        ("Enumeration: List the four main bases of market segmentation.",
+            "Demographic, Geographic, Psychographic, Behavioral"),
+        ("Enumeration: List the four media types in the PESO model.",
+            "Paid, Earned, Shared, Owned"),
+        ("Enumeration: List the four stages of the product life cycle.",
+            "Introduction, Growth, Maturity, Decline"),
+        ("Enumeration: List the five steps in the consumer buying decision process.",
+            "Problem recognition, Information search, Evaluation of alternatives, Purchase decision, Post-purchase behavior"),
+        ("Enumeration: List the five parts of a SMART goal.",
+            "Specific, Measurable, Achievable, Relevant, Time-bound"),
+        ("Enumeration: List the four growth strategies of the Ansoff Matrix.",
+            "Market penetration, Market development, Product development, Diversification"),
+        ("Enumeration: List the three stages of the basic marketing funnel.",
+            "Awareness, Consideration, Conversion")
+    };
+
+    // Enumeration questions have no dedicated question type: they are Identification questions flagged for
+    // evaluation, so an evaluator marks the applicant's list by hand against the reference answer stored here.
+    private static async Task SeedMarketingEnumerationQuestionsAsync(ApplicationDbContext dbContext)
+    {
+        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.Marketing);
+        if (section is null)
+        {
+            return;
+        }
+
+        var identificationType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Identification);
+        if (identificationType is null)
+        {
+            return;
+        }
+
+        foreach (var (questionTitle, answer) in MarketingEnumerationQuestions)
+        {
+            var exists = dbContext.Questions.Any(q => q.QuestionTitle == questionTitle && q.SectionId == section.Id);
+            if (exists)
+            {
+                continue;
+            }
+
+            var question = new Question
+            {
+                QuestionTypeId = identificationType.Id,
+                SectionId = section.Id,
+                QuestionTitle = questionTitle,
+                IsUpToEvaluation = true,
+                Score = 1
+            };
+
+            dbContext.Questions.Add(question);
+            AddIdentificationAnswer(dbContext, question, answer);
         }
 
         await dbContext.SaveChangesAsync();
