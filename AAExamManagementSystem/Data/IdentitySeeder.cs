@@ -408,55 +408,16 @@ public static class IdentitySeeder
     private const string GeneralKnowledgeOrganizationsQuestionTitle = "How many organizations are there under the Student Publications Unit (SPU)?";
     private const string GeneralKnowledgeBuildingsQuestionTitle = "List four buildings found in the Taft main campus of DLS-CSB.";
 
-    // Reference answers are kept for the evaluator. The schools list is marked by hand; the organization count is
-    // checked automatically (Ad Astra and the Benildean Press Corps).
+    // All three are essays, marked by hand by an evaluator. Expected answers: the five schools are SDA, SMIT, SHRIM,
+    // SMS and SDEAS; the organization count is 2 (Ad Astra and the Benildean Press Corps).
     private static async Task SeedGeneralKnowledgeBenildeQuestionsAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.GeneralKnowledge);
-        var identificationType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Identification);
-        if (section is null || identificationType is null)
-        {
-            return;
-        }
-
-        if (!dbContext.Questions.Any(q => q.QuestionTitle == GeneralKnowledgeSchoolsQuestionTitle && q.SectionId == section.Id))
-        {
-            var schools = new Question
-            {
-                QuestionTypeId = identificationType.Id,
-                SectionId = section.Id,
-                QuestionTitle = GeneralKnowledgeSchoolsQuestionTitle,
-                IsUpToEvaluation = true,
-                Score = 5
-            };
-
-            dbContext.Questions.Add(schools);
-            AddIdentificationAnswer(dbContext, schools,
-                "School of Design and Arts (SDA), School of Management and Information Technology (SMIT), " +
-                "School of Hotel, Restaurant and Institution Management (SHRIM), School of Multidisciplinary Studies (SMS), " +
-                "School of Deaf Education and Applied Studies (SDEAS)");
-        }
-
-        if (!dbContext.Questions.Any(q => q.QuestionTitle == GeneralKnowledgeOrganizationsQuestionTitle && q.SectionId == section.Id))
-        {
-            var organizations = new Question
-            {
-                QuestionTypeId = identificationType.Id,
-                SectionId = section.Id,
-                QuestionTitle = GeneralKnowledgeOrganizationsQuestionTitle,
-                Score = 1
-            };
-
-            dbContext.Questions.Add(organizations);
-            AddIdentificationAnswer(dbContext, organizations, "2");
-        }
-
-        await dbContext.SaveChangesAsync();
-
+        await SeedEssayQuestionsAsync(dbContext, Departments.GeneralKnowledge, new[] { GeneralKnowledgeSchoolsQuestionTitle }, score: 5);
+        await SeedEssayQuestionsAsync(dbContext, Departments.GeneralKnowledge, new[] { GeneralKnowledgeOrganizationsQuestionTitle }, score: 1);
         await SeedEssayQuestionsAsync(dbContext, Departments.GeneralKnowledge, new[] { GeneralKnowledgeBuildingsQuestionTitle }, score: 4);
     }
 
-    // General Knowledge layout: page 1 is the multiple choice and identification questions, page 2 the essay. Only
+    // General Knowledge layout: one page with the multiple choice questions followed by the essays. Only
     // set up when the department has no exam pages yet, so pages an admin has configured are never overwritten.
     private static async Task SeedGeneralKnowledgeExamPagesAsync(ApplicationDbContext dbContext)
     {
@@ -483,19 +444,20 @@ public static class IdentitySeeder
         var identification = questions.Where(q => q.QuestionTypeId == identificationType.Id).ToList();
         var essays = questions.Where(q => q.QuestionTypeId == essayType.Id).ToList();
 
+        // Every General Knowledge question sits on one page: the multiple choice questions, then the essays.
         var pageOne = new ExamPage { SectionId = section.Id, PageNumber = 1 };
-        var pageTwo = new ExamPage
-        {
-            SectionId = section.Id,
-            PageNumber = 2,
-            Instruction = "Essay Questions",
-            SubInstruction = "Answer in a few well-organized sentences."
-        };
-        dbContext.ExamPages.AddRange(pageOne, pageTwo);
+        dbContext.ExamPages.Add(pageOne);
 
-        void Place(ExamPage page, int questionTypeId, int order, IList<Question> pageQuestions)
+        void Place(ExamPage page, int questionTypeId, int order, IList<Question> pageQuestions, string? instruction = null, string? subInstruction = null)
         {
-            var pageSection = new PageSection { ExamPage = page, QuestionTypeId = questionTypeId, Order = order };
+            var pageSection = new PageSection
+            {
+                ExamPage = page,
+                QuestionTypeId = questionTypeId,
+                Order = order,
+                Instruction = instruction,
+                SubInstruction = subInstruction
+            };
             dbContext.PageSections.Add(pageSection);
             for (var i = 0; i < pageQuestions.Count; i++)
             {
@@ -505,8 +467,12 @@ public static class IdentitySeeder
         }
 
         Place(pageOne, multipleChoiceType.Id, 1, multipleChoice);
-        Place(pageOne, identificationType.Id, 2, identification);
-        Place(pageTwo, essayType.Id, 1, essays);
+        if (identification.Count > 0)
+        {
+            Place(pageOne, identificationType.Id, 2, identification);
+        }
+
+        Place(pageOne, essayType.Id, 3, essays, "Essay Questions", "Answer in a few well-organized sentences.");
 
         await dbContext.SaveChangesAsync();
     }
