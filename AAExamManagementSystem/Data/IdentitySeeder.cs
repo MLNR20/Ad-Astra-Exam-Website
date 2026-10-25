@@ -135,6 +135,8 @@ public static class IdentitySeeder
         await SeedArtAndDesignQuestionsAsync(dbContext);
         await SeedVideoQuestionsAsync(dbContext);
         await SeedVideoSoftwareQuestionsAsync(dbContext);
+        await SeedVideoDirectionQuestionAsync(dbContext);
+        await SeedVideoExamPagesAsync(dbContext);
         await SeedPhotoAdobeProductQuestionsAsync(dbContext);
         await SeedArtAndDesignAdobeProductQuestionsAsync(dbContext);
         await SeedCustomerSupportEssayQuestionsAsync(dbContext);
@@ -505,6 +507,77 @@ public static class IdentitySeeder
             dbContext.Questions.Add(question);
             AddIdentificationAnswer(dbContext, question, answer);
         }
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private const string VideoDirectionQuestionTitle =
+        "Video Campaign Direction: You have been assigned to direct a video campaign shoot for Ad Astra. Write the direction for the shoot: the concept and key message, the shot list and visual style, the talent and location, the crew and equipment, and the schedule for the shoot day.";
+
+    private static async Task SeedVideoDirectionQuestionAsync(ApplicationDbContext dbContext)
+    {
+        await SeedEssayQuestionsAsync(dbContext, Departments.Video, new[] { VideoDirectionQuestionTitle }, score: 15);
+    }
+
+    // Video layout: page 1 is multiple choice, page 2 the software logo questions, page 3 the campaign direction
+    // essay. Only set up when the department has no exam pages yet, so pages an admin has configured are never
+    // overwritten.
+    private static async Task SeedVideoExamPagesAsync(ApplicationDbContext dbContext)
+    {
+        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.Video);
+        var multipleChoiceType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.MultipleChoice);
+        var identificationType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Identification);
+        var essayType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Essay);
+        if (section is null || multipleChoiceType is null || identificationType is null || essayType is null)
+        {
+            return;
+        }
+
+        if (dbContext.ExamPages.Any(p => p.SectionId == section.Id))
+        {
+            return;
+        }
+
+        var questions = dbContext.Questions
+            .Where(q => q.SectionId == section.Id && q.IsActive)
+            .OrderBy(q => q.DateCreated)
+            .ToList();
+
+        var multipleChoice = questions.Where(q => q.QuestionTypeId == multipleChoiceType.Id).ToList();
+        var software = questions.Where(q => q.QuestionTitle == VideoSoftwareQuestionTitle).ToList();
+        var essays = questions.Where(q => q.QuestionTypeId == essayType.Id).ToList();
+
+        var pageOne = new ExamPage { SectionId = section.Id, PageNumber = 1, Instruction = "Multiple Choice Questions" };
+        var pageTwo = new ExamPage
+        {
+            SectionId = section.Id,
+            PageNumber = 2,
+            Instruction = "Video Software Identification",
+            SubInstruction = "Identify the software shown in each logo."
+        };
+        var pageThree = new ExamPage
+        {
+            SectionId = section.Id,
+            PageNumber = 3,
+            Instruction = "Video Campaign Direction",
+            SubInstruction = "Write your direction in detail."
+        };
+        dbContext.ExamPages.AddRange(pageOne, pageTwo, pageThree);
+
+        void Place(ExamPage page, int questionTypeId, IList<Question> pageQuestions)
+        {
+            var pageSection = new PageSection { ExamPage = page, QuestionTypeId = questionTypeId, Order = 1 };
+            dbContext.PageSections.Add(pageSection);
+            for (var i = 0; i < pageQuestions.Count; i++)
+            {
+                pageQuestions[i].PageSection = pageSection;
+                pageQuestions[i].PageOrder = i + 1;
+            }
+        }
+
+        Place(pageOne, multipleChoiceType.Id, multipleChoice);
+        Place(pageTwo, identificationType.Id, software);
+        Place(pageThree, essayType.Id, essays);
 
         await dbContext.SaveChangesAsync();
     }
