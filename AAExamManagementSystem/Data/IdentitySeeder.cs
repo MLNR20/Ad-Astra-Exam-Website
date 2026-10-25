@@ -134,6 +134,7 @@ public static class IdentitySeeder
         await SeedPhotoQuestionsAsync(dbContext);
         await SeedArtAndDesignQuestionsAsync(dbContext);
         await SeedVideoQuestionsAsync(dbContext);
+        await SeedVideoSoftwareQuestionsAsync(dbContext);
         await SeedPhotoAdobeProductQuestionsAsync(dbContext);
         await SeedArtAndDesignAdobeProductQuestionsAsync(dbContext);
         await SeedCustomerSupportEssayQuestionsAsync(dbContext);
@@ -200,20 +201,6 @@ public static class IdentitySeeder
             new[] { "Benilde", "Saint Benilde University", "CSB College", "La Salle Benilde" }, 0),
         ("In which city is DLS-CSB located?",
             new[] { "Manila", "Quezon City", "Taguig", "Makati" }, 0),
-        ("What is Ad Astra's sister organization within the Student Publications Unit (SPU)?",
-            new[] { "Benildean Press Corps (BPC)", "The Benildean (TB)", "Benilde Student Council", "Benilde Media Society" }, 0),
-        ("What does \"BPC\" stand for?",
-            new[] { "Benildean Press Corps", "Benilde Public Communications", "Benildean Publication Council", "Benilde Press Committee" }, 0),
-        ("What does \"SDA\" stand for, as one of DLS-CSB's schools?",
-            new[] { "School of Design and Arts", "School of Development and Arts", "School of Digital Animation", "School of Dance and Arts" }, 0),
-        ("What does \"SMIT\" stand for, as one of DLS-CSB's schools?",
-            new[] { "School of Management and Information Technology", "School of Media and Information Technology", "School of Marketing and Industrial Technology", "School of Management and Innovative Trade" }, 0),
-        ("What does \"SHRIM\" stand for, as one of DLS-CSB's schools?",
-            new[] { "School of Hotel, Restaurant and Institution Management", "School of Hospitality, Retail and International Marketing", "School of Hotel and Restaurant Industry Management", "School of Hospitality and Resort Management" }, 0),
-        ("What does \"SMS\" stand for, as one of DLS-CSB's schools?",
-            new[] { "School of Multidisciplinary Studies", "School of Media Studies", "School of Management Sciences", "School of Marketing Strategies" }, 0),
-        ("What does \"SDEAS\" stand for, as one of DLS-CSB's schools?",
-            new[] { "School of Deaf Education and Applied Studies", "School of Design Education and Applied Science", "School of Development Education and Advocacy Studies", "School of Digital Education and Applied Systems" }, 0),
         ("DLS-CSB belongs to which Lasallian network of schools in the Philippines?",
             new[] { "De La Salle Philippines (DLSP)", "Ateneo Network", "Jesuit Education Association", "Catholic Educational Association of the Philippines (CEAP)" }, 0),
         ("According to Ad Astra, what is BEYOND?",
@@ -473,6 +460,51 @@ public static class IdentitySeeder
         }
 
         Place(pageOne, essayType.Id, 3, essays, "Essay Questions", "Answer in a few well-organized sentences.");
+
+        await dbContext.SaveChangesAsync();
+    }
+
+    private const string VideoSoftwareQuestionTitle = "Identify the video software shown in the logo below:";
+
+    private static readonly (string Icon, string Answer)[] VideoSoftwareQuestions =
+    {
+        ("https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/adobepremierepro.svg", "Adobe Premiere Pro"),
+        ("https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/adobeaftereffects.svg", "Adobe After Effects"),
+        ("https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/davinciresolve.svg", "DaVinci Resolve"),
+        ("https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/blender.svg", "Blender"),
+        ("https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/obsstudio.svg", "OBS Studio")
+    };
+
+    private static async Task SeedVideoSoftwareQuestionsAsync(ApplicationDbContext dbContext)
+    {
+        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.Video);
+        var identificationType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Identification);
+        if (section is null || identificationType is null)
+        {
+            return;
+        }
+
+        foreach (var (icon, answer) in VideoSoftwareQuestions)
+        {
+            var exists = dbContext.Questions.Any(q =>
+                q.QuestionTitle == VideoSoftwareQuestionTitle && q.Image == icon && q.SectionId == section.Id);
+            if (exists)
+            {
+                continue;
+            }
+
+            var question = new Question
+            {
+                QuestionTypeId = identificationType.Id,
+                SectionId = section.Id,
+                QuestionTitle = VideoSoftwareQuestionTitle,
+                Image = icon,
+                Score = 1
+            };
+
+            dbContext.Questions.Add(question);
+            AddIdentificationAnswer(dbContext, question, answer);
+        }
 
         await dbContext.SaveChangesAsync();
     }
