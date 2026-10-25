@@ -1,0 +1,122 @@
+@page "{id:int}"
+@model AAExamManagementSystem.Pages.Applicants.DetailsModel
+@{
+    ViewData["Title"] = "Applicant Details";
+    var applicant = Model.Applicant;
+}
+
+<div class="card border rounded-2 p-3">
+    <div class="card-header bg-white border-bottom-0">
+        <h5 class="mb-0" style="font-size: 1.2rem;">Applicant Details</h5>
+        <hr class="w-100 mt-3 mb-0" />
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Name</dt>
+                    <dd class="col-sm-8">@applicant.FirstName @applicant.LastName</dd>
+                    <dt class="col-sm-4">Student No.</dt>
+                    <dd class="col-sm-8">@applicant.StudentNo</dd>
+                    <dt class="col-sm-4">Email</dt>
+                    <dd class="col-sm-8">@applicant.Email</dd>
+                    <dt class="col-sm-4">School</dt>
+                    <dd class="col-sm-8">@(applicant.School ?? "-")</dd>
+                    <dt class="col-sm-4">Year Level</dt>
+                    <dd class="col-sm-8">@(applicant.YearLevel ?? "-")</dd>
+                    <dt class="col-sm-4">Scholar</dt>
+                    <dd class="col-sm-8">@(applicant.IsScholar ? "Yes" : "No")</dd>
+                </dl>
+            </div>
+            <div class="col-md-6">
+                <dl class="row mb-0">
+                    <dt class="col-sm-4">Academic Year</dt>
+                    <dd class="col-sm-8">@applicant.AcademicYear</dd>
+                    <dt class="col-sm-4">1st Choice</dt>
+                    <dd class="col-sm-8">@(applicant.FirstChoice ?? "-")</dd>
+                    <dt class="col-sm-4">2nd Choice</dt>
+                    <dd class="col-sm-8">@(applicant.SecondChoice ?? "-")</dd>
+                    <dt class="col-sm-4">Expected Graduation</dt>
+                    <dd class="col-sm-8">@(applicant.ExpectedGradDate ?? "-")</dd>
+                    <dt class="col-sm-4">Terms Left</dt>
+                    <dd class="col-sm-8">@applicant.TermsRemaining</dd>
+                    <dt class="col-sm-4">Resume</dt>
+                    <dd class="col-sm-8">
+                        @if (!string.IsNullOrWhiteSpace(applicant.Resume)
+                            && Uri.TryCreate(applicant.Resume, UriKind.Absolute, out var resumeUri)
+                            && (resumeUri.Scheme == Uri.UriSchemeHttp || resumeUri.Scheme == Uri.UriSchemeHttps))
+                        {
+                            <a href="@resumeUri.AbsoluteUri" target="_blank" rel="noopener noreferrer">@applicant.Resume</a>
+                        }
+                        else
+                        {
+                            @(string.IsNullOrWhiteSpace(applicant.Resume) ? "-" : applicant.Resume)
+                        }
+                    </dd>
+                    <dt class="col-sm-4">Applied</dt>
+                    <dd class="col-sm-8">@applicant.DateCreated.ToLocalTime().ToString("MMM d, yyyy")</dd>
+                </dl>
+            </div>
+        </div>
+
+        <h6 class="fw-semibold mt-4">Exams</h6>
+        @if (Model.Attempts.Count == 0)
+        {
+            <div class="alert alert-info mb-0" role="alert">No exams have been assigned to this applicant.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-striped align-middle w-100">
+                    <thead>
+                        <tr>
+                            <th class="text-start">Department</th>
+                            <th class="text-start">Date Taken</th>
+                            <th class="text-start">Score</th>
+                            <th class="text-start">Status</th>
+                            <th class="text-start">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var attempt in Model.Attempts)
+                        {
+                            <tr>
+                                <td class="text-start">@(attempt.Section ?? "-")</td>
+                                <td class="text-start">@(attempt.DateTaken ?? "-")</td>
+                                <td class="text-start">@(attempt.IsSubmitted ? $"{attempt.TotalScore} / {attempt.MaxScore}" : "-")</td>
+                                <td class="text-start">
+                                    @if (!attempt.IsSubmitted)
+                                    {
+                                        <span class="badge rounded-pill text-bg-light border">Not Taken</span>
+                                    }
+                                    else if (attempt.IsApproved)
+                                    {
+                                        <span class="badge rounded-pill text-bg-success">Approved</span>
+                                    }
+                                    else if (attempt.PendingEvaluationCount > 0)
+                                    {
+                                        <span class="badge rounded-pill text-bg-warning">Needs Evaluation</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge rounded-pill text-bg-secondary">Pending Approval</span>
+                                    }
+                                </td>
+                                <td class="text-start">
+                                    @if (attempt.IsSubmitted)
+                                    {
+                                        <a asp-page="/Attempts/Review" asp-route-id="@attempt.Id" class="btn btn-primary btn-sm">Review</a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        <div class="d-flex gap-2 mt-3">
+            <a asp-page="/Applicants/Index" class="btn btn-secondary">Back to List</a>
+        </div>
+    </div>
+</div>
