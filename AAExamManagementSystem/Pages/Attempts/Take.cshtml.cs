@@ -21,11 +21,44 @@ public class TakeModel : PageModel
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly QuestionChoiceService _choiceService;
 
-    public TakeModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager, QuestionChoiceService choiceService)
+    private readonly NotificationService _notificationService;
+    private readonly ILogger<TakeModel> _logger;
+
+    public TakeModel(
+        ApplicationDbContext context,
+        UserManager<ApplicationUser> userManager,
+        QuestionChoiceService choiceService,
+        NotificationService notificationService,
+        ILogger<TakeModel> logger)
     {
         _context = context;
         _userManager = userManager;
         _choiceService = choiceService;
+        _notificationService = notificationService;
+        _logger = logger;
+    }
+
+    // Lets the department's editors know an exam is waiting for review. The applicant's submission is already
+    // saved at this point, so a failed notification is logged and never fails the submission.
+    private async Task NotifyEditorsAsync(Applicant applicant, Attempt attempt)
+    {
+        if (string.IsNullOrWhiteSpace(attempt.Section))
+        {
+            return;
+        }
+
+        try
+        {
+            await _notificationService.SendToDepartmentEditorsAsync(
+                attempt.Section,
+                "Exam submitted",
+                $"{applicant.FirstName} {applicant.LastName} submitted the {attempt.Section} exam and it is ready for review.",
+                $"/Attempts/Review/{attempt.Id}");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Could not notify the {Section} editors about attempt {AttemptId}.", attempt.Section, attempt.Id);
+        }
     }
 
     public bool HasApplicantProfile { get; set; } = true;
@@ -260,6 +293,8 @@ public class TakeModel : PageModel
 
             attempt.TotalScore = totalScore;
             await _context.SaveChangesAsync();
+
+            await NotifyEditorsAsync(applicant, attempt);
 
             ClearProgress(applicant.Id);
 

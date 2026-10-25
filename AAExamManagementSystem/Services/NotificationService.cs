@@ -3,6 +3,7 @@ using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Repository;
 using AutoMapper;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,11 +15,42 @@ public class NotificationService
     private readonly IHubContext<NotificationHub> _hubContext;
     private readonly IMapper _mapper;
 
-    public NotificationService(ApplicationDbContext dbContext, IHubContext<NotificationHub> hubContext, IMapper mapper)
+    private readonly UserManager<ApplicationUser> _userManager;
+
+    public NotificationService(
+        ApplicationDbContext dbContext,
+        IHubContext<NotificationHub> hubContext,
+        IMapper mapper,
+        UserManager<ApplicationUser> userManager)
     {
         _dbContext = dbContext;
         _hubContext = hubContext;
         _mapper = mapper;
+        _userManager = userManager;
+    }
+
+    /// <summary>
+    /// Sends a notification to every editor assigned to the given department (section) and returns how many
+    /// editors were notified.
+    /// </summary>
+    public async Task<int> SendToDepartmentEditorsAsync(string sectionName, string title, string message, string? url = null)
+    {
+        var section = await _dbContext.Sections.AsNoTracking().FirstOrDefaultAsync(s => s.Name == sectionName);
+        if (section is null)
+        {
+            return 0;
+        }
+
+        var editors = (await _userManager.GetUsersInRoleAsync(AAExamManagementSystem.Models.Entities.Roles.Editor))
+            .Where(u => u.SectionId == section.Id)
+            .ToList();
+
+        foreach (var editor in editors)
+        {
+            await SendAsync(editor.Id, title, message, url);
+        }
+
+        return editors.Count;
     }
 
     public async Task<NotificationDto> SendAsync(string userId, string title, string message, string? url = null)
