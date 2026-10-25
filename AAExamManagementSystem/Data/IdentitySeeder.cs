@@ -474,7 +474,10 @@ public static class IdentitySeeder
         ("https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/adobeaftereffects.svg", "Adobe After Effects"),
         ("https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/davinciresolve.svg", "DaVinci Resolve"),
         ("https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/blender.svg", "Blender"),
-        ("https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/obsstudio.svg", "OBS Studio")
+        ("https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/obsstudio.svg", "OBS Studio"),
+        ("https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/kdenlive.svg", "Kdenlive"),
+        ("https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/vegas.svg", "VEGAS Pro"),
+        ("https://cdn.jsdelivr.net/npm/simple-icons@13.21.0/icons/vlcmediaplayer.svg", "VLC Media Player")
     };
 
     private static async Task SeedVideoSoftwareQuestionsAsync(ApplicationDbContext dbContext)
@@ -519,7 +522,7 @@ public static class IdentitySeeder
         await SeedEssayQuestionsAsync(dbContext, Departments.Video, new[] { VideoDirectionQuestionTitle }, score: 15);
     }
 
-    // Video layout: page 1 is multiple choice, page 2 the software logo questions, page 3 the campaign direction
+    // Video layout: page 1 is multiple choice then the software logo questions, page 2 the campaign direction
     // essay. Only set up when the department has no exam pages yet, so pages an admin has configured are never
     // overwritten.
     private static async Task SeedVideoExamPagesAsync(ApplicationDbContext dbContext)
@@ -547,26 +550,19 @@ public static class IdentitySeeder
         var software = questions.Where(q => q.QuestionTitle == VideoSoftwareQuestionTitle).ToList();
         var essays = questions.Where(q => q.QuestionTypeId == essayType.Id).ToList();
 
-        var pageOne = new ExamPage { SectionId = section.Id, PageNumber = 1, Instruction = "Multiple Choice Questions" };
+        var pageOne = new ExamPage { SectionId = section.Id, PageNumber = 1, Instruction = "Multiple Choice and Identification Questions" };
         var pageTwo = new ExamPage
         {
             SectionId = section.Id,
             PageNumber = 2,
-            Instruction = "Video Software Identification",
-            SubInstruction = "Identify the software shown in each logo."
-        };
-        var pageThree = new ExamPage
-        {
-            SectionId = section.Id,
-            PageNumber = 3,
             Instruction = "Video Campaign Direction",
             SubInstruction = "Write your direction in detail."
         };
-        dbContext.ExamPages.AddRange(pageOne, pageTwo, pageThree);
+        dbContext.ExamPages.AddRange(pageOne, pageTwo);
 
-        void Place(ExamPage page, int questionTypeId, IList<Question> pageQuestions)
+        void Place(ExamPage page, int questionTypeId, int order, IList<Question> pageQuestions)
         {
-            var pageSection = new PageSection { ExamPage = page, QuestionTypeId = questionTypeId, Order = 1 };
+            var pageSection = new PageSection { ExamPage = page, QuestionTypeId = questionTypeId, Order = order };
             dbContext.PageSections.Add(pageSection);
             for (var i = 0; i < pageQuestions.Count; i++)
             {
@@ -575,9 +571,9 @@ public static class IdentitySeeder
             }
         }
 
-        Place(pageOne, multipleChoiceType.Id, multipleChoice);
-        Place(pageTwo, identificationType.Id, software);
-        Place(pageThree, essayType.Id, essays);
+        Place(pageOne, multipleChoiceType.Id, 1, multipleChoice);
+        Place(pageOne, identificationType.Id, 2, software);
+        Place(pageTwo, essayType.Id, 1, essays);
 
         await dbContext.SaveChangesAsync();
     }
