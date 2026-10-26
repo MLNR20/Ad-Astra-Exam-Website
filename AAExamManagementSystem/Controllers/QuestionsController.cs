@@ -1,3 +1,4 @@
+using AppRoles = AAExamManagementSystem.Models.Entities.Roles;
 using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Services;
 using Asp.Versioning;
@@ -9,7 +10,7 @@ namespace AAExamManagementSystem.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-[Authorize]
+[Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Editor}")]
 public class QuestionsController : ControllerBase
 {
     private readonly IQuestionService _questionService;

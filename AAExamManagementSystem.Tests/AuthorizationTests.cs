@@ -135,6 +135,61 @@ public class AuthorizationTests
         }
     }
 
+    public static IEnumerable<object[]> AdminAndEditorControllers() =>
+        new[] { "Announcements", "Choices", "Courses", "Departments", "Questions", "Sections" }
+            .Select(name => new object[] { name });
+
+    public static IEnumerable<object[]> AdminOnlyControllers() =>
+        new[] { "Roles", "RoleAssignments" }.Select(name => new object[] { name });
+
+    private static Type ControllerOf(string name) =>
+        WebAssembly.GetType($"AAExamManagementSystem.Controllers.{name}Controller", throwOnError: true)!;
+
+    [Theory]
+    [MemberData(nameof(AdminAndEditorControllers))]
+    public void DataApis_AreLimitedToAdminsAndEditors(string controller)
+    {
+        Assert.Equal(new[] { AppRoles.Admin, AppRoles.Editor }, RolesOf(ControllerOf(controller)));
+    }
+
+    // Role management can grant any role, so editors are kept out of it to stop them promoting themselves.
+    [Theory]
+    [MemberData(nameof(AdminOnlyControllers))]
+    public void RoleApis_AreLimitedToAdmins(string controller)
+    {
+        Assert.Equal(new[] { AppRoles.Admin }, RolesOf(ControllerOf(controller)));
+    }
+
+    [Theory]
+    [MemberData(nameof(AdminAndEditorControllers))]
+    [MemberData(nameof(AdminOnlyControllers))]
+    public void ManagementApis_NeverAdmitStudentsStaffersInstructorsApplicantsOrGuests(string controller)
+    {
+        var roles = RolesOf(ControllerOf(controller));
+
+        foreach (var excluded in new[] { AppRoles.Student, AppRoles.Staffer, AppRoles.Instructor, AppRoles.Applicant, AppRoles.Guest })
+        {
+            Assert.DoesNotContain(excluded, roles);
+        }
+    }
+
+    [Fact]
+    public void EveryManagementApi_IsCoveredByARoleRestriction()
+    {
+        // Notifications are per-user and WebPages is the read-only navigation feed, so any signed-in user may call
+        // them. A new controller outside this list must pick a role set on purpose.
+        var openToSignedInUsers = new[] { "NotificationsController", "WebPagesController" };
+
+        var unrestricted = WebAssembly.GetTypes()
+            .Where(t => t.IsClass && !t.IsAbstract && typeof(ControllerBase).IsAssignableFrom(t))
+            .Where(t => !openToSignedInUsers.Contains(t.Name))
+            .Where(t => string.IsNullOrWhiteSpace(t.GetCustomAttribute<AuthorizeAttribute>()?.Roles))
+            .Select(t => t.Name)
+            .ToList();
+
+        Assert.Empty(unrestricted);
+    }
+
     [Fact]
     public void TheNotificationHub_RequiresAnAuthenticatedUser()
     {

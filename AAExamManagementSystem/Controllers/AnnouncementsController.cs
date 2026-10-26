@@ -1,3 +1,4 @@
+using AppRoles = AAExamManagementSystem.Models.Entities.Roles;
 using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Repository;
@@ -11,7 +12,7 @@ namespace AAExamManagementSystem.Controllers;
 [ApiController]
 [ApiVersion("1.0")]
 [Route("api/v{version:apiVersion}/[controller]")]
-[Authorize]
+[Authorize(Roles = $"{AppRoles.Admin},{AppRoles.Editor}")]
 public class AnnouncementsController : ControllerBase
 {
     private readonly IGenericRepository<Announcement> _repository;
