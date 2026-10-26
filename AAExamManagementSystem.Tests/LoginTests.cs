@@ -1,8 +1,10 @@
 using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Pages;
+using AAExamManagementSystem.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Moq;
 using AppRoles = AAExamManagementSystem.Models.Entities.Roles;
 using SignInResult = Microsoft.AspNetCore.Identity.SignInResult;
@@ -18,11 +20,13 @@ public class LoginTests
         public Mock<UserManager<ApplicationUser>> Users { get; } = TestSupport.CreateUserManager();
         public Mock<SignInManager<ApplicationUser>> SignIn { get; }
         public AAExamManagementSystem.Repository.ApplicationDbContext Db { get; } = TestSupport.CreateContext();
+        public IRefreshTokenService Tokens { get; }
         public ApplicationUser User { get; } = new() { Id = "u1", UserName = UserName, Email = "jdoe@example.test" };
 
         public Fixture()
         {
             SignIn = TestSupport.CreateSignInManager(Users.Object);
+            Tokens = new RefreshTokenService(Db, Options.Create(new RefreshTokenSettings()), TimeProvider.System);
             Users.Setup(m => m.FindByNameAsync(UserName)).ReturnsAsync(User);
             Users.Setup(m => m.FindByEmailAsync(User.Email!)).ReturnsAsync(User);
         }
@@ -35,7 +39,7 @@ public class LoginTests
 
         public LoginModel StaffLogin(string userName = UserName, string password = "secret")
         {
-            var model = new LoginModel(SignIn.Object, Users.Object, Db)
+            var model = new LoginModel(SignIn.Object, Users.Object, Db, Tokens)
             {
                 Input = new LoginModel.LoginInput { UserName = userName, Password = password },
             };
@@ -45,7 +49,7 @@ public class LoginTests
 
         public ApplicantLoginModel ApplicantLogin(string userName = UserName, string password = "secret")
         {
-            var model = new ApplicantLoginModel(SignIn.Object, Users.Object, Db)
+            var model = new ApplicantLoginModel(SignIn.Object, Users.Object, Db, Tokens)
             {
                 Input = new ApplicantLoginModel.LoginInput { UserName = userName, Password = password },
             };
@@ -245,5 +249,80 @@ public class LoginTests
 
         Assert.Contains("This account has been locked out. Please try again later.",
             model.ModelState[string.Empty]!.Errors.Select(e => e.ErrorMessage));
+    }
+
+    [Fact]
+    public async Task StaffLogin_Success_IssuesASevenDayRefreshTokenCookie()
+    {
+        var f = new Fixture();
+        f.SignInReturns(SignInResult.Success);
+        f.UserHasRole(AppRoles.Applicant, false);
+        var model = f.StaffLogin();
+        model.Input.RememberMe = true;
+
+        await model.OnPostAsync();
+
+        var stored = Assert.Single(await f.Db.RefreshTokens.ToListAsync());
+        Assert.Equal(f.User.Id, stored.UserId);
+        Assert.True(stored.IsPersistent);
+        Assert.InRange(stored.ExpiresAt, DateTime.UtcNow.AddDays(7).AddMinutes(-1), DateTime.UtcNow.AddDays(7).AddMinutes(1));
+
+        var setCookie = model.Response.Headers.SetCookie.ToString();
+        Assert.Contains($"{RefreshTokenSettings.CookieName}=", setCookie);
+        Assert.Contains("httponly", setCookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("expires=", setCookie, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task StaffLogin_WithoutRememberMe_IssuesASessionOnlyRefreshCookie()
+    {
+        var f = new Fixture();
+        f.SignInReturns(SignInResult.Success);
+        f.UserHasRole(AppRoles.Applicant, false);
+        var model = f.StaffLogin();
+
+        await model.OnPostAsync();
+
+        Assert.False(Assert.Single(await f.Db.RefreshTokens.ToListAsync()).IsPersistent);
+        Assert.DoesNotContain("expires=", model.Response.Headers.SetCookie.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task StaffLogin_RejectedApplicant_DoesNotIssueARefreshToken()
+    {
+        var f = new Fixture();
+        f.SignInReturns(SignInResult.Success);
+        f.UserHasRole(AppRoles.Applicant);
+        var model = f.StaffLogin();
+
+        await model.OnPostAsync();
+
+        Assert.Empty(await f.Db.RefreshTokens.ToListAsync());
+    }
+
+    [Fact]
+    public async Task StaffLogin_WithWrongPassword_DoesNotIssueARefreshToken()
+    {
+        var f = new Fixture();
+        f.SignInReturns(SignInResult.Failed);
+        var model = f.StaffLogin();
+
+        await model.OnPostAsync();
+
+        Assert.Empty(await f.Db.RefreshTokens.ToListAsync());
+    }
+
+    [Fact]
+    public async Task ApplicantLogin_Success_IssuesARefreshToken()
+    {
+        var f = new Fixture();
+        f.SignInReturns(SignInResult.Success);
+        f.UserHasRole(AppRoles.Applicant);
+        var model = f.ApplicantLogin();
+
+        await model.OnPostAsync();
+
+        Assert.Single(await f.Db.RefreshTokens.ToListAsync());
+        Assert.Contains(RefreshTokenSettings.CookieName, model.Response.Headers.SetCookie.ToString());
     }
 }

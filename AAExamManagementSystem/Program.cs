@@ -42,6 +42,10 @@ builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Login";
     options.AccessDeniedPath = "/Login";
+
+    // The auth cookie is short-lived; RefreshTokenMiddleware renews it from the 7-day refresh token.
+    options.ExpireTimeSpan = TimeSpan.FromMinutes(30);
+    options.SlidingExpiration = true;
 });
 
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
@@ -55,6 +59,10 @@ builder.Services.AddScoped<IQuestionService, QuestionService>();
 builder.Services.AddScoped<QuestionChoiceService>();
 builder.Services.AddScoped<IQuestionChoiceService>(sp => sp.GetRequiredService<QuestionChoiceService>());
 builder.Services.AddScoped<NotificationService>();
+
+builder.Services.Configure<RefreshTokenSettings>(builder.Configuration.GetSection("RefreshToken"));
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddScoped<IRefreshTokenService, RefreshTokenService>();
 
 builder.Services.Configure<EmailSettings>(builder.Configuration.GetSection("Email"));
 builder.Services.PostConfigure<EmailSettings>(settings =>
@@ -102,6 +110,7 @@ app.UseHttpsRedirection();
 app.UseRouting();
 
 app.UseAuthentication();
+app.UseMiddleware<RefreshTokenMiddleware>();
 app.UseSession();
 app.UseAuthorization();
 

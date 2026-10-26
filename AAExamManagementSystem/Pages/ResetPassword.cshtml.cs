@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text;
 using AAExamManagementSystem.Models.Entities;
+using AAExamManagementSystem.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -12,9 +13,12 @@ namespace AAExamManagementSystem.Pages
     {
         private readonly UserManager<ApplicationUser> _userManager;
 
-        public ResetPasswordModel(UserManager<ApplicationUser> userManager)
+        private readonly IRefreshTokenService _refreshTokens;
+
+        public ResetPasswordModel(UserManager<ApplicationUser> userManager, IRefreshTokenService refreshTokens)
         {
             _userManager = userManager;
+            _refreshTokens = refreshTokens;
         }
 
         [BindProperty]
@@ -64,6 +68,7 @@ namespace AAExamManagementSystem.Pages
             var result = await _userManager.ResetPasswordAsync(user, token, Input.Password);
             if (result.Succeeded)
             {
+                await _refreshTokens.RevokeAllAsync(user.Id);
                 return RedirectToPage("/ResetPasswordConfirmation");
             }
 

@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -12,12 +13,14 @@ namespace AAExamManagementSystem.Pages
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly ApplicationDbContext _db;
+        private readonly IRefreshTokenService _refreshTokens;
 
-        public ApplicantLoginModel(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, ApplicationDbContext db)
+        public ApplicantLoginModel(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager, ApplicationDbContext db, IRefreshTokenService refreshTokens)
         {
             _signInManager = signInManager;
             _userManager = userManager;
             _db = db;
+            _refreshTokens = refreshTokens;
         }
 
         [BindProperty]
@@ -57,6 +60,9 @@ namespace AAExamManagementSystem.Pages
             if (result.Succeeded)
             {
                 await LogLoginAttemptAsync(user, Input.UserName, success: true, "Applicant login succeeded.");
+
+                var (token, expiresAt) = await _refreshTokens.IssueAsync(user, Input.RememberMe);
+                RefreshTokenCookies.Append(HttpContext, token, expiresAt, Input.RememberMe);
 
                 if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                 {

@@ -25,6 +25,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
     public DbSet<Attempt> Attempts => Set<Attempt>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
     public DbSet<WebPage> WebPages => Set<WebPage>();
     public DbSet<Announcement> Announcements => Set<Announcement>();
     public DbSet<ExamPage> ExamPages => Set<ExamPage>();
@@ -136,6 +137,16 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
         builder.Entity<Notification>()
             .HasIndex(n => new { n.UserId, n.IsRead });
+
+        builder.Entity<RefreshToken>()
+            .HasOne(t => t.User)
+            .WithMany()
+            .HasForeignKey(t => t.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<RefreshToken>()
+            .HasIndex(t => t.TokenHash)
+            .IsUnique();
 
         builder.Entity<WebPage>()
             .HasIndex(w => w.Url)
