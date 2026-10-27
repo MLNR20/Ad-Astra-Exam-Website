@@ -56,6 +56,7 @@ public class SignupModel : PageModel
     {
         await LoadChoiceOptionsAsync();
         ValidateChoices();
+        ValidateSchool();
         await ValidateStudentNoAsync();
 
         if (!ModelState.IsValid)
@@ -136,6 +137,25 @@ public class SignupModel : PageModel
         TempData[SignupSuccessModel.SubmittedEmailKey] = applicant.Email;
 
         return RedirectToPage("/SignupSuccess");
+    }
+
+    // The school comes from a dropdown, but a posted form can say anything, so check it against the same list.
+    private void ValidateSchool()
+    {
+        var trimmed = Input.School?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            Input.School = null;
+            return;
+        }
+
+        var match = BenildeSchools.All.FirstOrDefault(s => string.Equals(s, trimmed, StringComparison.OrdinalIgnoreCase));
+        if (match is null)
+        {
+            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.School)}", "Please pick a school from the list.");
+        }
+
+        Input.School = match;
     }
 
     private async Task ValidateStudentNoAsync()

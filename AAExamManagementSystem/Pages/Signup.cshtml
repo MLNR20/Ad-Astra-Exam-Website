@@ -1,5 +1,6 @@
 @page
 @model SignupModel
+@using AAExamManagementSystem.Models.Entities
 @{
     Layout = null;
 }
@@ -114,7 +115,9 @@
                                     </div>
                                     <div class="col-12 mb-3">
                                         <label asp-for="Input.School" class="form-label fw-semibold"></label>
-                                        <input asp-for="Input.School" class="form-control" />
+                                        <select asp-for="Input.School" asp-items="@(new SelectList(BenildeSchools.All))" class="form-select">
+                                            <option value="">Select your school</option>
+                                        </select>
                                         <span asp-validation-for="Input.School" class="text-danger small"></span>
                                     </div>
                                     <div class="col-12 mb-3">

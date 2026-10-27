@@ -130,6 +130,80 @@ public class SignupStudentNoTests
     }
 }
 
+public class SignupSchoolTests
+{
+    private static SignupModel Page(string? school)
+    {
+        var userManager = TestSupport.CreateUserManager();
+        var model = new SignupModel(
+            userManager.Object,
+            TestSupport.CreateSignInManager(userManager.Object).Object,
+            Mock.Of<IGenericRepository<Applicant>>(),
+            Mock.Of<IMapper>(),
+            TestSupport.CreateContext(),
+            Mock.Of<IRegistrationNotifier>())
+        {
+            Input = new ApplicantRegisterDto { School = school },
+        };
+        TestSupport.Attach(model, TestSupport.PrincipalFor());
+        // Stops the post right after the field checks.
+        model.ModelState.AddModelError(string.Empty, "stop after validation");
+        return model;
+    }
+
+    [Fact]
+    public async Task Post_WithASchoolFromTheList_IsAccepted()
+    {
+        var page = Page(BenildeSchools.All[0]);
+
+        await page.OnPostAsync();
+
+        Assert.False(page.ModelState.ContainsKey("Input.School"));
+        Assert.Equal(BenildeSchools.All[0], page.Input.School);
+    }
+
+    [Fact]
+    public async Task Post_UsesTheListedSpellingOfTheSchool()
+    {
+        var page = Page("  " + BenildeSchools.All[1].ToUpperInvariant() + "  ");
+
+        await page.OnPostAsync();
+
+        Assert.Equal(BenildeSchools.All[1], page.Input.School);
+    }
+
+    [Fact]
+    public async Task Post_WithASchoolThatIsNotInTheList_IsRejected()
+    {
+        var page = Page("Hogwarts");
+
+        await page.OnPostAsync();
+
+        Assert.Equal("Please pick a school from the list.", page.ModelState["Input.School"]!.Errors.Single().ErrorMessage);
+        Assert.Null(page.Input.School);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task Post_WithNoSchool_LeavesItOptional(string? school)
+    {
+        var page = Page(school);
+
+        await page.OnPostAsync();
+
+        Assert.False(page.ModelState.ContainsKey("Input.School"));
+        Assert.Null(page.Input.School);
+    }
+
+    [Fact]
+    public void TheListHasNoDuplicates()
+    {
+        Assert.Equal(BenildeSchools.All.Length, BenildeSchools.All.Distinct(StringComparer.OrdinalIgnoreCase).Count());
+    }
+}
+
 public class SignupSuccessTests
 {
     private static SignupSuccessModel Page(string? name = null, string? email = null)
