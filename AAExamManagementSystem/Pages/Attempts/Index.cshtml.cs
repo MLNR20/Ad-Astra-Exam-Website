@@ -4,6 +4,7 @@ using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Repository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
@@ -26,6 +27,12 @@ public class IndexModel : PageModel
     public bool IsAdmin { get; set; }
 
     public string? CurrentUserSectionName { get; set; }
+
+    /// <summary>When set, only this applicant's attempts are listed.</summary>
+    [BindProperty(SupportsGet = true)]
+    public int? ApplicantId { get; set; }
+
+    public string? ApplicantName { get; set; }
 
     public async Task OnGetAsync()
     {
@@ -56,9 +63,20 @@ public class IndexModel : PageModel
                 : query.Where(a => a.Section == CurrentUserSectionName);
         }
 
+        if (ApplicantId is not null)
+        {
+            query = query.Where(a => a.ApplicantId == ApplicantId);
+        }
+
         var attempts = await query
             .OrderByDescending(a => a.DateCreated)
             .ToListAsync();
+
+        // Taken from the already department-scoped attempts, so an editor can't read other departments' names.
+        if (ApplicantId is not null)
+        {
+            ApplicantName = attempts.Select(a => $"{a.Applicant.FirstName} {a.Applicant.LastName}").FirstOrDefault();
+        }
 
         Attempts = attempts.Select(a => new AttemptListItemDto
         {

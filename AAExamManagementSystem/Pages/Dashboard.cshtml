@@ -17,3 +17,204 @@
         </div>
     </div>
 </div>
+
+@if (Model.IsEditor)
+{
+    @if (string.IsNullOrEmpty(Model.DepartmentName))
+    {
+        <div class="alert alert-warning mt-4 mb-0" role="alert">Your account isn't assigned to a department yet. Ask an administrator to assign one.</div>
+    }
+    else
+    {
+        <div class="row g-4 mt-0">
+            <div class="col-12 col-md-4">
+                <div class="card border rounded-2 h-100">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <i class="bi bi-people fs-1 text-secondary" aria-hidden="true"></i>
+                        <div>
+                            <div class="fs-2 fw-bold lh-1">@Model.TotalApplicants</div>
+                            <div class="text-muted">Applicants</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="card border rounded-2 h-100">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <i class="bi bi-patch-check fs-1 text-success" aria-hidden="true"></i>
+                        <div>
+                            <div class="fs-2 fw-bold lh-1">@Model.PassedApplicants</div>
+                            <div class="text-muted">Passed applicants</div>
+                            <div class="small text-muted">Approved, @DashboardModel.PassingPercentage% or higher</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-4">
+                <div class="card border rounded-2 h-100">
+                    <div class="card-body d-flex align-items-center gap-3">
+                        <i class="bi bi-clipboard-check fs-1 text-warning" aria-hidden="true"></i>
+                        <div>
+                            <div class="fs-2 fw-bold lh-1">@Model.AttemptsToCheck</div>
+                            <div class="text-muted">Needs my attention</div>
+                            <div class="small text-muted">Attempts to check</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4 mt-0 align-items-start">
+            <div class="col-12 col-xl-8">
+                <div class="card border rounded-2 p-4">
+                    <div class="card-header bg-white border-bottom-0">
+                        <h5 class="mb-0 entity-table-title">
+                            <i class="bi bi-person-lines-fill" aria-hidden="true"></i>
+                            Applicants — @Model.DepartmentName
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        @if (Model.Applicants.Count == 0)
+                        {
+                            <div class="alert alert-info mb-0" role="alert">No applicants have applied to your department yet.</div>
+                        }
+                        else
+                        {
+                            <table id="dashboardApplicantsTable" class="table table-striped table-hover align-middle w-100">
+                                <thead>
+                                    <tr>
+                                        <th class="text-start">Applicant</th>
+                                        <th class="text-start">Student No.</th>
+                                        <th class="text-start">Score</th>
+                                        <th class="text-start">Attempt Status</th>
+                                        <th class="text-start">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var applicant in Model.Applicants)
+                                    {
+                                        <tr>
+                                            <td class="text-start">@applicant.FullName</td>
+                                            <td class="text-start">@applicant.StudentNo</td>
+                                            <td class="text-start">@(applicant.IsSubmitted ? $"{applicant.TotalScore} / {applicant.MaxScore}" : "-")</td>
+                                            <td class="text-start">
+                                                @if (!applicant.IsSubmitted)
+                                                {
+                                                    <span class="badge rounded-pill text-bg-light border">Not Taken</span>
+                                                }
+                                                else if (applicant.IsApproved)
+                                                {
+                                                    <span class="badge rounded-pill text-bg-success">Approved</span>
+                                                }
+                                                else if (applicant.PendingEvaluationCount > 0)
+                                                {
+                                                    <span class="badge rounded-pill text-bg-warning">Needs Evaluation</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge rounded-pill text-bg-secondary">Pending Approval</span>
+                                                }
+                                            </td>
+                                            <td class="text-start text-nowrap">
+                                                <a asp-page="/Applicants/Details" asp-route-id="@applicant.Id" class="btn btn-primary btn-sm">Details</a>
+                                                @if (applicant.IsSubmitted)
+                                                {
+                                                    <a asp-page="/Attempts/Index" asp-route-applicantId="@applicant.Id" class="btn btn-outline-dark btn-sm">Attempts View</a>
+                                                }
+                                                else
+                                                {
+                                                    <span class="d-inline-block" title="This applicant hasn't taken the exam yet.">
+                                                        <button type="button" class="btn btn-outline-dark btn-sm" disabled>Attempts View</button>
+                                                    </span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-12 col-xl-4">
+                <div class="card border rounded-2 p-4">
+                    <div class="card-body p-0">
+                        <h5 class="entity-table-title mb-3">
+                            <i class="bi bi-clipboard-check" aria-hidden="true"></i>
+                            Attempts to check
+                        </h5>
+                        @if (Model.Attention.Count == 0)
+                        {
+                            <p class="text-muted mb-0">You're all caught up. No attempts are waiting for you.</p>
+                        }
+                        else
+                        {
+                            <ul class="list-unstyled mb-0">
+                                @foreach (var item in Model.Attention)
+                                {
+                                    <li class="d-flex align-items-center justify-content-between gap-2 py-2 border-bottom">
+                                        <div class="min-w-0">
+                                            <div class="fw-semibold text-truncate">@item.ApplicantName</div>
+                                            <div class="small text-muted">
+                                                @(item.DateTaken is { } taken ? taken.ToLocalTime().ToString("MMM d, h:mm tt") : "-")
+                                                &middot;
+                                                @(item.PendingEvaluationCount > 0 ? "Needs evaluation" : "Pending approval")
+                                            </div>
+                                        </div>
+                                        <a asp-page="/Attempts/Review" asp-route-id="@item.AttemptId" class="btn btn-primary btn-sm flex-shrink-0">Review</a>
+                                    </li>
+                                }
+                            </ul>
+                            @if (Model.AttemptsToCheck > Model.Attention.Count)
+                            {
+                                <a asp-page="/Attempts/Index" class="d-inline-block mt-3 small">View all @Model.AttemptsToCheck attempts</a>
+                            }
+                        }
+                    </div>
+                </div>
+
+                <div class="card border rounded-2 p-4 mt-4">
+                    <div class="card-body p-0">
+                        <h5 class="entity-table-title mb-3">
+                            <i class="bi bi-clock-history" aria-hidden="true"></i>
+                            Recent activity
+                        </h5>
+                        @if (Model.RecentActivity.Count == 0)
+                        {
+                            <p class="text-muted mb-0">No activity yet.</p>
+                        }
+                        else
+                        {
+                            <ul class="list-unstyled mb-0">
+                                @foreach (var activity in Model.RecentActivity)
+                                {
+                                    <li class="py-2 border-bottom">
+                                        <div>@activity.Description</div>
+                                        <div class="small text-muted">@activity.When.ToLocalTime().ToString("MMM d, h:mm tt")</div>
+                                    </li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
+}
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        $(function () {
+            if ($('#dashboardApplicantsTable').length) {
+                initEntityTable('dashboardApplicantsTable', { order: [] });
+            }
+        });
+    </script>
+}

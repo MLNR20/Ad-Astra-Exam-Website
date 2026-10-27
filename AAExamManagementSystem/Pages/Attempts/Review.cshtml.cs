@@ -45,6 +45,9 @@ public class ReviewModel : PageModel
 
     public AttemptReviewDto? Attempt { get; set; }
 
+    /// <summary>Admins can look at any attempt but only the people who check them can grade or approve.</summary>
+    public bool IsReadOnly => User.IsInRole(AppRoles.Admin);
+
     [BindProperty]
     public Dictionary<int, int> Points { get; set; } = new();
 
@@ -69,6 +72,11 @@ public class ReviewModel : PageModel
 
     public async Task<IActionResult> OnPostApproveAsync(int id)
     {
+        if (IsReadOnly)
+        {
+            return Forbid();
+        }
+
         var attempt = await _context.Attempts
             .Include(a => a.Answers)
             .ThenInclude(ans => ans.Question)

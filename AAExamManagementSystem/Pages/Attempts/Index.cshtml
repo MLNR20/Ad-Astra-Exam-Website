@@ -6,7 +6,11 @@
 
 <div class="card border rounded-2 p-4">
     <div class="card-header bg-white border-bottom-0">
-        <h5 class="mb-0 fw-semibold entity-table-title"><i class="bi bi-clipboard-check" aria-hidden="true"></i> Exam Attempts</h5>
+        <h5 class="mb-0 fw-semibold entity-table-title"><i class="bi bi-clipboard-check" aria-hidden="true"></i> Exam Attempts@(string.IsNullOrEmpty(Model.ApplicantName) ? "" : $" — {Model.ApplicantName}")</h5>
+        @if (Model.ApplicantId is not null)
+        {
+            <a asp-page="/Attempts/Index" class="btn btn-link px-0 mt-2">Show all attempts</a>
+        }
     </div>
     <div class="card-body">
         @if (Model.Attempts.Count == 0)

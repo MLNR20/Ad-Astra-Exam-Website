@@ -43,7 +43,13 @@ else
         </div>
     </div>
 
+    @if (Model.IsReadOnly)
+    {
+        <div class="alert alert-info" role="alert">You're viewing this attempt as an administrator. Grading and approval are done by editors.</div>
+    }
+
     <form method="post" asp-page-handler="Approve" asp-route-id="@attempt.Id">
+        <fieldset disabled="@Model.IsReadOnly" class="border-0 p-0 m-0 min-w-0">
         <div class="table-responsive mb-4">
             <table class="table align-middle">
                 <thead>
@@ -82,10 +88,14 @@ else
                 </tbody>
             </table>
         </div>
+        </fieldset>
 
         <div class="d-flex justify-content-between">
             <a asp-page="/Attempts/Index" class="btn btn-outline-secondary">Back to Attempts</a>
-            <button type="submit" class="btn btn-primary">@(attempt.IsApproved ? "Re-approve" : "Approve Attempt")</button>
+            @if (!Model.IsReadOnly)
+            {
+                <button type="submit" class="btn btn-primary">@(attempt.IsApproved ? "Re-approve" : "Approve Attempt")</button>
+            }
         </div>
     </form>
 }
