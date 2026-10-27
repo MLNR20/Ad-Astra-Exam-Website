@@ -25,7 +25,7 @@ public class QuestionServiceTests
             UnitOfWork.Setup(u => u.QuestionTypes).Returns(QuestionTypes.Object);
             UnitOfWork.Setup(u => u.Sections).Returns(Sections.Object);
             QuestionTypes.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { new QuestionType { Id = 1, Name = "Multiple Choice" } });
-            Sections.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { new Section { Id = 2, Name = "Basics" } });
+            Sections.Setup(r => r.GetAllIncludingInactiveAsync()).ReturnsAsync(new[] { new Section { Id = 2, Name = "Basics" } });
             Choices.Setup(c => c.GetChoicesAsync(It.IsAny<Guid>())).ReturnsAsync(new List<ChoiceDto>());
             Service = new QuestionService(UnitOfWork.Object, Choices.Object, CreateMapper());
         }

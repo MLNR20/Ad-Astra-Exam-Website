@@ -33,7 +33,7 @@ public class DepartmentServiceTests
     public async Task GetAll_ReturnsAllDepartments()
     {
         var (service, _, departments) = CreateService();
-        departments.Setup(r => r.GetAllAsync()).ReturnsAsync(new[]
+        departments.Setup(r => r.GetAllIncludingInactiveAsync()).ReturnsAsync(new[]
         {
             new Department { Id = "dept-1", Name = "Department A" },
             new Department { Id = "dept-2", Name = "Department B" },

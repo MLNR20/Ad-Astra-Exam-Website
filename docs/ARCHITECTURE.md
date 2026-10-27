@@ -74,7 +74,7 @@ All wiring is in [`Program.cs`](../AAExamManagementSystem/Program.cs).
 | Identity | `AddIdentity<ApplicationUser, ApplicationRole>` + EF stores + default token providers. Cookie: `/Login`, 30-minute sliding expiry. |
 | Data access | `IGenericRepository<>` → `GenericRepository<>` (open generic), `IUnitOfWork` → `UnitOfWork`. All scoped. |
 | Services | `IRoleService`, `ISectionService`, `IDepartmentService`, `ICourseService`, `IChoiceService`, `IQuestionService`, `QuestionChoiceService`, `NotificationService`, `IRefreshTokenService`. |
-| Misc | AutoMapper, `EmailSettings` (+ SMTP notifier), in-memory distributed cache + `AddSession` (45 min idle), `TimeProvider.System`. |
+| Misc | AutoMapper, `EmailSettings` (+ SMTP notifier), `TimeProvider.System`. |
 
 **On boot** (before the pipeline is built): `db.Database.Migrate()` then `IdentitySeeder.SeedAsync` — roles, departments, question types, sidebar `WebPage` rows, an admin user, demo users, department editors, and a large set of seeded exam questions. Migrations therefore apply automatically on every deploy.
 
@@ -82,7 +82,7 @@ All wiring is in [`Program.cs`](../AAExamManagementSystem/Program.cs).
 
 ```
 ExceptionHandler/HSTS (non-dev) → HttpsRedirection → Routing
-  → Authentication → RefreshTokenMiddleware → Session → Authorization
+  → Authentication → RefreshTokenMiddleware → Authorization
   → StaticAssets / RazorPages / Controllers / SignalR hub
 ```
 
@@ -150,7 +150,7 @@ Key rules (all in [`RefreshTokenService.cs`](../AAExamManagementSystem/Services/
 ### 4.4 Authorization
 
 * **Razor Pages:** every `PageModel` carries `[Authorize(Roles = …)]`. Admin-only: all master-data CRUD, users, roles, audit logs, announcements. Admin+Instructor+Staffer+Editor: questions, page sections, attempts index/review, analytics. Admin+Editor: applicants, simulate. Applicant-only: portal, take exam, my attempts. Editor-only: `/Staff`.
-* **API controllers:** every controller has a bare `[Authorize]` — authentication only, **no role restriction** (see §10).
+* **API controllers:** the management controllers (`Announcements`, `Choices`, `Courses`, `Departments`, `Questions`, `Sections`) are restricted to Admin and Editor; `Roles` and `RoleAssignments` to Admin. `Notifications` and `WebPages` remain plain `[Authorize]`.
 * **SignalR hub:** `[Authorize]`; messages are addressed with `Clients.User(userId)`.
 * **Data scoping:** department editors only see applicants/attempts for their own section (checked in `Applicants/*` and `Attempts/Review`).
 * The sidebar is a hand-written partial that hides links by role; a `WebPage` table (seeded) also stores nav entries with icon/category/order.
@@ -195,7 +195,7 @@ erDiagram
 **Database conventions** (`ApplicationDbContext`)
 
 * Default schema **`AAExam`** (including Identity tables).
-* **Soft-delete flag** `IsActive` on nearly every table, plus `DateCreated`/`DateUpdated` (or `CreatedAt`/`DateUpdated` on older tables). Not enforced by a global filter except on `ApplicationUserRole` — callers must filter.
+* **Soft-delete flag** `IsActive` on nearly every table, plus `DateCreated`/`DateUpdated` (or `CreatedAt`/`DateUpdated` on older tables). Enforced by a global query filter on `ApplicationUserRole`, `Department`, `Course` and `Section`, so inactive rows stay out of dropdowns and lookups by default. Admin lists use `GetAllIncludingInactiveAsync()` and the seeder uses `IgnoreQueryFilters()`; `GetByIdAsync` also ignores the filter so an inactive row can be opened and reactivated. `Question`, `Choice`, `ExamPage` and `PageSection` are deliberately **not** filtered (graded answers must still resolve their question; page numbers are unique per section), so those callers still filter `IsActive` themselves.
 * Delete behaviour: `Restrict` on anything with history (questions, answers, attempts, exam pages); `Cascade` for owned children (question-choice links, answers under an attempt, notifications, refresh tokens, the applicant under a user); `SetNull` for optional user links.
 * Unique indexes: `Attempt.Password`, `WebPage.Url`, `ExamPage(SectionId, PageNumber)`, `Applicant.UserId`, `RefreshToken.TokenHash`.
 * Migrations: 26, timestamped, in `Repository/Migrations`. Newest: `AddRefreshTokens`.
@@ -305,7 +305,7 @@ sequenceDiagram
     A->>T: GET page n
     T->>T: load questions for the next untaken attempt's section,<br/>group by ExamPage / PageSection
     A->>T: POST answers (prev / next / submit)
-    T->>T: store progress in Session (examProgress:{applicantId}), enforce "answer all"
+    T->>T: store progress on the Attempt row (ProgressJson), enforce "answer all"
     A->>T: submit
     T->>DB: stamp attempt, one Answer per question,<br/>auto-score choice questions (skip IsUpToEvaluation)
     T->>NS: SendToDepartmentEditorsAsync(section, ...)
@@ -318,7 +318,7 @@ sequenceDiagram
 
 Details worth knowing:
 
-* **Progress lives in `HttpContext.Session`**, not the database, until final submit. Session storage is `AddDistributedMemoryCache`, so it is per-process and lost on restart.
+* **Progress lives on the `Attempt` row** (`ProgressJson`, cleared on submit), so it survives restarts and works across several instances. Applicants who registered before signup created their attempts get one on their first saved page.
 * Notification failures are caught and logged; they never fail a submission.
 * Signup is compensating rather than transactional: if saving the applicant fails, the just-created `ApplicationUser` is deleted.
 * Attempt passwords are generated by the pure `AttemptPassword` helper and checked for uniqueness against the DB and the in-flight batch.
@@ -363,11 +363,11 @@ Not covered by tests: the real middleware pipeline end to end, SignalR delivery,
 
 Ordered roughly by how much they matter. These are observations from reading the code, not bugs I have reproduced.
 
-1. **API authorization is authentication-only.** Every `/api/v1/*` controller is bare `[Authorize]`. Any logged-in user — including an Applicant — can call, for example, `POST /api/v1/roles` or `DELETE /api/v1/departments/{id}`, even though the equivalent pages are Admin-only. Apply the same role sets as the pages (a policy per role group is the tidy way).
+1. ~~**API authorization is authentication-only.**~~ Fixed: management controllers now carry role restrictions (see §4.4).
 2. **Seeded admin password is hard-coded** (`IdentitySeeder`: `P@ssword2026!`) and runs in every environment, including production. Read it from configuration and skip demo-user seeding outside Development.
 3. **Two CRUD paths duplicate business rules** (§6.4). Pick one: have page models call the existing `I…Service` interfaces (they already return `ServiceResult` suitable for `ModelState`), and keep repositories behind the services.
-4. **Soft delete is a convention, not a guarantee.** Only `ApplicationUserRole` has a query filter, so inactive departments/courses/questions can leak into dropdowns and the exam unless every query remembers `IsActive`. Global filters on the soft-deleted entities would remove that class of bug (with `IgnoreQueryFilters()` for admin views).
-5. **Exam progress in `Session` + in-memory cache** breaks on app restart or when scaled to more than one instance. Switch the distributed cache to SQL Server/Redis, or persist per-page answers.
+4. ~~**Soft delete is a convention, not a guarantee.**~~ Fixed for departments, courses and sections with global query filters (see §5). Questions, choices, exam pages and page sections still rely on callers filtering `IsActive`, for the reasons given there.
+5. ~~**Exam progress in `Session` + in-memory cache**~~ Fixed: progress is stored on the attempt (`Attempt.ProgressJson`) and session state is no longer used.
 6. **`Attempt.Section` is a string and `Attempt.DateTaken` is an ISO string.** A section FK and a `DateTime?` would remove string matching in notifications and sorting.
 7. **`Department` vs `Section` overlap** (§5). Decide whether they are one concept; today editors are scoped by `SectionId` while `Department` is mostly decorative.
 8. **No audit trail for data changes**, only logins/logouts. If the audit log is meant for compliance, a `SaveChanges` interceptor writing `AuditLog` rows would cover all CRUD uniformly.

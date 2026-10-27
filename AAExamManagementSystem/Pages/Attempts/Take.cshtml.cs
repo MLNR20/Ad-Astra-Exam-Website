@@ -125,7 +125,6 @@ public class TakeModel : PageModel
         if (AlreadyAttempted)
         {
             SectionName = attempts.OrderByDescending(a => a.DateCreated).First().Section;
-            ClearProgress(applicant.Id);
             return Page();
         }
 
@@ -140,7 +139,7 @@ public class TakeModel : PageModel
         CurrentPageQuestions = Pages[CurrentPage - 1];
         ApplyCurrentPageText();
 
-        var progress = LoadProgress(applicant.Id);
+        var progress = LoadProgress();
         RehydrateCurrentPageAnswers(progress);
 
         return Page();
@@ -176,7 +175,7 @@ public class TakeModel : PageModel
         CurrentPageQuestions = Pages[CurrentPage - 1];
         ApplyCurrentPageText();
 
-        var progress = LoadProgress(applicant.Id);
+        var progress = LoadProgress();
         foreach (var question in CurrentPageQuestions)
         {
             if (Answers.TryGetValue(question.Id, out var choiceId) && choiceId != Guid.Empty)
@@ -190,7 +189,7 @@ public class TakeModel : PageModel
             }
         }
 
-        SaveProgress(applicant.Id, progress);
+        await SaveProgressAsync(applicant, progress);
 
         if (direction == "prev")
         {
@@ -237,18 +236,9 @@ public class TakeModel : PageModel
 
             var allQuestions = Pages.SelectMany(p => p).ToList();
 
-            // Fill in the attempt that was created at signup; applicants who registered before that
-            // existed have none, so they still get a new one here.
-            var attempt = _activeAttempt;
-            if (attempt is null)
-            {
-                attempt = new Attempt
-                {
-                    ApplicantId = applicant.Id,
-                    AcademicYear = applicant.AcademicYear,
-                };
-                _context.Attempts.Add(attempt);
-            }
+            // Saving progress above already created the attempt for applicants who registered before
+            // signup made one, so this is always the attempt they have been working on.
+            var attempt = _activeAttempt!;
 
             attempt.Section = SectionName;
             attempt.DateTaken = DateTime.UtcNow.ToString("o");
@@ -292,11 +282,10 @@ public class TakeModel : PageModel
             }
 
             attempt.TotalScore = totalScore;
+            attempt.ProgressJson = null;
             await _context.SaveChangesAsync();
 
             await NotifyEditorsAsync(applicant, attempt);
-
-            ClearProgress(applicant.Id);
 
             SubmittedScore = totalScore;
             SubmittedMaxScore = allQuestions.Sum(q => q.Score);
@@ -455,7 +444,7 @@ public class TakeModel : PageModel
 
         foreach (var dto in dtos)
         {
-            dto.Choices = await _choiceService.GetChoicesAsync(dto.Id);
+            dto.Choices = await _choiceService.GetChoicesAsync(dto.Id, activeOnly: true);
         }
 
         return dtos;
@@ -508,27 +497,42 @@ public class TakeModel : PageModel
         }
     }
 
-    private static string SessionKey(int applicantId) => $"examProgress:{applicantId}";
-
-    private ExamProgress LoadProgress(int applicantId)
+    // Progress lives on the attempt row so it survives restarts, deployments and a second server instance.
+    private ExamProgress LoadProgress()
     {
-        var json = HttpContext.Session.GetString(SessionKey(applicantId));
+        var json = _activeAttempt?.ProgressJson;
         if (string.IsNullOrEmpty(json))
         {
             return new ExamProgress();
         }
 
-        return JsonSerializer.Deserialize<ExamProgress>(json) ?? new ExamProgress();
+        try
+        {
+            return JsonSerializer.Deserialize<ExamProgress>(json) ?? new ExamProgress();
+        }
+        catch (JsonException)
+        {
+            return new ExamProgress();
+        }
     }
 
-    private void SaveProgress(int applicantId, ExamProgress progress)
+    private async Task SaveProgressAsync(Applicant applicant, ExamProgress progress)
     {
-        HttpContext.Session.SetString(SessionKey(applicantId), JsonSerializer.Serialize(progress));
-    }
+        // Applicants who registered before signup created their attempt have none yet, so make it now.
+        if (_activeAttempt is null)
+        {
+            _activeAttempt = new Attempt
+            {
+                ApplicantId = applicant.Id,
+                AcademicYear = applicant.AcademicYear,
+                Section = SectionName,
+            };
+            _context.Attempts.Add(_activeAttempt);
+        }
 
-    private void ClearProgress(int applicantId)
-    {
-        HttpContext.Session.Remove(SessionKey(applicantId));
+        _activeAttempt.ProgressJson = JsonSerializer.Serialize(progress);
+        _activeAttempt.DateUpdated = DateTime.UtcNow;
+        await _context.SaveChangesAsync();
     }
 
     private sealed class ExamProgress

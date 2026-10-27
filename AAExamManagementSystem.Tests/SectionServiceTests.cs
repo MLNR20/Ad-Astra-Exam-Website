@@ -33,7 +33,7 @@ public class SectionServiceTests
     public async Task GetAll_ReturnsAllSections()
     {
         var (service, _, sections) = CreateService();
-        sections.Setup(r => r.GetAllAsync()).ReturnsAsync(new[]
+        sections.Setup(r => r.GetAllIncludingInactiveAsync()).ReturnsAsync(new[]
         {
             new Section { Id = 1, Name = "Section A" },
             new Section { Id = 2, Name = "Section B" },

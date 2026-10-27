@@ -38,7 +38,7 @@ public class SimulateModel : PageModel
         }
 
         Question = _mapper.Map<QuestionDto>(question);
-        Question.Choices = await _choiceService.GetChoicesAsync(question.Id);
+        Question.Choices = await _choiceService.GetChoicesAsync(question.Id, activeOnly: true);
         return Page();
     }
 }

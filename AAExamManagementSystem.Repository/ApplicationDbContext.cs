@@ -182,5 +182,13 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
 
         builder.Entity<ApplicationUserRole>()
             .HasQueryFilter(ur => ur.IsActive);
+
+        // Departments, courses and sections are "deleted" by deactivating them. Filtering them here keeps inactive
+        // ones out of every dropdown and lookup by default; admin lists and the seeder opt back in with
+        // IgnoreQueryFilters() / GetAllIncludingInactiveAsync(). Questions, choices and exam pages are deliberately
+        // not filtered: graded answers must still resolve their question, and page numbers are unique per section.
+        builder.Entity<Department>().HasQueryFilter(d => d.IsActive);
+        builder.Entity<Course>().HasQueryFilter(c => c.IsActive);
+        builder.Entity<Section>().HasQueryFilter(s => s.IsActive);
     }
 }

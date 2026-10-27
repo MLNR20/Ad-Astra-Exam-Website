@@ -19,5 +19,8 @@ public class Attempt
     public bool IsApproved { get; set; }
     public string? ApprovedBy { get; set; }
 
+    /// <summary>JSON of the answers an applicant has entered so far; cleared once the exam is submitted.</summary>
+    public string? ProgressJson { get; set; }
+
     public ICollection<Answer> Answers { get; set; } = new List<Answer>();
 }

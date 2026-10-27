@@ -139,7 +139,9 @@ public class EditModel : PageModel
 
     private async Task LoadOptionsAsync()
     {
-        var sections = await _sectionRepository.GetAllAsync();
+        // Active sections only, plus the one this user already belongs to so saving doesn't silently unassign it.
+        var sections = (await _sectionRepository.GetAllIncludingInactiveAsync())
+            .Where(s => s.IsActive || s.Id == TargetUser.SectionId);
         SectionOptions = new SelectList(sections.OrderBy(s => s.Name), "Id", "Name");
         RoleOptions = _roleManager.Roles.Where(r => r.IsActive).OrderBy(r => r.Name).ToList();
     }

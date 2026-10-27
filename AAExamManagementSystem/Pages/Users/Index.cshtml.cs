@@ -50,7 +50,7 @@ public class IndexModel : PageModel
     private async Task LoadUsersAsync()
     {
         var users = _userManager.Users.OrderBy(u => u.UserName).ToList();
-        var sections = await _sectionRepository.GetAllAsync();
+        var sections = await _sectionRepository.GetAllIncludingInactiveAsync();
         var sectionNames = sections.ToDictionary(s => s.Id, s => s.Name);
         var userDtos = new List<UserDto>();
 

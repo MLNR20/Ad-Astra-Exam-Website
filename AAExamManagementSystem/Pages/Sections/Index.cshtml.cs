@@ -84,7 +84,7 @@ public class IndexModel : PageModel
 
     private async Task LoadSectionsAsync()
     {
-        var sections = await _repository.GetAllAsync();
+        var sections = await _repository.GetAllIncludingInactiveAsync();
         Sections = _mapper.Map<IList<SectionDto>>(sections.OrderBy(s => s.Name));
     }
 }

@@ -366,6 +366,9 @@ namespace AAExamManagementSystem.Repository.Migrations
                     b.Property<string>("Password")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<string>("ProgressJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Section")
                         .HasColumnType("nvarchar(max)");
 

@@ -94,7 +94,7 @@ public class QuestionService : IQuestionService
     private async Task PopulateLookupsAsync(IEnumerable<QuestionDto> dtos)
     {
         var questionTypes = await _unitOfWork.QuestionTypes.GetAllAsync();
-        var sections = await _unitOfWork.Sections.GetAllAsync();
+        var sections = await _unitOfWork.Sections.GetAllIncludingInactiveAsync();
         var questionTypeNames = questionTypes.ToDictionary(qt => qt.Id, qt => qt.Name);
         var sectionNames = sections.ToDictionary(s => s.Id, s => s.Name);
         foreach (var dto in dtos)

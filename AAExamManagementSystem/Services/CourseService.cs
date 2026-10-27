@@ -18,7 +18,7 @@ public class CourseService : ICourseService
 
     public async Task<IEnumerable<CourseDto>> GetAllAsync()
     {
-        var courses = await _unitOfWork.Courses.GetAllAsync();
+        var courses = await _unitOfWork.Courses.GetAllIncludingInactiveAsync();
         return _mapper.Map<IEnumerable<CourseDto>>(courses);
     }
 

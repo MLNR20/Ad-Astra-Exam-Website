@@ -71,6 +71,7 @@ public class IndexModel : PageModel
     private async Task LoadChoicesAsync()
     {
         var choices = await _context.Choices
+            .IgnoreQueryFilters()
             .Include(c => c.QuestionAndChoices)
             .ThenInclude(qc => qc.Question)
             .ThenInclude(q => q.Section)

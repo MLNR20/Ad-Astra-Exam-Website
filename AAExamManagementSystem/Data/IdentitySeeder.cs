@@ -43,7 +43,7 @@ public static class IdentitySeeder
 
         foreach (var sectionName in Departments.All)
         {
-            var exists = dbContext.Sections.Any(s => s.Name == sectionName);
+            var exists = dbContext.Sections.IgnoreQueryFilters().Any(s => s.Name == sectionName);
             if (!exists)
             {
                 dbContext.Sections.Add(new Section { Name = sectionName });
@@ -85,7 +85,7 @@ public static class IdentitySeeder
 
         await dbContext.SaveChangesAsync();
 
-        var sections = dbContext.Sections.ToList();
+        var sections = dbContext.Sections.IgnoreQueryFilters().ToList();
 
         var adminUser = await userManager.FindByNameAsync(AdminUserName);
         if (adminUser is null)
@@ -154,7 +154,7 @@ public static class IdentitySeeder
 
     private static async Task SeedPersonalityQuestionsAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.Personality);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == Departments.Personality);
         if (section is null)
         {
             return;
@@ -213,7 +213,7 @@ public static class IdentitySeeder
 
     private static async Task SeedGeneralKnowledgeQuestionsAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.GeneralKnowledge);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == Departments.GeneralKnowledge);
         if (section is null)
         {
             return;
@@ -279,7 +279,7 @@ public static class IdentitySeeder
 
     private static async Task SeedMarketingQuestionsAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.Marketing);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == Departments.Marketing);
         if (section is null)
         {
             return;
@@ -357,7 +357,7 @@ public static class IdentitySeeder
     // evaluation, so an evaluator marks the applicant's list by hand against the reference answer stored here.
     private static async Task SeedMarketingEnumerationQuestionsAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.Marketing);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == Departments.Marketing);
         if (section is null)
         {
             return;
@@ -410,7 +410,7 @@ public static class IdentitySeeder
     // set up when the department has no exam pages yet, so pages an admin has configured are never overwritten.
     private static async Task SeedGeneralKnowledgeExamPagesAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.GeneralKnowledge);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == Departments.GeneralKnowledge);
         var multipleChoiceType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.MultipleChoice);
         var identificationType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Identification);
         var essayType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Essay);
@@ -482,7 +482,7 @@ public static class IdentitySeeder
 
     private static async Task SeedVideoSoftwareQuestionsAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.Video);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == Departments.Video);
         var identificationType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Identification);
         if (section is null || identificationType is null)
         {
@@ -527,7 +527,7 @@ public static class IdentitySeeder
     // overwritten.
     private static async Task SeedVideoExamPagesAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.Video);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == Departments.Video);
         var multipleChoiceType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.MultipleChoice);
         var identificationType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Identification);
         var essayType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Essay);
@@ -594,7 +594,7 @@ public static class IdentitySeeder
 
     private static async Task SeedCustomerSupportMultipleChoiceQuestionsAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.CustomerSupport);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == Departments.CustomerSupport);
         var multipleChoiceType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.MultipleChoice);
         if (section is null || multipleChoiceType is null)
         {
@@ -646,7 +646,7 @@ public static class IdentitySeeder
     // Only set up when the department has no exam pages yet, so pages an admin has configured are never overwritten.
     private static async Task SeedCustomerSupportExamPagesAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.CustomerSupport);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == Departments.CustomerSupport);
         var multipleChoiceType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.MultipleChoice);
         var essayType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Essay);
         if (section is null || multipleChoiceType is null || essayType is null)
@@ -718,7 +718,7 @@ public static class IdentitySeeder
 
     private static async Task SeedMarketingToolQuestionsAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.Marketing);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == Departments.Marketing);
         var identificationType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Identification);
         if (section is null || identificationType is null)
         {
@@ -766,7 +766,7 @@ public static class IdentitySeeder
     // admin has configured are never overwritten.
     private static async Task SeedMarketingExamPagesAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.Marketing);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == Departments.Marketing);
         var multipleChoiceType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.MultipleChoice);
         var identificationType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Identification);
         var essayType = dbContext.QuestionTypes.FirstOrDefault(qt => qt.Name == QuestionTypes.Essay);
@@ -888,7 +888,7 @@ public static class IdentitySeeder
         string departmentName,
         (string QuestionTitle, string[] Choices, int CorrectIndex)[] questionSet)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == departmentName);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == departmentName);
         if (section is null)
         {
             return;
@@ -978,7 +978,7 @@ public static class IdentitySeeder
         string departmentName,
         (string QuestionTitle, string Answer)[] questionSet)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == departmentName);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == departmentName);
         if (section is null)
         {
             return;
@@ -1068,7 +1068,7 @@ public static class IdentitySeeder
         string[] questionTitles,
         int score)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == departmentName);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == departmentName);
         if (section is null)
         {
             return;
@@ -1127,7 +1127,7 @@ public static class IdentitySeeder
 
     private static async Task SeedContentDevelopmentSpellingQuestionsAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.ContentDevelopment);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == Departments.ContentDevelopment);
         if (section is null)
         {
             return;
@@ -1185,7 +1185,7 @@ public static class IdentitySeeder
 
     private static async Task SeedContentDevelopmentEssayQuestionsAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.ContentDevelopment);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == Departments.ContentDevelopment);
         if (section is null)
         {
             return;
@@ -1244,7 +1244,7 @@ public static class IdentitySeeder
 
     private static async Task SeedWebDevelopmentQuestionsAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.WebDevelopment);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == Departments.WebDevelopment);
         if (section is null)
         {
             return;
@@ -1310,7 +1310,7 @@ public static class IdentitySeeder
 
     private static async Task SeedProgrammingLanguageIdentificationQuestionsAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.WebDevelopment);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == Departments.WebDevelopment);
         if (section is null)
         {
             return;
@@ -1364,7 +1364,7 @@ public static class IdentitySeeder
 
     private static async Task SeedProgrammingLanguageIconQuestionsAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.WebDevelopment);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == Departments.WebDevelopment);
         if (section is null)
         {
             return;
@@ -1433,7 +1433,7 @@ public static class IdentitySeeder
 
     private static async Task SeedSqlQueryQuestionsAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.WebDevelopment);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == Departments.WebDevelopment);
         if (section is null)
         {
             return;
@@ -1483,7 +1483,7 @@ public static class IdentitySeeder
     // answer is stored for the evaluator; an evaluator marks the applicant's answer by hand.
     private static async Task SeedDebuggingQuestionsAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.WebDevelopment);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == Departments.WebDevelopment);
         if (section is null)
         {
             return;
@@ -1546,7 +1546,7 @@ public static class IdentitySeeder
 
     private static async Task SeedJavaScriptCodeSnippetQuestionsAsync(ApplicationDbContext dbContext)
     {
-        var section = dbContext.Sections.FirstOrDefault(s => s.Name == Departments.WebDevelopment);
+        var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == Departments.WebDevelopment);
         if (section is null)
         {
             return;

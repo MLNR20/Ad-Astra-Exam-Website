@@ -133,7 +133,10 @@ public class EditModel : PageModel
     private async Task LoadOptionsAsync()
     {
         var questionTypes = await _questionTypeRepository.GetAllAsync();
-        var sections = await _sectionRepository.GetAllAsync();
+        // Active sections only, plus the question's current one so editing it doesn't move it elsewhere.
+        var sections = (await _sectionRepository.GetAllIncludingInactiveAsync())
+            .Where(s => s.IsActive || s.Id == Question.SectionId)
+            .ToList();
         QuestionTypeOptions = new SelectList(questionTypes.OrderBy(qt => qt.Name), "Id", "Name");
         SectionOptions = new SelectList(sections.OrderBy(s => s.Name), "Id", "Name");
         ChoiceTypeIds = await _choiceService.GetChoiceTypeIdsAsync();

@@ -33,7 +33,7 @@ public class CourseServiceTests
     public async Task GetAll_ReturnsAllCourses()
     {
         var (service, _, courses) = CreateService();
-        courses.Setup(r => r.GetAllAsync()).ReturnsAsync(new[]
+        courses.Setup(r => r.GetAllIncludingInactiveAsync()).ReturnsAsync(new[]
         {
             new Course { Id = 1, Name = "Course A" },
             new Course { Id = 2, Name = "Course B" },

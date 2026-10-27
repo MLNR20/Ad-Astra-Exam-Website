@@ -86,7 +86,7 @@ public class IndexModel : PageModel
 
     private async Task LoadCoursesAsync()
     {
-        var courses = await _repository.GetAllAsync();
+        var courses = await _repository.GetAllIncludingInactiveAsync();
         Courses = _mapper.Map<IList<CourseDto>>(courses.OrderBy(c => c.Name));
     }
 }

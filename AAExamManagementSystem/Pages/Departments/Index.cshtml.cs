@@ -86,7 +86,7 @@ public class IndexModel : PageModel
 
     private async Task LoadDepartmentsAsync()
     {
-        var departments = await _repository.GetAllAsync();
+        var departments = await _repository.GetAllIncludingInactiveAsync();
         Departments = _mapper.Map<IList<DepartmentDto>>(departments.OrderBy(d => d.Name));
     }
 }

@@ -24,11 +24,12 @@ public class QuestionChoiceService : IQuestionChoiceService
         return questionTypes.Where(qt => QuestionTypes.RequiresChoices(qt.Name)).Select(qt => qt.Id).ToList();
     }
 
-    public async Task<List<ChoiceDto>> GetChoicesAsync(Guid questionId)
+    /// <param name="activeOnly">True for anything an applicant sees or is graded on; admin views pass false to list deactivated choices too.</param>
+    public async Task<List<ChoiceDto>> GetChoicesAsync(Guid questionId, bool activeOnly = false)
     {
         return await _dbContext.QuestionAndChoices
             .AsNoTracking()
-            .Where(qc => qc.QuestionId == questionId)
+            .Where(qc => qc.QuestionId == questionId && (!activeOnly || qc.Choice.IsActive))
             .OrderBy(qc => qc.Id)
             .Select(qc => new ChoiceDto
             {

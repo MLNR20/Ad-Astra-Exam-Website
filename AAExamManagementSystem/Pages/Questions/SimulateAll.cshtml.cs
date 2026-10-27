@@ -324,7 +324,7 @@ public class SimulateAllModel : PageModel
         foreach (var question in Questions)
         {
             question.QuestionTypeName = typeNamesById.GetValueOrDefault(question.QuestionTypeId, string.Empty);
-            question.Choices = await _choiceService.GetChoicesAsync(question.Id);
+            question.Choices = await _choiceService.GetChoicesAsync(question.Id, activeOnly: true);
         }
 
         return Page();

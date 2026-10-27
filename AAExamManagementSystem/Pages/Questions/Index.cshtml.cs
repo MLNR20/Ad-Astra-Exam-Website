@@ -132,7 +132,7 @@ public class IndexModel : PageModel
     {
         var questions = await _repository.GetAllAsync();
         var questionTypes = await _questionTypeRepository.GetAllAsync();
-        var sections = await _sectionRepository.GetAllAsync();
+        var sections = await _sectionRepository.GetAllIncludingInactiveAsync();
         var questionTypeNames = questionTypes.ToDictionary(qt => qt.Id, qt => qt.Name);
         var sectionNames = sections.ToDictionary(s => s.Id, s => s.Name);
 

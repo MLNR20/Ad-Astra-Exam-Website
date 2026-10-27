@@ -93,14 +93,6 @@ builder.Services.PostConfigure<EmailSettings>(settings =>
     settings.Password = builder.Configuration["ad-astra-exam-password"]);
 builder.Services.AddSingleton<IRegistrationNotifier, SmtpRegistrationNotifier>();
 
-builder.Services.AddDistributedMemoryCache();
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(45);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-});
-
 builder.Services.AddApiVersioning(options =>
 {
     options.DefaultApiVersion = new ApiVersion(1, 0);
@@ -135,7 +127,6 @@ app.UseRouting();
 
 app.UseAuthentication();
 app.UseMiddleware<RefreshTokenMiddleware>();
-app.UseSession();
 app.UseAuthorization();
 
 app.MapStaticAssets();

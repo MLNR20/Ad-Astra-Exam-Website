@@ -18,7 +18,7 @@ public class SectionService : ISectionService
 
     public async Task<IEnumerable<SectionDto>> GetAllAsync()
     {
-        var sections = await _unitOfWork.Sections.GetAllAsync();
+        var sections = await _unitOfWork.Sections.GetAllIncludingInactiveAsync();
         return _mapper.Map<IEnumerable<SectionDto>>(sections);
     }
 
