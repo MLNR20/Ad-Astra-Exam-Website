@@ -1652,7 +1652,15 @@ public static class IdentitySeeder
     private static readonly (string UserName, string FirstName, string LastName, string DepartmentName)[] DepartmentEditors =
     {
         ("wdeditor", "Noah", "Reyes", Departments.WebDevelopment),
-        ("adeditor", "Mika", "Santos", Departments.ArtAndDesign)
+        ("adeditor", "Mika", "Santos", Departments.ArtAndDesign),
+        ("cdeditor", "Content Development", "Editor", Departments.ContentDevelopment),
+        ("cseditor", "Customer Support", "Editor", Departments.CustomerSupport),
+        ("mgeditor", "Managing", "Editor", Departments.Managing),
+        ("mkeditor", "Marketing", "Editor", Departments.Marketing),
+        ("pheditor", "Photo", "Editor", Departments.Photo),
+        ("vdeditor", "Video", "Editor", Departments.Video),
+        ("gkeditor", "General Knowledge", "Editor", Departments.GeneralKnowledge),
+        ("pseditor", "Personality", "Editor", Departments.Personality)
     };
 
     private static async Task SeedDepartmentEditorsAsync(UserManager<ApplicationUser> userManager, IList<Section> sections)

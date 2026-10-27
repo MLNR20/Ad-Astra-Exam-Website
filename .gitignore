@@ -34,3 +34,6 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+## Generated exports (question lists and credentials; never commit)
+exports/
