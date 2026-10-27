@@ -7,7 +7,7 @@ public class RegistrationEmailTests
     [Fact]
     public void BuildBody_ListsTheApplicantAndEveryExamChoice()
     {
-        var body = SmtpRegistrationNotifier.BuildBody("Ana Reyes", "2026-0042", "2026-2027", new[] { "Web Development", "Managing" });
+        var body = SmtpRegistrationNotifier.BuildBody("Ana", "Reyes", "2026-0042", "2026-2027", new[] { "Web Development", "Managing" });
 
         Assert.Contains("Applicant: Ana Reyes", body);
         Assert.Contains("Student No.: 2026-0042", body);
@@ -19,10 +19,23 @@ public class RegistrationEmailTests
     [Fact]
     public void BuildBody_WithOneExam_UsesTheSingularHeading()
     {
-        var body = SmtpRegistrationNotifier.BuildBody("Ana Reyes", "1", "2026-2027", new[] { "Managing" });
+        var body = SmtpRegistrationNotifier.BuildBody("Ana", "Reyes", "1", "2026-2027", new[] { "Managing" });
 
         Assert.Contains("Exam choice:", body);
         Assert.DoesNotContain("Exam choices:", body);
+    }
+
+    [Fact]
+    public void BuildBody_WelcomesTheApplicantAndExplainsTheExam()
+    {
+        var body = SmtpRegistrationNotifier.BuildBody("Ana", "Reyes", "1", "2026-2027", new[] { "Managing" });
+
+        Assert.StartsWith("Welcome to Ad Astra!", body);
+        Assert.Contains("Glad to have you, Ana Reyes!", body);
+        Assert.Contains("entrance exam", body);
+        Assert.Contains("90 minutes", body);
+        Assert.Contains("change your answers", body);
+        Assert.Contains("Don't share your exam password", body);
     }
 
     [Fact]

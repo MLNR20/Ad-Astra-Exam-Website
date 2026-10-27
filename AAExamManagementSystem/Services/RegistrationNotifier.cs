@@ -21,7 +21,7 @@ public class EmailSettings
 public interface IRegistrationNotifier
 {
     /// <summary>Emails the recruitment inbox about a new registration. Never throws; failures are logged.</summary>
-    void NotifyRegistration(string applicantName, string studentNo, string academicYear, IReadOnlyList<string> exams);
+    void NotifyRegistration(string firstName, string lastName, string studentNo, string academicYear, IReadOnlyList<string> exams);
 }
 
 public class SmtpRegistrationNotifier : IRegistrationNotifier
@@ -35,8 +35,10 @@ public class SmtpRegistrationNotifier : IRegistrationNotifier
         _logger = logger;
     }
 
-    public void NotifyRegistration(string applicantName, string studentNo, string academicYear, IReadOnlyList<string> exams)
+    public void NotifyRegistration(string firstName, string lastName, string studentNo, string academicYear, IReadOnlyList<string> exams)
     {
+        var applicantName = $"{firstName} {lastName}".Trim();
+
         if (string.IsNullOrWhiteSpace(_settings.Password))
         {
             _logger.LogWarning("Registration email skipped: no 'ad-astra-exam-password' is configured.");
@@ -44,7 +46,7 @@ public class SmtpRegistrationNotifier : IRegistrationNotifier
         }
 
         var subject = BuildSubject(applicantName);
-        var body = BuildBody(applicantName, studentNo, academicYear, exams);
+        var body = BuildBody(firstName, lastName, studentNo, academicYear, exams);
 
         // Sent in the background so a slow or failing mail server never holds up the signup page.
         _ = Task.Run(async () =>
@@ -66,11 +68,23 @@ public class SmtpRegistrationNotifier : IRegistrationNotifier
         return $"New applicant registration: {singleLineName}";
     }
 
-    public static string BuildBody(string applicantName, string studentNo, string academicYear, IReadOnlyList<string> exams)
+    public static string BuildBody(string firstName, string lastName, string studentNo, string academicYear, IReadOnlyList<string> exams)
     {
+        var applicantName = $"{firstName} {lastName}".Trim();
+
         var body = new StringBuilder();
-        body.AppendLine("A new applicant has registered.");
+        body.AppendLine("Welcome to Ad Astra!");
         body.AppendLine();
+        body.AppendLine($"Glad to have you, {applicantName}! Before we begin your journey, we invite you to take our entrance exam to gauge your interests and your specialties.");
+        body.AppendLine();
+        body.AppendLine("Exam instructions:");
+        body.AppendLine("  - Each exam may take up to 90 minutes.");
+        body.AppendLine("  - You can go back to a previous page and change your answers.");
+        body.AppendLine("  - Once you submit the final page, your answers are final and cannot be changed.");
+        body.AppendLine("  - Each exam can only be taken once.");
+        body.AppendLine("  - Don't share your exam password with anyone.");
+        body.AppendLine();
+        body.AppendLine("Your registration details:");
         body.AppendLine($"Applicant: {applicantName}");
         body.AppendLine($"Student No.: {studentNo}");
         body.AppendLine($"Academic year: {academicYear}");

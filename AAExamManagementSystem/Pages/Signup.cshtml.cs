@@ -109,7 +109,8 @@ public class SignupModel : PageModel
             .OfType<string>()
             .ToList();
         _registrationNotifier.NotifyRegistration(
-            $"{applicant.FirstName} {applicant.LastName}".Trim(),
+            applicant.FirstName,
+            applicant.LastName,
             applicant.StudentNo,
             applicant.AcademicYear,
             exams);
