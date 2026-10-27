@@ -38,12 +38,19 @@ public class SignupModel : PageModel
     [BindProperty]
     public ApplicantRegisterDto Input { get; set; } = new();
 
-    public void OnGet()
+    /// <summary>Departments an applicant can pick: active ones that have exam questions, except the shared General Knowledge.</summary>
+    public IList<string> ChoiceOptions { get; private set; } = new List<string>();
+
+    public async Task OnGetAsync()
     {
+        await LoadChoiceOptionsAsync();
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
+        await LoadChoiceOptionsAsync();
+        ValidateChoices();
+
         if (!ModelState.IsValid)
         {
             return Page();
@@ -111,6 +118,7 @@ public class SignupModel : PageModel
         _registrationNotifier.NotifyRegistration(
             applicant.FirstName,
             applicant.LastName,
+            applicant.Email,
             applicant.StudentNo,
             applicant.AcademicYear,
             exams);
@@ -118,6 +126,47 @@ public class SignupModel : PageModel
         await _signInManager.SignInAsync(user, isPersistent: false);
 
         return RedirectToPage("/ApplicantPortal");
+    }
+
+    private async Task LoadChoiceOptionsAsync()
+    {
+        ChoiceOptions = await _context.Sections
+            .AsNoTracking()
+            .Where(s => s.Name != AAExamManagementSystem.Models.Entities.Departments.GeneralKnowledge
+                && s.Questions.Any(q => q.IsActive))
+            .OrderBy(s => s.Name)
+            .Select(s => s.Name)
+            .ToListAsync();
+    }
+
+    // The choices come from a dropdown, but a posted form can say anything, so check them against the same list.
+    private void ValidateChoices()
+    {
+        Input.FirstChoice = MatchOption(Input.FirstChoice, nameof(Input.FirstChoice));
+        Input.SecondChoice = MatchOption(Input.SecondChoice, nameof(Input.SecondChoice));
+
+        if (!string.IsNullOrEmpty(Input.FirstChoice)
+            && string.Equals(Input.FirstChoice, Input.SecondChoice, StringComparison.OrdinalIgnoreCase))
+        {
+            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.SecondChoice)}", "Pick a different department for your second choice.");
+        }
+    }
+
+    private string? MatchOption(string? choice, string field)
+    {
+        var trimmed = choice?.Trim();
+        if (string.IsNullOrEmpty(trimmed))
+        {
+            return null;
+        }
+
+        var match = ChoiceOptions.FirstOrDefault(o => string.Equals(o, trimmed, StringComparison.OrdinalIgnoreCase));
+        if (match is null)
+        {
+            ModelState.AddModelError($"{nameof(Input)}.{field}", "Please pick a department from the list.");
+        }
+
+        return match;
     }
 
     // One attempt per distinct choice, so a second choice gives the applicant a second exam to take.

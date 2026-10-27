@@ -109,12 +109,16 @@
                                     </div>
                                     <div class="col-12 mb-3">
                                         <label asp-for="Input.FirstChoice" class="form-label fw-semibold"></label>
-                                        <input asp-for="Input.FirstChoice" class="form-control" />
+                                        <select asp-for="Input.FirstChoice" asp-items="@(new SelectList(Model.ChoiceOptions))" class="form-select">
+                                            <option value="">Select a department</option>
+                                        </select>
                                         <span asp-validation-for="Input.FirstChoice" class="text-danger small"></span>
                                     </div>
                                     <div class="col-12 mb-3">
                                         <label asp-for="Input.SecondChoice" class="form-label fw-semibold"></label>
-                                        <input asp-for="Input.SecondChoice" class="form-control" />
+                                        <select asp-for="Input.SecondChoice" asp-items="@(new SelectList(Model.ChoiceOptions))" class="form-select">
+                                            <option value="">Select a department</option>
+                                        </select>
                                         <span asp-validation-for="Input.SecondChoice" class="text-danger small"></span>
                                     </div>
                                     <div class="col-12 mb-3">

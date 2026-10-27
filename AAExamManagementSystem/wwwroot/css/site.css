@@ -407,7 +407,8 @@ header .navbar {
   min-height: 72vh;
 }
 
-.signup-wizard-card .form-control {
+.signup-wizard-card .form-control,
+.signup-wizard-card .form-select {
   border-color: #000;
   padding-block: calc(.375rem + .1rem);
 }
