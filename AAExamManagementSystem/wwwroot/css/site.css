@@ -410,15 +410,35 @@ header .navbar {
 .signup-wizard-card .form-control,
 .signup-wizard-card .form-select {
   border-color: #000;
-  padding-block: calc(.375rem + .1rem);
+  padding-block: calc(.375rem + .2rem);
 }
 
 .signup-wizard-card .btn {
   padding-block: calc(.375rem + .1rem);
 }
 
+.signup-wizard-card .signup-submit {
+  padding-block: calc(.375rem + .1rem + .01rem);
+  font-size: calc(1rem + .04rem);
+}
+
 .signup-subtitle {
   font-size: 1.2rem;
+}
+
+/* Signup success page */
+.signup-success-card {
+  max-width: 560px;
+}
+
+.signup-success-logo {
+  height: 96px;
+  width: auto;
+}
+
+.signup-success .signup-submit {
+  padding-block: calc(.375rem + .1rem + .01rem);
+  font-size: calc(1rem + .04rem);
 }
 
 .signup-steps {
@@ -583,7 +603,7 @@ header .navbar {
 }
 
 .adastra-footer-logo {
-  width: 72px;
+  width: 82.8px;
   height: auto;
   color: #e7e8e9;
 }

@@ -15,8 +15,6 @@ namespace AAExamManagementSystem.Pages.Attempts;
 [Authorize(Roles = AppRoles.Applicant)]
 public class TakeModel : PageModel
 {
-    private const int QuestionCount = 10;
-
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly QuestionChoiceService _choiceService;
@@ -83,7 +81,16 @@ public class TakeModel : PageModel
 
     public string CurrentPageSubheading { get; set; } = "Select one answer for each question, then continue.";
 
+    // The hero for the current page: the department name (or General Knowledge) and its blurb.
+    public string StageTitle { get; set; } = string.Empty;
+
+    public string StageSubtitle { get; set; } = string.Empty;
+
+    public string StageHeroDepartment { get; set; } = string.Empty;
+
     private IList<(string? Instruction, string? SubInstruction)> PageInstructions { get; set; } = new List<(string?, string?)>();
+
+    private IList<ExamStage> Stages { get; set; } = new List<ExamStage>();
 
     // Keyed by the first question of each section that has its own instruction text.
     public IDictionary<Guid, SectionHeadingDto> SectionHeadings { get; set; } = new Dictionary<Guid, SectionHeadingDto>();
@@ -340,94 +347,29 @@ public class TakeModel : PageModel
             return;
         }
 
-        var sectionName = SectionName;
-        var generalKnowledge = AAExamManagementSystem.Models.Entities.Departments.GeneralKnowledge;
         var questionTypeNames = await _context.QuestionTypes.AsNoTracking().ToDictionaryAsync(qt => qt.Id, qt => qt.Name);
 
-        var examPages = await _context.ExamPages
-            .Include(p => p.Section)
-            .Include(p => p.PageSections)
-            .ThenInclude(ps => ps.Questions)
-            .Where(p => p.IsActive && (p.Section.Name == sectionName || p.Section.Name == generalKnowledge))
-            .OrderBy(p => p.PageNumber)
-            .ToListAsync();
-
+        // The same pages, sections and question order the editors preview: the department's pages first, then
+        // General Knowledge.
+        Stages = await new ExamStageBuilder(_context).BuildAsync(SectionName);
         PageInstructions = new List<(string?, string?)>();
         SectionHeadings = new Dictionary<Guid, SectionHeadingDto>();
 
-        foreach (var pageSection in examPages
-                     .SelectMany(p => p.PageSections)
-                     .Where(ps => ps.IsActive
-                         && (!string.IsNullOrWhiteSpace(ps.Instruction) || !string.IsNullOrWhiteSpace(ps.SubInstruction))))
+        foreach (var stage in Stages)
         {
-            var firstQuestion = pageSection.Questions
-                .Where(q => q.IsActive)
-                .OrderBy(q => q.PageOrder)
-                .ThenBy(q => q.DateCreated)
-                .FirstOrDefault();
+            Pages.Add(await BuildQuestionDtosAsync(stage.Questions, questionTypeNames));
+            PageInstructions.Add((stage.Heading, stage.Subheading));
 
-            if (firstQuestion is not null)
+            foreach (var (firstQuestionId, heading) in stage.SectionHeadings)
             {
-                SectionHeadings[firstQuestion.Id] = new SectionHeadingDto(pageSection.Instruction, pageSection.SubInstruction);
+                SectionHeadings[firstQuestionId] = heading;
             }
-        }
-
-        var pagesWithQuestions = examPages
-            .Select(p => (
-                Page: p,
-                Questions: p.PageSections
-                    .Where(ps => ps.IsActive)
-                    .OrderBy(ps => ps.Order)
-                    .ThenBy(ps => ps.Id)
-                    .SelectMany(ps => ps.Questions
-                        .Where(q => q.IsActive)
-                        .OrderBy(q => q.PageOrder)
-                        .ThenBy(q => q.DateCreated))
-                    .ToList()))
-            .Where(p => p.Questions.Count > 0)
-            .ToList();
-
-        // General Knowledge closes every applicant's exam, after the pages of their own department.
-        var departmentPages = pagesWithQuestions
-            .Where(p => p.Page.Section.Name == sectionName)
-            .OrderBy(p => p.Page.PageNumber)
-            .ToList();
-        var generalKnowledgePages = pagesWithQuestions
-            .Where(p => sectionName != generalKnowledge && p.Page.Section.Name == generalKnowledge)
-            .OrderBy(p => p.Page.PageNumber)
-            .ToList();
-
-        if (departmentPages.Count > 0)
-        {
-            foreach (var (examPage, questions) in departmentPages)
-            {
-                Pages.Add(await BuildQuestionDtosAsync(questions, questionTypeNames));
-                PageInstructions.Add((examPage.Instruction, examPage.SubInstruction));
-            }
-        }
-        else
-        {
-            var questions = await _context.Questions
-                .Include(q => q.Section)
-                .Where(q => q.IsActive && q.Section.Name == sectionName)
-                .OrderBy(q => q.DateCreated)
-                .Take(QuestionCount)
-                .ToListAsync();
-
-            Pages.Add(await BuildQuestionDtosAsync(questions, questionTypeNames));
-            PageInstructions.Add((null, null));
-        }
-
-        foreach (var (examPage, questions) in generalKnowledgePages)
-        {
-            Pages.Add(await BuildQuestionDtosAsync(questions, questionTypeNames));
-            PageInstructions.Add((examPage.Instruction, examPage.SubInstruction));
         }
 
         TotalPages = Pages.Count;
     }
 
-    private async Task<IList<QuestionDto>> BuildQuestionDtosAsync(IList<Question> questions, IReadOnlyDictionary<int, string> questionTypeNames)
+    private async Task<IList<QuestionDto>> BuildQuestionDtosAsync(IEnumerable<Question> questions, IReadOnlyDictionary<int, string> questionTypeNames)
     {
         var dtos = questions.Select(q => new QuestionDto
         {
@@ -479,6 +421,14 @@ public class TakeModel : PageModel
 
         CurrentPageHeading = string.IsNullOrWhiteSpace(instruction.Item1) ? "Multiple Choice" : instruction.Item1!;
         CurrentPageSubheading = string.IsNullOrWhiteSpace(instruction.Item2) ? "Select one answer for each question, then continue." : instruction.Item2!;
+
+        if (Stages.Count >= CurrentPage)
+        {
+            var stage = Stages[CurrentPage - 1];
+            StageTitle = stage.Title;
+            StageSubtitle = stage.Subtitle;
+            StageHeroDepartment = stage.HeroDepartment;
+        }
     }
 
     private void RehydrateCurrentPageAnswers(ExamProgress progress)

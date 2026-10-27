@@ -1,0 +1,44 @@
+@page
+@model SignupSuccessModel
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Application Submitted - Exam Management System</title>
+    <link rel="icon" type="image/png" href="~/images/adastra-mark.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&display=swap" />
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="bg-light d-flex flex-column min-vh-100">
+    <main class="signup-success d-flex align-items-center justify-content-center flex-grow-1 p-3">
+        <div class="signup-success-card text-center w-100">
+            <img src="~/images/adastra-mark.png" alt="Ad Astra" class="signup-success-logo mb-4" />
+            <h1 class="h3 fw-bold mb-3">Application submitted</h1>
+            <p class="signup-subtitle text-muted mb-2">
+                Thank you, @Model.ApplicantName. Your application has been submitted.
+            </p>
+            @if (!string.IsNullOrEmpty(Model.Email))
+            {
+                <p class="text-muted mb-4">Your registration details and exam instructions will be emailed to <strong>@Model.Email</strong>.</p>
+            }
+            else
+            {
+                <div class="mb-4"></div>
+            }
+            <a asp-page="/ApplicantPortal" class="btn btn-dark px-4 signup-submit">
+                Continue to my portal <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i>
+            </a>
+        </div>
+    </main>
+
+    @await Html.PartialAsync("_AdAstraFooter")
+</body>
+</html>

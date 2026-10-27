@@ -11,17 +11,14 @@ public class EmailSettings
     public int Port { get; set; } = 587;
     public string From { get; set; } = "adastra.recruitment.test@gmail.com";
 
-    /// <summary>Who gets the registration email; falls back to <see cref="From"/>.</summary>
-    public string? Recipient { get; set; }
-
     /// <summary>The Gmail app password. Read from the "ad-astra-exam-password" setting (see .env).</summary>
     public string? Password { get; set; }
 }
 
 public interface IRegistrationNotifier
 {
-    /// <summary>Emails the recruitment inbox about a new registration. Never throws; failures are logged.</summary>
-    void NotifyRegistration(string firstName, string lastName, string studentNo, string academicYear, IReadOnlyList<string> exams);
+    /// <summary>Emails the applicant who just registered, at the address they signed up with. Never throws; failures are logged.</summary>
+    void NotifyRegistration(string firstName, string lastName, string email, string studentNo, string academicYear, IReadOnlyList<string> exams);
 }
 
 public class SmtpRegistrationNotifier : IRegistrationNotifier
@@ -35,7 +32,7 @@ public class SmtpRegistrationNotifier : IRegistrationNotifier
         _logger = logger;
     }
 
-    public void NotifyRegistration(string firstName, string lastName, string studentNo, string academicYear, IReadOnlyList<string> exams)
+    public void NotifyRegistration(string firstName, string lastName, string email, string studentNo, string academicYear, IReadOnlyList<string> exams)
     {
         var applicantName = $"{firstName} {lastName}".Trim();
 
@@ -53,7 +50,7 @@ public class SmtpRegistrationNotifier : IRegistrationNotifier
         {
             try
             {
-                await SendAsync(subject, body);
+                await SendAsync(email, subject, body);
             }
             catch (Exception ex)
             {
@@ -65,7 +62,7 @@ public class SmtpRegistrationNotifier : IRegistrationNotifier
     public static string BuildSubject(string applicantName)
     {
         var singleLineName = string.Join(' ', applicantName.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries));
-        return $"New applicant registration: {singleLineName}";
+        return $"Welcome to Ad Astra, {singleLineName}";
     }
 
     public static string BuildBody(string firstName, string lastName, string studentNo, string academicYear, IReadOnlyList<string> exams)
@@ -106,10 +103,8 @@ public class SmtpRegistrationNotifier : IRegistrationNotifier
         return body.ToString();
     }
 
-    private async Task SendAsync(string subject, string body)
+    private async Task SendAsync(string recipient, string subject, string body)
     {
-        var recipient = string.IsNullOrWhiteSpace(_settings.Recipient) ? _settings.From : _settings.Recipient;
-
         // Google shows app passwords in groups of four separated by spaces; the spaces are not part of it.
         var password = new string(_settings.Password!.Where(c => !char.IsWhiteSpace(c)).ToArray());
 

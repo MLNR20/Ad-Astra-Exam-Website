@@ -222,6 +222,7 @@ public class AuthorizationTests
             "PrivacyModel",
             "ResetPasswordModel",
             "SignupModel",
+            "SignupSuccessModel",
         };
 
         Assert.Equal(expected, withoutAttribute);

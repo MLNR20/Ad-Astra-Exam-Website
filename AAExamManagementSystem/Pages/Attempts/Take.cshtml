@@ -5,18 +5,23 @@
 @{
     ViewData["Title"] = "Take Exam";
     Layout = "_ExamLayout";
+
+    // Each page shows its own department's hero, like the editor preview: the exam's department, then General Knowledge.
+    var heroDepartment = string.IsNullOrEmpty(Model.StageHeroDepartment) ? Model.SectionName : Model.StageHeroDepartment;
+    var heroTitle = string.IsNullOrEmpty(Model.StageTitle) ? $"{Model.SectionName ?? "Qualifying"} Exam" : Model.StageTitle;
+    var heroSubtitle = string.IsNullOrEmpty(Model.StageSubtitle) ? "This exam can only be taken once." : Model.StageSubtitle;
 }
 
-<div class="exam-sim-hero d-flex flex-column align-items-center justify-content-center text-center px-3" style="background-image: url('@Url.Content(ExamHeroImage.For(Model.SectionName))')">
+<div class="exam-sim-hero d-flex flex-column align-items-center justify-content-center text-center px-3" style="background-image: url('@Url.Content(ExamHeroImage.For(heroDepartment))')">
     <div class="exam-sim-hero-overlay"></div>
     <div class="exam-sim-hero-content">
-        <h1 class="exam-sim-hero-title text-white fw-bold">@(Model.SectionName ?? "Qualifying") Exam</h1>
-        <p class="exam-sim-hero-subtitle text-white mb-0">Answer all 10 questions below. This exam can only be taken once.</p>
+        <h1 class="exam-sim-hero-title text-white fw-bold">@heroTitle</h1>
+        <p class="exam-sim-hero-subtitle text-white mb-0">@heroSubtitle</p>
     </div>
 </div>
 
 <div class="py-4 px-0">
-    <div class="mx-auto exam-sim-wrap">
+    <div class="signup-wizard-wrapper mx-auto w-100 px-3">
         @if (!Model.HasApplicantProfile)
         {
             <div class="alert alert-warning">No applicant profile is linked to this account.</div>
@@ -65,6 +70,9 @@
                 <div class="alert alert-danger">@Model.ExamError</div>
             }
 
+            @await Html.PartialAsync("_ExamPageCounter", (Current: Model.CurrentPage, Total: Model.TotalPages))
+
+            <div class="signup-wizard-card w-100">
             <form method="post" id="examForm">
                 <input type="hidden" name="pageNum" value="@Model.CurrentPage" />
                 @await Html.PartialAsync("_ExamQuestionHeader", (
@@ -76,6 +84,11 @@
                     var question = Model.CurrentPageQuestions[qi];
                     var selectedChoiceId = Model.Answers.GetValueOrDefault(question.Id);
                     var existingText = Model.AnswerTexts.GetValueOrDefault(question.Id, string.Empty);
+                    var isEssay = question.QuestionTypeName == QuestionTypes.Essay;
+                    var imageName = question.Image ?? string.Empty;
+                    var isSqlQuestion = imageName.Contains("sql-schema");
+                    var isDebugQuestion = imageName.Contains("debug-");
+                    var isWideImage = isSqlQuestion || isDebugQuestion;
                     if (Model.SectionHeadings.TryGetValue(question.Id, out var sectionHeading))
                     {
                         @await Html.PartialAsync("_ExamSectionHeading", (sectionHeading.Instruction, sectionHeading.SubInstruction))
@@ -83,9 +96,16 @@
                     <div class="d-flex flex-column mt-2">
                     <div class="exam-sim-question mb-4">
                         <h5 class="fw-semibold mb-3">@(qi + 1). @question.QuestionTitle</h5>
-                        @if (QuestionTypes.RequiresChoices(question.QuestionTypeName))
+                        @if (!string.IsNullOrEmpty(question.Image))
                         {
-                            <div class="exam-sim-choices mt-2">
+                            var imageClass = isWideImage
+                                ? "exam-sim-question-image exam-sim-question-image-wide img-fluid rounded mt-3 mb-3 d-block mx-auto"
+                                : "exam-sim-question-image img-fluid rounded mt-3 mb-3 d-block mx-auto";
+                            <img src="@question.Image" class="@imageClass" alt="" />
+                        }
+                        <div class="exam-sim-choices mt-2">
+                            @if (QuestionTypes.RequiresChoices(question.QuestionTypeName))
+                            {
                                 @for (var ci = 0; ci < question.Choices.Count; ci++)
                                 {
                                     var choice = question.Choices[ci];
@@ -94,40 +114,42 @@
                                         <label class="form-check-label" for="q@(qi)_c@(ci)">@choice.ChoiceText</label>
                                     </div>
                                 }
-                            </div>
-                        }
-                        else if (question.QuestionTypeName == QuestionTypes.Essay)
-                        {
-                            <textarea class="form-control" name="AnswerTexts[@question.Id]" rows="4" required>@existingText</textarea>
-                        }
-                        else
-                        {
-                            <input type="text" class="form-control" name="AnswerTexts[@question.Id]" value="@existingText" required />
-                        }
-                        @if (!string.IsNullOrEmpty(question.Image))
-                        {
-                            <img src="@question.Image" class="exam-sim-question-image img-fluid rounded mt-3 d-block mx-auto" alt="" />
-                        }
+                            }
+                            else if (isEssay)
+                            {
+                                <textarea class="form-control exam-sim-input exam-sim-essay" name="AnswerTexts[@question.Id]" rows="6" placeholder="Type your answer" autocomplete="off" required>@existingText</textarea>
+                            }
+                            else if (isSqlQuestion || isDebugQuestion)
+                            {
+                                <textarea class="form-control exam-sim-input exam-sim-input-sql" name="AnswerTexts[@question.Id]" rows="@(isSqlQuestion ? 6 : 3)" placeholder="@(isSqlQuestion ? "Type your SQL query" : "Type the line numbers that have an error")" autocomplete="off" spellcheck="false" required>@existingText</textarea>
+                            }
+                            else
+                            {
+                                <input type="text" class="form-control exam-sim-input" name="AnswerTexts[@question.Id]" value="@existingText" placeholder="Type your answer" autocomplete="off" required />
+                            }
+                        </div>
                     </div>
                     </div>
                 }
 
-                <div class="d-flex justify-content-between mb-5">
+                <div class="d-flex align-items-center gap-2 mt-5 mb-5">
                     @if (Model.CurrentPage > 1)
                     {
-                        <button type="submit" name="direction" value="prev" formnovalidate class="btn btn-outline-secondary">Previous</button>
-                    }
-                    else
-                    {
-                        <span></span>
+                        <button type="submit" name="direction" value="prev" formnovalidate class="btn btn-outline-secondary px-4">
+                            <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Previous
+                        </button>
                     }
                     @if (Model.CurrentPage < Model.TotalPages)
                     {
-                        <button type="submit" name="direction" value="next" class="btn btn-primary">Next</button>
+                        <button type="submit" name="direction" value="next" class="btn btn-dark px-4">
+                            Next <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i>
+                        </button>
                     }
                     else
                     {
-                        <button type="submit" name="direction" value="submit" class="btn btn-primary">Submit Answers</button>
+                        <button type="submit" name="direction" value="submit" class="btn btn-dark px-4 signup-submit">
+                            <i class="bi bi-send-check me-1" aria-hidden="true"></i> Submit Answers
+                        </button>
                     }
                 </div>
 
@@ -141,24 +163,42 @@
                     </ul>
                 </div>
             </form>
+            </div>
         }
     </div>
 </div>
 
 @section Styles {
     <style>
-        .exam-sim-wrap {
-            max-width: 960px;
-            width: 100%;
+        .exam-sim-question-image {
+            width: 19.5%;
         }
 
-        .exam-sim-choice .form-check-input {
+        .exam-sim-question-image-wide {
+            width: 100%;
+            max-width: 560px;
+        }
+
+        .exam-sim-choice .form-check-input,
+        .exam-sim-input {
             border-color: #000;
         }
 
-        /* Same input height as the registration form. */
-        .exam-sim-question input.form-control {
-            padding-block: calc(.375rem + .1rem);
+        .exam-sim-input {
+            width: 100%;
+        }
+
+        .exam-sim-essay {
+            width: 100%;
+            height: 200px;
+            resize: vertical;
+        }
+
+        .exam-sim-input-sql {
+            width: 100%;
+            height: 200px;
+            resize: vertical;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         }
 
         .exam-sim-hero {

@@ -45,7 +45,7 @@ public class RegistrationEmailTests
 
         Assert.DoesNotContain('\n', subject);
         Assert.DoesNotContain('\r', subject);
-        Assert.StartsWith("New applicant registration: Ana", subject);
+        Assert.StartsWith("Welcome to Ad Astra, Ana", subject);
     }
 
     [Fact]

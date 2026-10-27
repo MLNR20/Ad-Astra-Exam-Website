@@ -46,10 +46,17 @@ public class SignupModel : PageModel
         await LoadChoiceOptionsAsync();
     }
 
+    // Lets the wizard flag a student number that is already registered before the applicant reaches the last step.
+    public async Task<IActionResult> OnPostCheckStudentNoAsync(string? studentNo)
+    {
+        return new JsonResult(new { available = !await StudentNoTakenAsync(studentNo) });
+    }
+
     public async Task<IActionResult> OnPostAsync()
     {
         await LoadChoiceOptionsAsync();
         ValidateChoices();
+        await ValidateStudentNoAsync();
 
         if (!ModelState.IsValid)
         {
@@ -125,7 +132,32 @@ public class SignupModel : PageModel
 
         await _signInManager.SignInAsync(user, isPersistent: false);
 
-        return RedirectToPage("/ApplicantPortal");
+        TempData[SignupSuccessModel.SubmittedNameKey] = $"{applicant.FirstName} {applicant.LastName}".Trim();
+        TempData[SignupSuccessModel.SubmittedEmailKey] = applicant.Email;
+
+        return RedirectToPage("/SignupSuccess");
+    }
+
+    private async Task ValidateStudentNoAsync()
+    {
+        Input.StudentNo = Input.StudentNo?.Trim() ?? string.Empty;
+
+        if (Input.StudentNo.Length > 0 && await StudentNoTakenAsync(Input.StudentNo))
+        {
+            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.StudentNo)}", "That student number is already registered.");
+        }
+    }
+
+    // Student numbers are compared ignoring case and surrounding spaces, and inactive applicants still count.
+    private async Task<bool> StudentNoTakenAsync(string? studentNo)
+    {
+        var normalized = studentNo?.Trim().ToLower();
+        if (string.IsNullOrEmpty(normalized))
+        {
+            return false;
+        }
+
+        return await _context.Applicants.AnyAsync(a => a.StudentNo.Trim().ToLower() == normalized);
     }
 
     private async Task LoadChoiceOptionsAsync()

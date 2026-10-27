@@ -36,7 +36,7 @@
 
             <div class="container-fluid mt-4">
                 <div class="signup-steps pb-2 ps-0 pe-2 pe-md-3">
-                    <span class="fw-semibold" id="signupStepCounter" style="font-size: 1.2rem;">Step 1 of 3</span>
+                    <span class="fw-semibold" id="signupStepCounter" style="font-size: 1.2rem;">Step 1 of 4</span>
                 </div>
                 <hr />
             </div>
@@ -63,12 +63,22 @@
                                     </div>
                                     <div class="col-12 mb-4">
                                         <label asp-for="Input.Password" class="form-label fw-semibold"></label>
-                                        <input asp-for="Input.Password" class="form-control" autocomplete="new-password" />
+                                        <div class="input-group">
+                                            <input asp-for="Input.Password" class="form-control" autocomplete="new-password" />
+                                            <button type="button" class="btn btn-outline-secondary toggle-password" data-target="Input_Password" aria-label="Show password">
+                                                <i class="bi bi-eye" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
                                         <span asp-validation-for="Input.Password" class="text-danger small"></span>
                                     </div>
                                     <div class="col-12 mb-4">
                                         <label asp-for="Input.ConfirmPassword" class="form-label fw-semibold"></label>
-                                        <input asp-for="Input.ConfirmPassword" class="form-control" autocomplete="new-password" />
+                                        <div class="input-group">
+                                            <input asp-for="Input.ConfirmPassword" class="form-control" autocomplete="new-password" />
+                                            <button type="button" class="btn btn-outline-secondary toggle-password" data-target="Input_ConfirmPassword" aria-label="Show password">
+                                                <i class="bi bi-eye" aria-hidden="true"></i>
+                                            </button>
+                                        </div>
                                         <span asp-validation-for="Input.ConfirmPassword" class="text-danger small"></span>
                                     </div>
                                     <div class="col-12 mb-4">
@@ -149,8 +159,11 @@
                                         <span asp-validation-for="Input.Resume" class="text-danger small"></span>
                                     </div>
                                 </div>
+                            </div>
 
+                            <div class="signup-panel d-none" data-panel="4">
                                 <h2 class="h6 text-uppercase text-muted fw-semibold mb-3">Review Your Application</h2>
+                                <p class="text-muted">Check everything you've entered. Use Back to change anything before you submit.</p>
                                 <div class="signup-summary-card">
                                     <dl class="row mb-0">
                                         <dt class="col-sm-5">Username</dt>
@@ -158,6 +171,9 @@
 
                                         <dt class="col-sm-5">Email</dt>
                                         <dd class="col-sm-7" id="summary-email">&mdash;</dd>
+
+                                        <dt class="col-sm-5">Password</dt>
+                                        <dd class="col-sm-7" id="summary-password">&mdash;</dd>
 
                                         <dt class="col-sm-5">Full Name</dt>
                                         <dd class="col-sm-7" id="summary-fullname">&mdash;</dd>
@@ -180,21 +196,30 @@
                                         <dt class="col-sm-5">Second Choice</dt>
                                         <dd class="col-sm-7" id="summary-secondchoice">&mdash;</dd>
 
+                                        <dt class="col-sm-5">Expected Graduation</dt>
+                                        <dd class="col-sm-7" id="summary-expectedgrad">&mdash;</dd>
+
+                                        <dt class="col-sm-5">Terms Remaining</dt>
+                                        <dd class="col-sm-7" id="summary-terms">&mdash;</dd>
+
                                         <dt class="col-sm-5">Scholar</dt>
                                         <dd class="col-sm-7" id="summary-scholar">&mdash;</dd>
+
+                                        <dt class="col-sm-5">Resume Link</dt>
+                                        <dd class="col-sm-7 text-break" id="summary-resume">&mdash;</dd>
                                     </dl>
                                 </div>
                             </div>
 
                             <div class="d-flex align-items-center gap-2 mt-5">
-                                <button type="button" class="btn btn-outline-secondary px-4 signup-prev d-none">
-                                    <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Back
-                                </button>
                                 <button type="button" class="btn btn-dark px-4 signup-next">
                                     Next <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i>
                                 </button>
-                                <button type="submit" class="btn btn-primary px-4 d-none signup-submit">
+                                <button type="submit" class="btn btn-dark px-4 d-none signup-submit">
                                     <i class="bi bi-send-check me-1" aria-hidden="true"></i> Submit Application
+                                </button>
+                                <button type="button" class="btn btn-outline-secondary px-4 signup-prev d-none">
+                                    <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Back
                                 </button>
                             </div>
 
@@ -215,8 +240,21 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <partial name="_ValidationScriptsPartial" />
     <script>
+        document.querySelectorAll('.toggle-password').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var input = document.getElementById(btn.dataset.target);
+                var icon = btn.querySelector('i');
+                var isHidden = input.type === 'password';
+                input.type = isHidden ? 'text' : 'password';
+                icon.classList.toggle('bi-eye', !isHidden);
+                icon.classList.toggle('bi-eye-slash', isHidden);
+                btn.setAttribute('aria-label', isHidden ? 'Hide password' : 'Show password');
+            });
+        });
+    </script>
+    <script>
         (function () {
-            var totalSteps = 3;
+            var totalSteps = 4;
             var current = 1;
             var panels = document.querySelectorAll('.signup-panel');
             var stepCounter = document.getElementById('signupStepCounter');
@@ -261,6 +299,8 @@
             function updateSummary() {
                 document.getElementById('summary-username').textContent = fieldValue('Input_UserName') || '—';
                 document.getElementById('summary-email').textContent = fieldValue('Input_Email') || '—';
+                var passwordLength = fieldValue('Input_Password').length;
+                document.getElementById('summary-password').textContent = passwordLength ? '•'.repeat(passwordLength) : '—';
                 var fullName = (fieldValue('Input_FirstName') + ' ' + fieldValue('Input_LastName')).trim();
                 document.getElementById('summary-fullname').textContent = fullName || '—';
                 document.getElementById('summary-studentno').textContent = fieldValue('Input_StudentNo') || '—';
@@ -269,18 +309,64 @@
                 document.getElementById('summary-school').textContent = fieldValue('Input_School') || '—';
                 document.getElementById('summary-firstchoice').textContent = fieldValue('Input_FirstChoice') || '—';
                 document.getElementById('summary-secondchoice').textContent = fieldValue('Input_SecondChoice') || '—';
+                document.getElementById('summary-expectedgrad').textContent = fieldValue('Input_ExpectedGradDate') || '—';
+                document.getElementById('summary-terms').textContent = fieldValue('Input_TermsRemaining') || '—';
+                document.getElementById('summary-resume').textContent = fieldValue('Input_Resume').trim() || 'None';
                 var scholarEl = document.getElementById('Input_IsScholar');
                 document.getElementById('summary-scholar').textContent = (scholarEl && scholarEl.checked) ? 'Yes' : 'No';
             }
 
-            nextBtn.addEventListener('click', function () {
+            var studentNoInput = document.getElementById('Input_StudentNo');
+            var studentNoMessage = document.querySelector('[data-valmsg-for="Input.StudentNo"]');
+            var takenMessage = 'That student number is already registered.';
+
+            // Asks the server whether the student number is free; the server checks again on submit.
+            async function studentNoIsAvailable() {
+                var value = studentNoInput.value.trim();
+                if (!value) return true;
+
+                var body = new URLSearchParams();
+                body.append('studentNo', value);
+                body.append('__RequestVerificationToken', document.querySelector('#signupForm input[name="__RequestVerificationToken"]').value);
+
+                try {
+                    var response = await fetch('?handler=CheckStudentNo', { method: 'POST', body: body });
+                    if (!response.ok) return true;
+                    return (await response.json()).available;
+                } catch (e) {
+                    return true;
+                }
+            }
+
+            studentNoInput.addEventListener('input', function () {
+                if (studentNoMessage.textContent === takenMessage) {
+                    studentNoMessage.textContent = '';
+                    studentNoInput.classList.remove('input-validation-error');
+                }
+            });
+
+            nextBtn.addEventListener('click', async function () {
                 if (!validateStep(current)) return;
+
+                if (current === 2 && !(await studentNoIsAvailable())) {
+                    studentNoMessage.textContent = takenMessage;
+                    studentNoInput.classList.add('input-validation-error');
+                    studentNoInput.focus();
+                    return;
+                }
+
                 if (current < totalSteps) showStep(current + 1);
             });
 
             prevBtn.addEventListener('click', function () {
                 if (current > 1) showStep(current - 1);
             });
+
+            // After a failed submit the page comes back on step 1, so take the applicant to the step with the error.
+            var firstServerError = document.querySelector('.input-validation-error');
+            if (firstServerError && firstServerError.closest('.signup-panel')) {
+                showStep(Number(firstServerError.closest('.signup-panel').dataset.panel));
+            }
         })();
     </script>
 </body>
