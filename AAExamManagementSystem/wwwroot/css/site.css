@@ -658,3 +658,14 @@ header .navbar {
   border-radius: .5rem;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, .06);
 }
+
+/* Rounded colored tile that holds an icon beside a dashboard figure. */
+.stat-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 3.5rem;
+  height: 3.5rem;
+  font-size: 1.75rem;
+}
