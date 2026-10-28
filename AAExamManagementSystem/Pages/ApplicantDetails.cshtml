@@ -1,0 +1,140 @@
+@page
+@model ApplicantDetailsModel
+@using AAExamManagementSystem.Models.Entities
+@{
+    ViewData["Title"] = "Details";
+    Layout = "_ApplicantLayout";
+    var applicant = Model.Applicant;
+}
+
+@if (applicant is null)
+{
+    <div class="alert alert-warning">No applicant profile is linked to this account.</div>
+}
+else
+{
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-4">
+        <div>
+            <h1 class="h4 fw-bold mb-1">My Details</h1>
+            <p class="text-muted mb-0">Your application record and every exam you've booked.</p>
+        </div>
+        <a asp-page="/Returning" class="btn btn-outline-dark">
+            <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i> Update &amp; apply again
+        </a>
+    </div>
+
+    <div class="row g-4 align-items-start">
+        <div class="col-12 col-lg-5">
+            <div class="card border rounded-3">
+                <div class="card-body p-4">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <span class="stat-icon bg-dark text-white rounded-circle" aria-hidden="true"><i class="bi bi-person"></i></span>
+                        <div>
+                            <div class="fs-5 fw-bold lh-sm">@applicant.FirstName @applicant.LastName</div>
+                            <div class="text-muted small">@applicant.StudentNo</div>
+                        </div>
+                        <span class="badge ms-auto @(applicant.IsActive ? "text-bg-success" : "text-bg-secondary")">@(applicant.IsActive ? "Active" : "Inactive")</span>
+                    </div>
+                    <dl class="row mb-0 small">
+                        <dt class="col-5 text-muted fw-semibold">Email</dt>
+                        <dd class="col-7 text-break">@applicant.Email</dd>
+
+                        <dt class="col-5 text-muted fw-semibold">Academic Year</dt>
+                        <dd class="col-7">@applicant.AcademicYear</dd>
+
+                        <dt class="col-5 text-muted fw-semibold">Year Level</dt>
+                        <dd class="col-7">@(applicant.YearLevel ?? "-")</dd>
+
+                        <dt class="col-5 text-muted fw-semibold">School</dt>
+                        <dd class="col-7">@(applicant.School ?? "-")</dd>
+
+                        <dt class="col-5 text-muted fw-semibold">Expected Graduation</dt>
+                        <dd class="col-7">@(applicant.ExpectedGradDate ?? "-")</dd>
+
+                        <dt class="col-5 text-muted fw-semibold">Terms Remaining</dt>
+                        <dd class="col-7">@applicant.TermsRemaining</dd>
+
+                        <dt class="col-5 text-muted fw-semibold">Scholar</dt>
+                        <dd class="col-7">@(applicant.IsScholar ? "Yes" : "No")</dd>
+
+                        @if (!string.IsNullOrEmpty(applicant.Resume))
+                        {
+                            <dt class="col-5 text-muted fw-semibold">Resume</dt>
+                            <dd class="col-7 text-break"><a href="@applicant.Resume" target="_blank" rel="noopener">@applicant.Resume</a></dd>
+                        }
+
+                        <dt class="col-5 text-muted fw-semibold">First Applied</dt>
+                        <dd class="col-7 mb-0">@applicant.DateCreated.ToString("MMM d, yyyy")</dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-lg-7">
+            <div class="card border rounded-3">
+                <div class="card-body p-4">
+                    <h2 class="h6 fw-bold mb-3">Exam bookings</h2>
+                    @if (Model.Bookings.Count == 0)
+                    {
+                        <p class="text-muted mb-0">You haven't booked any exams yet.</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th class="text-start">Department</th>
+                                        <th class="text-start">Year</th>
+                                        <th class="text-start">Scheduled</th>
+                                        <th class="text-start">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var booking in Model.Bookings)
+                                    {
+                                        <tr>
+                                            <td class="text-start">
+                                                @(booking.Section ?? "-")
+                                                @if (booking.ChoiceNumber is { } choice)
+                                                {
+                                                    <span class="badge text-bg-light border ms-1">@(choice == 1 ? "1st" : "2nd") choice</span>
+                                                }
+                                            </td>
+                                            <td class="text-start">@(booking.AcademicYear ?? "-")</td>
+                                            <td class="text-start">
+                                                @if (booking.ExamDate is { } date && booking.ExamTime is { } time)
+                                                {
+                                                    @date.ToString("MMM d, yyyy")
+                                                    <div class="text-muted small">@ExamSchedule.FormatSlot(time)</div>
+                                                }
+                                                else
+                                                {
+                                                    @:-
+                                                }
+                                            </td>
+                                            <td class="text-start">
+                                                @if (booking.DateTaken is not null)
+                                                {
+                                                    <span class="badge text-bg-success">Taken</span>
+                                                }
+                                                else if (!booking.IsOpenAt(DateTime.Now))
+                                                {
+                                                    <span class="badge text-bg-secondary">Upcoming</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge text-bg-primary">Open</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
