@@ -12,29 +12,29 @@ else
 {
     var attempt = Model.Attempt;
     <form method="post" asp-page-handler="Approve" asp-route-id="@attempt.Id">
-        <div class="card border rounded-2 mb-3">
-            <div class="card-header bg-transparent px-3 py-3">
+        <div class="card border rounded-2 p-4 mb-3">
+            <div class="card-header bg-transparent px-0 py-3">
                 <h1 class="h4 fw-bold mb-0">Review Attempt</h1>
             </div>
-            <div class="card-body p-3">
+            <div class="card-body px-0 py-3">
                 <dl class="row g-3 mb-0">
-                    <div class="col-sm-6 col-lg-3">
+                    <div class="col-sm-6 col-lg-4">
                         <dt class="small text-muted fw-normal">Applicant</dt>
                         <dd class="mb-0 fw-semibold">@attempt.ApplicantName (@attempt.StudentNo)</dd>
                     </div>
-                    <div class="col-sm-6 col-lg-2">
+                    <div class="col-sm-6 col-lg-4">
                         <dt class="small text-muted fw-normal">Section</dt>
                         <dd class="mb-0 fw-semibold">@(attempt.Section ?? "-")</dd>
                     </div>
-                    <div class="col-sm-6 col-lg-3">
+                    <div class="col-sm-6 col-lg-4">
                         <dt class="small text-muted fw-normal">Date Taken</dt>
                         <dd class="mb-0 fw-semibold">@(attempt.DateTaken ?? "-")</dd>
                     </div>
-                    <div class="col-sm-6 col-lg-1">
+                    <div class="col-sm-6 col-lg-4">
                         <dt class="small text-muted fw-normal">Score</dt>
                         <dd class="mb-0 fw-semibold">@attempt.TotalScore / @attempt.MaxScore</dd>
                     </div>
-                    <div class="col-sm-6 col-lg-3">
+                    <div class="col-sm-6 col-lg-4">
                         <dt class="small text-muted fw-normal">Status</dt>
                         <dd class="mb-0">
                             @if (attempt.IsApproved)
@@ -52,7 +52,7 @@ else
 
             @if (Model.IsReadOnly)
             {
-                <div class="border-top px-3 py-2 small text-muted" role="note">
+                <div class="border-top px-0 py-2 small text-muted" role="note">
                     Viewing as an administrator. Grading and approval are done by editors.
                 </div>
             }
