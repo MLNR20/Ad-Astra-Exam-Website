@@ -11,47 +11,55 @@
 else
 {
     var attempt = Model.Attempt;
-    <h1 class="h4 fw-bold mb-4"><i class="bi bi-clipboard-check" aria-hidden="true"></i> Review Attempt</h1>
-
-    <div class="card border rounded-2 p-3 mb-4">
-        <div class="card-body">
-            <dl class="row mb-0">
-                <dt class="col-sm-3">Applicant</dt>
-                <dd class="col-sm-9">@attempt.ApplicantName (@attempt.StudentNo)</dd>
-
-                <dt class="col-sm-3">Section</dt>
-                <dd class="col-sm-9">@(attempt.Section ?? "-")</dd>
-
-                <dt class="col-sm-3">Date Taken</dt>
-                <dd class="col-sm-9">@(attempt.DateTaken ?? "-")</dd>
-
-                <dt class="col-sm-3">Score</dt>
-                <dd class="col-sm-9">@attempt.TotalScore / @attempt.MaxScore</dd>
-
-                <dt class="col-sm-3">Status</dt>
-                <dd class="col-sm-9">
-                    @if (attempt.IsApproved)
-                    {
-                        <span class="badge bg-success">Approved by @attempt.ApprovedBy</span>
-                    }
-                    else
-                    {
-                        <span class="badge bg-warning text-dark">Pending Approval</span>
-                    }
-                </dd>
-            </dl>
-        </div>
-    </div>
-
-    @if (Model.IsReadOnly)
-    {
-        <div class="alert alert-info" role="alert">You're viewing this attempt as an administrator. Grading and approval are done by editors.</div>
-    }
-
     <form method="post" asp-page-handler="Approve" asp-route-id="@attempt.Id">
+        <div class="card border rounded-2 mb-3">
+            <div class="card-header bg-transparent px-3 py-3">
+                <h1 class="h4 fw-bold mb-0">Review Attempt</h1>
+            </div>
+            <div class="card-body p-3">
+                <dl class="row g-3 mb-0">
+                    <div class="col-sm-6 col-lg-3">
+                        <dt class="small text-muted fw-normal">Applicant</dt>
+                        <dd class="mb-0 fw-semibold">@attempt.ApplicantName (@attempt.StudentNo)</dd>
+                    </div>
+                    <div class="col-sm-6 col-lg-2">
+                        <dt class="small text-muted fw-normal">Section</dt>
+                        <dd class="mb-0 fw-semibold">@(attempt.Section ?? "-")</dd>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <dt class="small text-muted fw-normal">Date Taken</dt>
+                        <dd class="mb-0 fw-semibold">@(attempt.DateTaken ?? "-")</dd>
+                    </div>
+                    <div class="col-sm-6 col-lg-1">
+                        <dt class="small text-muted fw-normal">Score</dt>
+                        <dd class="mb-0 fw-semibold">@attempt.TotalScore / @attempt.MaxScore</dd>
+                    </div>
+                    <div class="col-sm-6 col-lg-3">
+                        <dt class="small text-muted fw-normal">Status</dt>
+                        <dd class="mb-0">
+                            @if (attempt.IsApproved)
+                            {
+                                <span class="badge bg-success">Approved by @attempt.ApprovedBy</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-warning text-dark">Pending Approval</span>
+                            }
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+
+            @if (Model.IsReadOnly)
+            {
+                <div class="border-top px-3 py-2 small text-muted" role="note">
+                    Viewing as an administrator. Grading and approval are done by editors.
+                </div>
+            }
+
         <fieldset disabled="@Model.IsReadOnly" class="border-0 p-0 m-0 min-w-0">
-        <div class="table-responsive mb-4">
-            <table class="table align-middle">
+        <div class="table-responsive border-top">
+            <table class="table table-sm align-middle mb-0">
                 <thead>
                     <tr>
                         <th>#</th>
@@ -89,6 +97,7 @@ else
             </table>
         </div>
         </fieldset>
+        </div>
 
         <div class="d-flex justify-content-between">
             <a asp-page="/Attempts/Index" class="btn btn-outline-secondary">Back to Attempts</a>
