@@ -66,7 +66,7 @@ else
                         <th>Question</th>
                         <th>Answer</th>
                         <th>Correct?</th>
-                        <th style="width:120px">Points</th>
+                        <th style="width:140px">Points</th>
                         <th>Checked By</th>
                     </tr>
                 </thead>
@@ -85,10 +85,13 @@ else
                                 </select>
                             </td>
                             <td>
-                                <input type="number" name="Points[@answer.Id]" value="@answer.Point" min="0" max="@answer.MaxScore" step="1"
-                                       class="form-control form-control-sm"
-                                       oninput="if(this.value !== '' && Number(this.value) > Number(this.max)) this.value = this.max; if(this.value !== '' && Number(this.value) < 0) this.value = 0;" />
-                                <div class="form-text">Max @answer.MaxScore</div>
+                                <div class="input-group input-group-sm flex-nowrap">
+                                    <input type="number" name="Points[@answer.Id]" value="@answer.Point" min="0" max="@answer.MaxScore" step="1"
+                                           class="form-control form-control-sm"
+                                           aria-label="Points, maximum @answer.MaxScore"
+                                           oninput="if(this.value !== '' && Number(this.value) > Number(this.max)) this.value = this.max; if(this.value !== '' && Number(this.value) < 0) this.value = 0;" />
+                                    <span class="input-group-text" title="Maximum points">/ @answer.MaxScore</span>
+                                </div>
                             </td>
                             <td>@(answer.CheckedBy ?? "-")</td>
                         </tr>
