@@ -10,8 +10,6 @@ public class ApplicantDto
     public string LastName { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string AcademicYear { get; set; } = string.Empty;
-    public string? FirstChoice { get; set; }
-    public string? SecondChoice { get; set; }
     public string? YearLevel { get; set; }
     public string? School { get; set; }
     public bool IsScholar { get; set; }
@@ -22,7 +20,7 @@ public class ApplicantDto
     public DateTime DateCreated { get; set; }
 }
 
-public class ApplicantRegisterDto
+public class ApplicantRegisterDto : ExamChoicesDto
 {
     [Required, StringLength(50, MinimumLength = 3)]
     [Display(Name = "Username")]
@@ -61,13 +59,76 @@ public class ApplicantRegisterDto
     [StringLength(150)]
     public string? School { get; set; }
 
+    [Display(Name = "I am a scholar")]
+    public bool IsScholar { get; set; }
+
+    [StringLength(300)]
+    [Display(Name = "Resume Link")]
+    public string? Resume { get; set; }
+
+    [StringLength(20)]
+    [Display(Name = "Expected Graduation Date")]
+    public string? ExpectedGradDate { get; set; }
+
+    [Range(0, 20)]
+    [Display(Name = "Terms Remaining")]
+    public int TermsRemaining { get; set; }
+}
+
+/// <summary>The departments an applicant sits exams for, each with the date and slot they booked.</summary>
+public class ExamChoicesDto
+{
     [StringLength(100)]
     [Display(Name = "First Choice")]
     public string? FirstChoice { get; set; }
 
+    [DataType(DataType.Date)]
+    [Display(Name = "First Exam Date")]
+    public DateOnly? FirstExamDate { get; set; }
+
+    [Display(Name = "First Exam Time")]
+    public TimeOnly? FirstExamTime { get; set; }
+
     [StringLength(100)]
     [Display(Name = "Second Choice")]
     public string? SecondChoice { get; set; }
+
+    [DataType(DataType.Date)]
+    [Display(Name = "Second Exam Date")]
+    public DateOnly? SecondExamDate { get; set; }
+
+    [Display(Name = "Second Exam Time")]
+    public TimeOnly? SecondExamTime { get; set; }
+}
+
+/// <summary>What a returning applicant fills in to update their details and book new exams.</summary>
+public class ReturningApplicantDto : ExamChoicesDto
+{
+    [Required, StringLength(30)]
+    [Display(Name = "Student No.")]
+    public string StudentNo { get; set; } = string.Empty;
+
+    [Required, StringLength(100)]
+    [Display(Name = "First Name")]
+    public string FirstName { get; set; } = string.Empty;
+
+    [Required, StringLength(100)]
+    [Display(Name = "Last Name")]
+    public string LastName { get; set; } = string.Empty;
+
+    [Required, EmailAddress, StringLength(150)]
+    public string Email { get; set; } = string.Empty;
+
+    [Required, StringLength(20)]
+    [Display(Name = "Academic Year")]
+    public string AcademicYear { get; set; } = string.Empty;
+
+    [StringLength(20)]
+    [Display(Name = "Year Level")]
+    public string? YearLevel { get; set; }
+
+    [StringLength(150)]
+    public string? School { get; set; }
 
     [Display(Name = "I am a scholar")]
     public bool IsScholar { get; set; }

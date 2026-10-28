@@ -54,8 +54,8 @@ else
             <div class="card stat-tile h-100">
                 <div class="card-body">
                     <div class="stat-label"><i class="bi bi-mortarboard" aria-hidden="true"></i> First Choice</div>
-                    <div class="stat-value fs-4">@(Model.Applicant.FirstChoice ?? "—")</div>
-                    <div class="stat-meta">2nd: @(Model.Applicant.SecondChoice ?? "—")</div>
+                    <div class="stat-value fs-4">@(Model.FirstChoice ?? "—")</div>
+                    <div class="stat-meta">2nd: @(Model.SecondChoice ?? "—")</div>
                 </div>
             </div>
         </div>
@@ -95,8 +95,23 @@ else
     <div class="d-flex flex-wrap gap-2 mb-4">
         @if (Model.PendingAttempts.Count > 0 || Model.AttemptCount == 0)
         {
-            <a asp-page="/Attempts/Take" class="btn btn-primary">
-                <i class="bi bi-pencil-square me-1" aria-hidden="true"></i> Take Assessment
+            @if (Model.NextExamOpensAt is { } nextOpensAt)
+            {
+                <button type="button" class="btn btn-primary" disabled title="Opens @nextOpensAt.ToString("MMM d, yyyy h:mm tt")">
+                    <i class="bi bi-lock me-1" aria-hidden="true"></i> Opens @nextOpensAt.ToString("MMM d, h:mm tt")
+                </button>
+            }
+            else
+            {
+                <a asp-page="/Attempts/Take" class="btn btn-primary">
+                    <i class="bi bi-pencil-square me-1" aria-hidden="true"></i> Take Assessment
+                </a>
+            }
+        }
+        @if (Model.PendingAttempts.Count == 0)
+        {
+            <a asp-page="/Returning" class="btn btn-outline-dark">
+                <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i> Apply Again
             </a>
         }
         @if (Model.AttemptCount > 0)
@@ -120,6 +135,7 @@ else
                         <tr>
                             <th class="text-start">Exam</th>
                             <th class="text-start">Password</th>
+                            <th class="text-start">Schedule</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -128,6 +144,20 @@ else
                             <tr>
                                 <td class="text-start">@(pending.Section ?? "-")</td>
                                 <td class="text-start"><code class="fs-6">@(pending.Password ?? "-")</code></td>
+                                <td class="text-start">
+                                    @if (pending.ScheduledStart is { } start)
+                                    {
+                                        @start.ToString("MMM d, yyyy h:mm tt")
+                                        @if (!pending.IsOpen)
+                                        {
+                                            <span class="badge text-bg-secondary ms-1">Not yet</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        @:-
+                                    }
+                                </td>
                             </tr>
                         }
                     </tbody>
@@ -161,10 +191,10 @@ else
                 <dd class="col-sm-8">@(Model.Applicant.School ?? "-")</dd>
 
                 <dt class="col-sm-4">First Choice</dt>
-                <dd class="col-sm-8">@(Model.Applicant.FirstChoice ?? "-")</dd>
+                <dd class="col-sm-8">@(Model.FirstChoice ?? "-")</dd>
 
                 <dt class="col-sm-4">Second Choice</dt>
-                <dd class="col-sm-8">@(Model.Applicant.SecondChoice ?? "-")</dd>
+                <dd class="col-sm-8">@(Model.SecondChoice ?? "-")</dd>
 
                 <dt class="col-sm-4">Expected Graduation Date</dt>
                 <dd class="col-sm-8">@(Model.Applicant.ExpectedGradDate ?? "-")</dd>

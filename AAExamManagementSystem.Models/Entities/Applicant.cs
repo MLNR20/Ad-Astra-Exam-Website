@@ -7,8 +7,6 @@ public class Applicant
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string AcademicYear { get; set; } = string.Empty;
-    public string? FirstChoice { get; set; }
-    public string? SecondChoice { get; set; }
     public string? YearLevel { get; set; }
     public string? School { get; set; }
     public bool IsScholar { get; set; }

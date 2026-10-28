@@ -1,0 +1,61 @@
+@model AAExamManagementSystem.Models.Dtos.ExamChoicesDto
+@using AAExamManagementSystem.Models.Entities
+@{
+    var options = ViewData["ChoiceOptions"] as IEnumerable<string> ?? Enumerable.Empty<string>();
+    var today = DateOnly.FromDateTime(DateTime.Now).ToString("yyyy-MM-dd");
+
+    // Server-side errors for a field, shown under it the same way the tag helpers would.
+    string? ErrorFor(string key) => ViewData.ModelState.TryGetValue(key, out var entry) ? entry.Errors.FirstOrDefault()?.ErrorMessage : null;
+    string ErrorClass(string key) => ErrorFor(key) is null ? string.Empty : " input-validation-error";
+}
+
+<p class="text-muted small mb-3">
+    Pick up to two departments and book a date and time for each exam. Exams run in
+    1 hour 30 minute slots between 8:00 AM and 8:00 PM, and you can only start once your slot begins.
+</p>
+
+@foreach (var which in new[] { "First", "Second" })
+{
+    var choiceExpr = which == "First" ? Html.NameFor(m => m.FirstChoice) : Html.NameFor(m => m.SecondChoice);
+    var choiceId = which == "First" ? Html.IdFor(m => m.FirstChoice) : Html.IdFor(m => m.SecondChoice);
+    var choiceValue = which == "First" ? Model.FirstChoice : Model.SecondChoice;
+    var dateName = which == "First" ? Html.NameFor(m => m.FirstExamDate) : Html.NameFor(m => m.SecondExamDate);
+    var dateId = which == "First" ? Html.IdFor(m => m.FirstExamDate) : Html.IdFor(m => m.SecondExamDate);
+    var dateValue = which == "First" ? Model.FirstExamDate : Model.SecondExamDate;
+    var timeName = which == "First" ? Html.NameFor(m => m.FirstExamTime) : Html.NameFor(m => m.SecondExamTime);
+    var timeId = which == "First" ? Html.IdFor(m => m.FirstExamTime) : Html.IdFor(m => m.SecondExamTime);
+    var timeValue = which == "First" ? Model.FirstExamTime : Model.SecondExamTime;
+
+    <div class="border rounded-3 p-3 mb-3">
+        <div class="mb-3">
+            <label for="@choiceId" class="form-label fw-semibold">@which Choice</label>
+            <select id="@choiceId" name="@choiceExpr" class="form-select@(ErrorClass(choiceExpr))">
+                <option value="">Select a department</option>
+                @foreach (var option in options)
+                {
+                    <option value="@option" selected="@string.Equals(option, choiceValue, StringComparison.OrdinalIgnoreCase)">@option</option>
+                }
+            </select>
+            <span class="text-danger small">@ErrorFor(choiceExpr)</span>
+        </div>
+        <div class="row g-3">
+            <div class="col-sm-6">
+                <label for="@dateId" class="form-label fw-semibold">Exam Date</label>
+                <input id="@dateId" name="@dateName" type="date" class="form-control@(ErrorClass(dateName))" min="@today"
+                       value="@(dateValue?.ToString("yyyy-MM-dd"))" />
+                <span class="text-danger small">@ErrorFor(dateName)</span>
+            </div>
+            <div class="col-sm-6">
+                <label for="@timeId" class="form-label fw-semibold">Exam Time</label>
+                <select id="@timeId" name="@timeName" class="form-select@(ErrorClass(timeName))">
+                    <option value="">Select a time slot</option>
+                    @foreach (var slot in ExamSchedule.Slots)
+                    {
+                        <option value="@slot.ToString("HH:mm")" selected="@(timeValue == slot)">@ExamSchedule.FormatSlot(slot)</option>
+                    }
+                </select>
+                <span class="text-danger small">@ErrorFor(timeName)</span>
+            </div>
+        </div>
+    </div>
+}

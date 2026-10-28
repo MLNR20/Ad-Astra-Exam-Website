@@ -48,11 +48,10 @@ public class SoftDeleteAndExamProgressTests
                 Email = "ana@example.test",
                 AcademicYear = "2026-2027",
                 UserId = UserId,
-                FirstChoice = Web.Name,
             };
             if (withSignupAttempt)
             {
-                Applicant.Attempts.Add(new Attempt { Section = Web.Name, Password = "pw-1" });
+                Applicant.Attempts.Add(new Attempt { Section = Web.Name, ChoiceNumber = 1, Password = "pw-1" });
             }
 
             Db.Applicants.Add(Applicant);
@@ -209,18 +208,46 @@ public class SoftDeleteAndExamProgressTests
     }
 
     [Fact]
-    public async Task Progress_ForAnApplicantWithoutASignupAttempt_CreatesOne()
+    public async Task ApplicantWithoutAnAttempt_HasNoExamToTake()
     {
         var f = new Fixture(withSignupAttempt: false);
         var model = f.TakeAsApplicant();
+
+        await model.OnGetAsync();
+
+        Assert.Equal(0, model.TotalPages);
+        Assert.Empty(f.Db.Attempts);
+    }
+
+    [Fact]
+    public async Task Exam_StaysClosedUntilItsBookedSlotStarts()
+    {
+        var f = new Fixture();
+        f.Applicant.Attempts.Single().SetSchedule(DateOnly.FromDateTime(DateTime.Now.AddDays(1)), new TimeOnly(8, 0));
+        f.Db.SaveChanges();
+        var model = f.TakeAsApplicant();
+
         await model.OnGetAsync();
         model.Answers[f.Question.Id] = f.RightChoice.Id;
-
         await model.OnPostAsync(1, "next");
 
-        var attempt = await f.Db.Attempts.AsNoTracking().SingleAsync();
-        Assert.Equal(f.Web.Name, attempt.Section);
-        Assert.NotNull(attempt.ProgressJson);
+        Assert.NotNull(model.NotOpenUntil);
+        Assert.Equal(0, model.TotalPages);
+        Assert.Null((await f.Db.Attempts.AsNoTracking().SingleAsync()).ProgressJson);
+    }
+
+    [Fact]
+    public async Task Exam_OpensOnceItsBookedSlotHasStarted()
+    {
+        var f = new Fixture();
+        f.Applicant.Attempts.Single().SetSchedule(DateOnly.FromDateTime(DateTime.Now.AddDays(-1)), new TimeOnly(8, 0));
+        f.Db.SaveChanges();
+        var model = f.TakeAsApplicant();
+
+        await model.OnGetAsync();
+
+        Assert.Null(model.NotOpenUntil);
+        Assert.True(model.TotalPages > 0);
     }
 
     [Fact]

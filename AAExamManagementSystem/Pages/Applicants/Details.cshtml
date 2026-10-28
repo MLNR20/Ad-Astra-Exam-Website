@@ -1,5 +1,6 @@
 @page "{id:int}"
 @model AAExamManagementSystem.Pages.Applicants.DetailsModel
+@using AAExamManagementSystem.Models.Entities
 @{
     ViewData["Title"] = "Applicant Details";
     var applicant = Model.Applicant;
@@ -33,9 +34,9 @@
                     <dt class="col-sm-4">Academic Year</dt>
                     <dd class="col-sm-8">@applicant.AcademicYear</dd>
                     <dt class="col-sm-4">1st Choice</dt>
-                    <dd class="col-sm-8">@(applicant.FirstChoice ?? "-")</dd>
+                    <dd class="col-sm-8">@(applicant.Attempts.ChoiceName(1) ?? "-")</dd>
                     <dt class="col-sm-4">2nd Choice</dt>
-                    <dd class="col-sm-8">@(applicant.SecondChoice ?? "-")</dd>
+                    <dd class="col-sm-8">@(applicant.Attempts.ChoiceName(2) ?? "-")</dd>
                     <dt class="col-sm-4">Expected Graduation</dt>
                     <dd class="col-sm-8">@(applicant.ExpectedGradDate ?? "-")</dd>
                     <dt class="col-sm-4">Terms Left</dt>

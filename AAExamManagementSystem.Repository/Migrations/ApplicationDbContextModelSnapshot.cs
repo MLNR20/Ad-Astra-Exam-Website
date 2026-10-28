@@ -129,9 +129,6 @@ namespace AAExamManagementSystem.Repository.Migrations
                     b.Property<string>("ExpectedGradDate")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("FirstChoice")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -150,9 +147,6 @@ namespace AAExamManagementSystem.Repository.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("School")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("SecondChoice")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("StudentNo")
@@ -345,6 +339,9 @@ namespace AAExamManagementSystem.Repository.Migrations
                     b.Property<string>("ApprovedBy")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("ChoiceNumber")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("DateCreated")
                         .HasColumnType("datetime2");
 
@@ -354,8 +351,14 @@ namespace AAExamManagementSystem.Repository.Migrations
                     b.Property<DateTime>("DateUpdated")
                         .HasColumnType("datetime2");
 
+                    b.Property<DateOnly?>("ExamDate")
+                        .HasColumnType("date");
+
                     b.Property<int?>("ExamId")
                         .HasColumnType("int");
+
+                    b.Property<TimeOnly?>("ExamTime")
+                        .HasColumnType("time");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");

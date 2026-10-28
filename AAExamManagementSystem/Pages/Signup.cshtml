@@ -37,7 +37,7 @@
 
             <div class="container-fluid mt-4">
                 <div class="signup-steps pb-2 ps-0 pe-2 pe-md-3">
-                    <span class="fw-semibold" id="signupStepCounter" style="font-size: 1.2rem;">Step 1 of 4</span>
+                    <span class="fw-semibold" id="signupStepCounter" style="font-size: 1.2rem;">Step 1 of 3</span>
                 </div>
                 <hr />
             </div>
@@ -121,20 +121,6 @@
                                         <span asp-validation-for="Input.School" class="text-danger small"></span>
                                     </div>
                                     <div class="col-12 mb-3">
-                                        <label asp-for="Input.FirstChoice" class="form-label fw-semibold"></label>
-                                        <select asp-for="Input.FirstChoice" asp-items="@(new SelectList(Model.ChoiceOptions))" class="form-select">
-                                            <option value="">Select a department</option>
-                                        </select>
-                                        <span asp-validation-for="Input.FirstChoice" class="text-danger small"></span>
-                                    </div>
-                                    <div class="col-12 mb-3">
-                                        <label asp-for="Input.SecondChoice" class="form-label fw-semibold"></label>
-                                        <select asp-for="Input.SecondChoice" asp-items="@(new SelectList(Model.ChoiceOptions))" class="form-select">
-                                            <option value="">Select a department</option>
-                                        </select>
-                                        <span asp-validation-for="Input.SecondChoice" class="text-danger small"></span>
-                                    </div>
-                                    <div class="col-12 mb-3">
                                         <label asp-for="Input.ExpectedGradDate" class="form-label fw-semibold"></label>
                                         <input asp-for="Input.ExpectedGradDate" class="form-control" />
                                         <span asp-validation-for="Input.ExpectedGradDate" class="text-danger small"></span>
@@ -150,21 +136,17 @@
                                             <label asp-for="Input.IsScholar" class="form-check-label"></label>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-
-                            <div class="signup-panel d-none" data-panel="3">
-                                <h2 class="h6 text-uppercase text-muted fw-semibold mb-3">Submission</h2>
-                                <div class="row">
-                                    <div class="col-12 mb-4">
+                                    <div class="col-12 mb-3">
                                         <label asp-for="Input.Resume" class="form-label fw-semibold"></label>
                                         <input asp-for="Input.Resume" class="form-control" placeholder="Link to your resume (optional)" />
                                         <span asp-validation-for="Input.Resume" class="text-danger small"></span>
                                     </div>
                                 </div>
+                                <h2 class="h6 text-uppercase text-muted fw-semibold mb-3 mt-3">Exam Choices &amp; Schedule</h2>
+                                <partial name="_ExamChoices" for="Input" view-data="@(new ViewDataDictionary(ViewData) { { "ChoiceOptions", Model.ChoiceOptions } })" />
                             </div>
 
-                            <div class="signup-panel d-none" data-panel="4">
+                            <div class="signup-panel d-none" data-panel="3">
                                 <h2 class="h6 text-uppercase text-muted fw-semibold mb-3">Review Your Application</h2>
                                 <p class="text-muted">Check everything you've entered. Use Back to change anything before you submit.</p>
                                 <div class="signup-summary-card">
@@ -196,8 +178,14 @@
                                         <dt class="col-sm-5">First Choice</dt>
                                         <dd class="col-sm-7" id="summary-firstchoice">&mdash;</dd>
 
+                                        <dt class="col-sm-5">First Exam</dt>
+                                        <dd class="col-sm-7" id="summary-firstexam">&mdash;</dd>
+
                                         <dt class="col-sm-5">Second Choice</dt>
                                         <dd class="col-sm-7" id="summary-secondchoice">&mdash;</dd>
+
+                                        <dt class="col-sm-5">Second Exam</dt>
+                                        <dd class="col-sm-7" id="summary-secondexam">&mdash;</dd>
 
                                         <dt class="col-sm-5">Expected Graduation</dt>
                                         <dd class="col-sm-7" id="summary-expectedgrad">&mdash;</dd>
@@ -227,7 +215,7 @@
                             </div>
 
                             <p class="text-start text-muted fs-5 mt-4 mb-0">
-                                Already have an account? <a asp-page="/ApplicantLogin">Login</a>
+                                Already have an account? <a asp-page="/ApplicantLogin">Login</a> &middot; Applied before? <a asp-page="/ApplicantLogin" asp-route-returnUrl="/Returning">Apply again</a>
                             </p>
                         </div>
                     </div>
@@ -257,7 +245,7 @@
     </script>
     <script>
         (function () {
-            var totalSteps = 4;
+            var totalSteps = 3;
             var current = 1;
             var panels = document.querySelectorAll('.signup-panel');
             var stepCounter = document.getElementById('signupStepCounter');
@@ -299,6 +287,13 @@
                 return el ? el.value : '';
             }
 
+            function examSlotText(dateId, timeId) {
+                var date = fieldValue(dateId);
+                var time = document.getElementById(timeId);
+                var slot = time && time.selectedIndex > 0 ? time.options[time.selectedIndex].text : '';
+                return date && slot ? date + ', ' + slot : '—';
+            }
+
             function updateSummary() {
                 document.getElementById('summary-username').textContent = fieldValue('Input_UserName') || '—';
                 document.getElementById('summary-email').textContent = fieldValue('Input_Email') || '—';
@@ -312,6 +307,8 @@
                 document.getElementById('summary-school').textContent = fieldValue('Input_School') || '—';
                 document.getElementById('summary-firstchoice').textContent = fieldValue('Input_FirstChoice') || '—';
                 document.getElementById('summary-secondchoice').textContent = fieldValue('Input_SecondChoice') || '—';
+                document.getElementById('summary-firstexam').textContent = examSlotText('Input_FirstExamDate', 'Input_FirstExamTime');
+                document.getElementById('summary-secondexam').textContent = examSlotText('Input_SecondExamDate', 'Input_SecondExamTime');
                 document.getElementById('summary-expectedgrad').textContent = fieldValue('Input_ExpectedGradDate') || '—';
                 document.getElementById('summary-terms').textContent = fieldValue('Input_TermsRemaining') || '—';
                 document.getElementById('summary-resume').textContent = fieldValue('Input_Resume').trim() || 'None';

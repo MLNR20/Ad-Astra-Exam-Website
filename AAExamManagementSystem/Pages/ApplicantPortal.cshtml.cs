@@ -27,9 +27,14 @@ public class ApplicantPortalModel : PageModel
     public ApplicantDto? Applicant { get; set; }
     public int AttemptCount { get; set; }
     public AttemptListItemDto? LatestAttempt { get; set; }
+    public string? FirstChoice { get; set; }
+    public string? SecondChoice { get; set; }
     public IList<PendingAttemptItem> PendingAttempts { get; set; } = new List<PendingAttemptItem>();
 
-    public record PendingAttemptItem(string? Section, string? Password);
+    public record PendingAttemptItem(string? Section, string? Password, DateTime? ScheduledStart, bool IsOpen);
+
+    // The exam waits for its booked slot; the next pending exam is the one Take serves.
+    public DateTime? NextExamOpensAt => PendingAttempts.FirstOrDefault() is { IsOpen: false } next ? next.ScheduledStart : null;
 
     public async Task OnGetAsync()
     {
@@ -46,14 +51,17 @@ public class ApplicantPortalModel : PageModel
         }
 
         Applicant = _mapper.Map<ApplicantDto>(applicant);
+        FirstChoice = applicant.Attempts.ChoiceName(1);
+        SecondChoice = applicant.Attempts.ChoiceName(2);
         // Attempts are created at signup, so only the ones with a date taken have actually been sat.
         var takenAttempts = applicant.Attempts.Where(a => a.DateTaken is not null).ToList();
         AttemptCount = takenAttempts.Count;
 
+        var now = DateTime.Now;
         PendingAttempts = applicant.Attempts
             .Where(a => a.DateTaken is null)
             .OrderBy(a => a.Id)
-            .Select(a => new PendingAttemptItem(a.Section, a.Password))
+            .Select(a => new PendingAttemptItem(a.Section, a.Password, a.ScheduledStart, a.IsOpenAt(now)))
             .ToList();
 
         var attempt = takenAttempts.OrderByDescending(a => a.DateCreated).FirstOrDefault();

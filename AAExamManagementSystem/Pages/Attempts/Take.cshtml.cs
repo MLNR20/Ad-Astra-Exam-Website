@@ -65,6 +65,9 @@ public class TakeModel : PageModel
 
     public string? SectionName { get; set; }
 
+    // Set when the next exam's booked slot has not started yet; the exam stays closed until then.
+    public DateTime? NotOpenUntil { get; set; }
+
     public string? FirstChoice { get; set; }
 
     public string? SecondChoice { get; set; }
@@ -122,10 +125,9 @@ public class TakeModel : PageModel
             return Page();
         }
 
-        FirstChoice = applicant.FirstChoice;
-        SecondChoice = applicant.SecondChoice;
-
         var attempts = await LoadAttemptsAsync(applicant);
+        FirstChoice = attempts.ChoiceName(1);
+        SecondChoice = attempts.ChoiceName(2);
         var hasPendingAttempt = attempts.Any(a => a.DateTaken is null);
 
         AlreadyAttempted = attempts.Count > 0 && !hasPendingAttempt;
@@ -136,6 +138,11 @@ public class TakeModel : PageModel
         }
 
         await LoadExamPagesAsync(applicant, attempts);
+
+        if (IsBeforeScheduledTime())
+        {
+            return Page();
+        }
 
         if (TotalPages == 0)
         {
@@ -161,10 +168,9 @@ public class TakeModel : PageModel
             return Page();
         }
 
-        FirstChoice = applicant.FirstChoice;
-        SecondChoice = applicant.SecondChoice;
-
         var attempts = await LoadAttemptsAsync(applicant);
+        FirstChoice = attempts.ChoiceName(1);
+        SecondChoice = attempts.ChoiceName(2);
         if (attempts.Count > 0 && attempts.All(a => a.DateTaken is not null))
         {
             AlreadyAttempted = true;
@@ -172,6 +178,11 @@ public class TakeModel : PageModel
         }
 
         await LoadExamPagesAsync(applicant, attempts);
+
+        if (IsBeforeScheduledTime())
+        {
+            return Page();
+        }
 
         if (TotalPages == 0)
         {
@@ -196,7 +207,7 @@ public class TakeModel : PageModel
             }
         }
 
-        await SaveProgressAsync(applicant, progress);
+        await SaveProgressAsync(progress);
 
         if (direction == "prev")
         {
@@ -243,8 +254,7 @@ public class TakeModel : PageModel
 
             var allQuestions = Pages.SelectMany(p => p).ToList();
 
-            // Saving progress above already created the attempt for applicants who registered before
-            // signup made one, so this is always the attempt they have been working on.
+            // This is always the attempt the applicant has been working on.
             var attempt = _activeAttempt!;
 
             attempt.Section = SectionName;
@@ -309,6 +319,20 @@ public class TakeModel : PageModel
         return await _context.Applicants.FirstOrDefaultAsync(a => a.UserId == userId);
     }
 
+    // Closes the exam while the booked slot hasn't started: no questions are handed out and nothing is saved.
+    private bool IsBeforeScheduledTime()
+    {
+        if (_activeAttempt is null || _activeAttempt.IsOpenAt(DateTime.Now))
+        {
+            return false;
+        }
+
+        NotOpenUntil = _activeAttempt.ScheduledStart;
+        Pages = new List<IList<QuestionDto>>();
+        TotalPages = 0;
+        return true;
+    }
+
     private async Task<IList<Attempt>> LoadAttemptsAsync(Applicant applicant)
     {
         return await _context.Attempts
@@ -331,12 +355,6 @@ public class TakeModel : PageModel
                 SectionName = resolved;
                 break;
             }
-        }
-
-        if (SectionName is null && attempts.Count == 0)
-        {
-            SectionName = await ResolveSectionNameAsync(applicant.FirstChoice)
-                ?? await ResolveSectionNameAsync(applicant.SecondChoice);
         }
 
         Pages = new List<IList<QuestionDto>>();
@@ -466,21 +484,10 @@ public class TakeModel : PageModel
         }
     }
 
-    private async Task SaveProgressAsync(Applicant applicant, ExamProgress progress)
+    private async Task SaveProgressAsync(ExamProgress progress)
     {
-        // Applicants who registered before signup created their attempt have none yet, so make it now.
-        if (_activeAttempt is null)
-        {
-            _activeAttempt = new Attempt
-            {
-                ApplicantId = applicant.Id,
-                AcademicYear = applicant.AcademicYear,
-                Section = SectionName,
-            };
-            _context.Attempts.Add(_activeAttempt);
-        }
-
-        _activeAttempt.ProgressJson = JsonSerializer.Serialize(progress);
+        // The exam page only loads for an applicant who has an attempt, so there is always one to save to.
+        _activeAttempt!.ProgressJson = JsonSerializer.Serialize(progress);
         _activeAttempt.DateUpdated = DateTime.UtcNow;
         await _context.SaveChangesAsync();
     }

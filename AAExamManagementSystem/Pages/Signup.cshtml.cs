@@ -41,6 +41,9 @@ public class SignupModel : PageModel
     /// <summary>Departments an applicant can pick: active ones that have exam questions, except the shared General Knowledge.</summary>
     public IList<string> ChoiceOptions { get; private set; } = new List<string>();
 
+    /// <summary>The start times an applicant can book an exam at.</summary>
+    public IReadOnlyList<TimeOnly> ExamSlots => ExamSchedule.Slots;
+
     public async Task OnGetAsync()
     {
         await LoadChoiceOptionsAsync();
@@ -55,7 +58,7 @@ public class SignupModel : PageModel
     public async Task<IActionResult> OnPostAsync()
     {
         await LoadChoiceOptionsAsync();
-        ValidateChoices();
+        ExamChoicePlanner.Validate(ModelState, Input, ChoiceOptions.ToList());
         ValidateSchool();
         await ValidateStudentNoAsync();
 
@@ -104,7 +107,7 @@ public class SignupModel : PageModel
 
         try
         {
-            foreach (var attempt in await BuildAttemptsAsync(applicant))
+            foreach (var attempt in await ExamChoicePlanner.BuildAttemptsAsync(_context, Input, applicant.AcademicYear))
             {
                 applicant.Attempts.Add(attempt);
             }
@@ -189,84 +192,5 @@ public class SignupModel : PageModel
             .OrderBy(s => s.Name)
             .Select(s => s.Name)
             .ToListAsync();
-    }
-
-    // The choices come from a dropdown, but a posted form can say anything, so check them against the same list.
-    private void ValidateChoices()
-    {
-        Input.FirstChoice = MatchOption(Input.FirstChoice, nameof(Input.FirstChoice));
-        Input.SecondChoice = MatchOption(Input.SecondChoice, nameof(Input.SecondChoice));
-
-        if (!string.IsNullOrEmpty(Input.FirstChoice)
-            && string.Equals(Input.FirstChoice, Input.SecondChoice, StringComparison.OrdinalIgnoreCase))
-        {
-            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.SecondChoice)}", "Pick a different department for your second choice.");
-        }
-    }
-
-    private string? MatchOption(string? choice, string field)
-    {
-        var trimmed = choice?.Trim();
-        if (string.IsNullOrEmpty(trimmed))
-        {
-            return null;
-        }
-
-        var match = ChoiceOptions.FirstOrDefault(o => string.Equals(o, trimmed, StringComparison.OrdinalIgnoreCase));
-        if (match is null)
-        {
-            ModelState.AddModelError($"{nameof(Input)}.{field}", "Please pick a department from the list.");
-        }
-
-        return match;
-    }
-
-    // One attempt per distinct choice, so a second choice gives the applicant a second exam to take.
-    private async Task<IList<Attempt>> BuildAttemptsAsync(Applicant applicant)
-    {
-        var choices = new List<string>();
-        foreach (var choice in new[] { applicant.FirstChoice, applicant.SecondChoice })
-        {
-            var trimmed = choice?.Trim();
-            if (!string.IsNullOrEmpty(trimmed)
-                && !choices.Contains(trimmed, StringComparer.OrdinalIgnoreCase))
-            {
-                choices.Add(trimmed);
-            }
-        }
-
-        var attempts = new List<Attempt>();
-        var usedPasswords = new HashSet<string>();
-
-        foreach (var choice in choices)
-        {
-            var sectionName = await _context.Sections
-                .Where(s => s.IsActive && s.Name.ToLower() == choice.ToLower())
-                .Select(s => s.Name)
-                .FirstOrDefaultAsync() ?? choice;
-
-            attempts.Add(new Attempt
-            {
-                AcademicYear = applicant.AcademicYear,
-                Section = sectionName,
-                Password = await GeneratePasswordAsync(applicant.AcademicYear, sectionName, usedPasswords),
-            });
-        }
-
-        return attempts;
-    }
-
-    private async Task<string> GeneratePasswordAsync(string academicYear, string sectionName, ISet<string> usedPasswords)
-    {
-        while (true)
-        {
-            var password = AttemptPassword.Generate(academicYear, sectionName);
-            if (!usedPasswords.Contains(password)
-                && !await _context.Attempts.AnyAsync(a => a.Password == password))
-            {
-                usedPasswords.Add(password);
-                return password;
-            }
-        }
     }
 }

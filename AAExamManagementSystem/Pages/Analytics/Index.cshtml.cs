@@ -79,7 +79,7 @@ public class IndexModel : PageModel
         }
         else if (scopedToSection)
         {
-            applicants = applicants.Where(a => a.FirstChoice == CurrentUserSectionName || a.SecondChoice == CurrentUserSectionName);
+            applicants = applicants.Where(a => a.Attempts.Any(at => at.Section == CurrentUserSectionName));
             attempts = attempts.Where(a => a.Section == CurrentUserSectionName);
             questions = questions.Where(q => q.SectionId == currentUserSectionId);
             staff = staff.Where(u => u.SectionId == currentUserSectionId);
@@ -113,7 +113,7 @@ public class IndexModel : PageModel
             .Select(a => new TopAttempt(
                 a.Applicant.FirstName + " " + a.Applicant.LastName,
                 a.Applicant.StudentNo,
-                a.Applicant.FirstChoice,
+                a.Section,
                 a.TotalScore,
                 a.DateCreated))
             .ToListAsync();
@@ -140,15 +140,17 @@ public class IndexModel : PageModel
 
     private async Task LoadDepartmentChoicesAsync(IQueryable<Applicant> applicants, bool scopedToSection)
     {
-        var first = await applicants
-            .Where(a => a.FirstChoice != null && a.FirstChoice != "")
-            .GroupBy(a => a.FirstChoice!)
+        var picks = applicants.SelectMany(a => a.Attempts).Where(at => at.Section != null && at.Section != "");
+
+        var first = await picks
+            .Where(at => at.ChoiceNumber == 1)
+            .GroupBy(at => at.Section!)
             .Select(g => new { Name = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Name, x => x.Count);
 
-        var second = await applicants
-            .Where(a => a.SecondChoice != null && a.SecondChoice != "")
-            .GroupBy(a => a.SecondChoice!)
+        var second = await picks
+            .Where(at => at.ChoiceNumber == 2)
+            .GroupBy(at => at.Section!)
             .Select(g => new { Name = g.Key, Count = g.Count() })
             .ToDictionaryAsync(x => x.Name, x => x.Count);
 

@@ -38,6 +38,17 @@
             </div>
             <a asp-page="/ApplicantPortal" class="btn btn-outline-secondary">Back to Applicant Portal</a>
         }
+        else if (Model.NotOpenUntil is { } opensAt)
+        {
+            <div class="alert alert-warning">
+                <p class="fs-5 mb-1">It isn't your exam time yet.</p>
+                <p class="mb-0">
+                    Your @(Model.SectionName) exam opens on @opensAt.ToString("dddd, MMMM d, yyyy") at @opensAt.ToString("h:mm tt").
+                    Please come back then.
+                </p>
+            </div>
+            <a asp-page="/ApplicantPortal" class="btn btn-outline-secondary">Back to Applicant Portal</a>
+        }
         else if (Model.TotalPages == 0)
         {
             <p class="fs-5 mb-3">

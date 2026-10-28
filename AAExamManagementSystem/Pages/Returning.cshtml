@@ -1,0 +1,234 @@
+@page
+@model ReturningModel
+@using AAExamManagementSystem.Models.Entities
+@{
+    ViewData["Title"] = "Reapply";
+    Layout = "_ApplicantLayout";
+}
+
+<div class="signup-wizard-wrapper mx-auto w-100">
+    <div class="px-2 px-md-3 pb-1">
+        <h1 class="h4 fw-bold mb-2">Returning Applicant</h1>
+        <p class="text-muted mb-0">Update your details and book your exams for this application.</p>
+    </div>
+
+    @if (!Model.HasApplicantProfile)
+    {
+        <div class="alert alert-warning m-3">No applicant profile is linked to this account.</div>
+    }
+    else if (Model.PendingExams.Count > 0)
+    {
+        <div class="alert alert-warning m-3">
+            <p class="mb-1 fw-semibold">You still have exams to take.</p>
+            <p class="mb-2">Finish @string.Join(", ", Model.PendingExams) before applying again.</p>
+            <a asp-page="/ApplicantPortal" class="btn btn-outline-dark btn-sm">Back to dashboard</a>
+        </div>
+    }
+    else
+    {
+        <div class="container-fluid mt-3">
+            <span class="fw-semibold" id="signupStepCounter" style="font-size: 1.2rem;">Step 1 of 3</span>
+            <hr />
+        </div>
+
+        <div class="signup-wizard-card w-100">
+            <form method="post" id="returningForm" novalidate>
+                <div asp-validation-summary="ModelOnly" class="alert alert-danger py-2 mx-3" role="alert"></div>
+
+                <div class="px-2 px-md-3 pb-4">
+                    <div class="signup-panel" data-panel="1">
+                        <h2 class="h6 text-uppercase text-muted fw-semibold mb-3">Your Details</h2>
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <label asp-for="Input.StudentNo" class="form-label fw-semibold"></label>
+                                <input asp-for="Input.StudentNo" class="form-control" />
+                                <span asp-validation-for="Input.StudentNo" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label asp-for="Input.FirstName" class="form-label fw-semibold"></label>
+                                <input asp-for="Input.FirstName" class="form-control" />
+                                <span asp-validation-for="Input.FirstName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label asp-for="Input.LastName" class="form-label fw-semibold"></label>
+                                <input asp-for="Input.LastName" class="form-control" />
+                                <span asp-validation-for="Input.LastName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label asp-for="Input.Email" class="form-label fw-semibold"></label>
+                                <input asp-for="Input.Email" class="form-control" autocomplete="email" />
+                                <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="signup-panel d-none" data-panel="2">
+                        <h2 class="h6 text-uppercase text-muted fw-semibold mb-3">Academic Information</h2>
+                        <div class="row">
+                            <div class="col-12 mb-3">
+                                <label asp-for="Input.AcademicYear" class="form-label fw-semibold"></label>
+                                <input asp-for="Input.AcademicYear" class="form-control" placeholder="e.g. 2027-2028" />
+                                <span asp-validation-for="Input.AcademicYear" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label asp-for="Input.YearLevel" class="form-label fw-semibold"></label>
+                                <input asp-for="Input.YearLevel" class="form-control" />
+                                <span asp-validation-for="Input.YearLevel" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label asp-for="Input.School" class="form-label fw-semibold"></label>
+                                <select asp-for="Input.School" asp-items="@(new SelectList(BenildeSchools.All))" class="form-select">
+                                    <option value="">Select your school</option>
+                                </select>
+                                <span asp-validation-for="Input.School" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label asp-for="Input.ExpectedGradDate" class="form-label fw-semibold"></label>
+                                <input asp-for="Input.ExpectedGradDate" class="form-control" />
+                                <span asp-validation-for="Input.ExpectedGradDate" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label asp-for="Input.TermsRemaining" class="form-label fw-semibold"></label>
+                                <input asp-for="Input.TermsRemaining" class="form-control" type="number" min="0" />
+                                <span asp-validation-for="Input.TermsRemaining" class="text-danger small"></span>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <div class="form-check">
+                                    <input asp-for="Input.IsScholar" class="form-check-input" />
+                                    <label asp-for="Input.IsScholar" class="form-check-label"></label>
+                                </div>
+                            </div>
+                            <div class="col-12 mb-3">
+                                <label asp-for="Input.Resume" class="form-label fw-semibold"></label>
+                                <input asp-for="Input.Resume" class="form-control" placeholder="Link to your resume (optional)" />
+                                <span asp-validation-for="Input.Resume" class="text-danger small"></span>
+                            </div>
+                        </div>
+                        <h2 class="h6 text-uppercase text-muted fw-semibold mb-3 mt-3">Exam Choices &amp; Schedule</h2>
+                        <partial name="_ExamChoices" for="Input" view-data="@(new ViewDataDictionary(ViewData) { { "ChoiceOptions", Model.ChoiceOptions } })" />
+                    </div>
+
+                    <div class="signup-panel d-none" data-panel="3">
+                        <h2 class="h6 text-uppercase text-muted fw-semibold mb-3">Review Your Application</h2>
+                        <p class="text-muted">Check everything you've entered. Use Back to change anything before you submit.</p>
+                        <div class="signup-summary-card">
+                            <dl class="row mb-0">
+                                <dt class="col-sm-5">Full Name</dt>
+                                <dd class="col-sm-7" id="summary-fullname">&mdash;</dd>
+                                <dt class="col-sm-5">Student No.</dt>
+                                <dd class="col-sm-7" id="summary-studentno">&mdash;</dd>
+                                <dt class="col-sm-5">Email</dt>
+                                <dd class="col-sm-7" id="summary-email">&mdash;</dd>
+                                <dt class="col-sm-5">Academic Year</dt>
+                                <dd class="col-sm-7" id="summary-academicyear">&mdash;</dd>
+                                <dt class="col-sm-5">Year Level</dt>
+                                <dd class="col-sm-7" id="summary-yearlevel">&mdash;</dd>
+                                <dt class="col-sm-5">School</dt>
+                                <dd class="col-sm-7" id="summary-school">&mdash;</dd>
+                                <dt class="col-sm-5">First Choice</dt>
+                                <dd class="col-sm-7" id="summary-firstchoice">&mdash;</dd>
+                                <dt class="col-sm-5">First Exam</dt>
+                                <dd class="col-sm-7" id="summary-firstexam">&mdash;</dd>
+                                <dt class="col-sm-5">Second Choice</dt>
+                                <dd class="col-sm-7" id="summary-secondchoice">&mdash;</dd>
+                                <dt class="col-sm-5">Second Exam</dt>
+                                <dd class="col-sm-7" id="summary-secondexam">&mdash;</dd>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-2 mt-4">
+                        <button type="button" class="btn btn-dark px-4 signup-next">
+                            Next <i class="bi bi-arrow-right ms-1" aria-hidden="true"></i>
+                        </button>
+                        <button type="submit" class="btn btn-dark px-4 d-none signup-submit">
+                            <i class="bi bi-send-check me-1" aria-hidden="true"></i> Submit Application
+                        </button>
+                        <button type="button" class="btn btn-outline-secondary px-4 signup-prev d-none">
+                            <i class="bi bi-arrow-left me-1" aria-hidden="true"></i> Back
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+}
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        (function () {
+            var totalSteps = 3;
+            var current = 1;
+            var panels = document.querySelectorAll('.signup-panel');
+            var stepCounter = document.getElementById('signupStepCounter');
+            var nextBtn = document.querySelector('.signup-next');
+            var prevBtn = document.querySelector('.signup-prev');
+            var submitBtn = document.querySelector('.signup-submit');
+            if (!nextBtn) return;
+
+            function fieldValue(id) {
+                var el = document.getElementById(id);
+                return el ? el.value : '';
+            }
+
+            function examSlotText(dateId, timeId) {
+                var date = fieldValue(dateId);
+                var time = document.getElementById(timeId);
+                var slot = time && time.selectedIndex > 0 ? time.options[time.selectedIndex].text : '';
+                return date && slot ? date + ', ' + slot : '—';
+            }
+
+            function set(id, value) {
+                document.getElementById(id).textContent = value || '—';
+            }
+
+            function updateSummary() {
+                set('summary-fullname', (fieldValue('Input_FirstName') + ' ' + fieldValue('Input_LastName')).trim());
+                set('summary-studentno', fieldValue('Input_StudentNo'));
+                set('summary-email', fieldValue('Input_Email'));
+                set('summary-academicyear', fieldValue('Input_AcademicYear'));
+                set('summary-yearlevel', fieldValue('Input_YearLevel'));
+                set('summary-school', fieldValue('Input_School'));
+                set('summary-firstchoice', fieldValue('Input_FirstChoice'));
+                set('summary-firstexam', examSlotText('Input_FirstExamDate', 'Input_FirstExamTime'));
+                set('summary-secondchoice', fieldValue('Input_SecondChoice'));
+                set('summary-secondexam', examSlotText('Input_SecondExamDate', 'Input_SecondExamTime'));
+            }
+
+            function showStep(step) {
+                panels.forEach(function (p) { p.classList.toggle('d-none', Number(p.dataset.panel) !== step); });
+                stepCounter.textContent = 'Step ' + step + ' of ' + totalSteps;
+                prevBtn.classList.toggle('d-none', step === 1);
+                nextBtn.classList.toggle('d-none', step === totalSteps);
+                submitBtn.classList.toggle('d-none', step !== totalSteps);
+                current = step;
+                if (step === totalSteps) updateSummary();
+            }
+
+            function validateStep(step) {
+                var panel = document.querySelector('.signup-panel[data-panel="' + step + '"]');
+                var valid = true;
+                panel.querySelectorAll('input, select, textarea').forEach(function (input) {
+                    if (window.jQuery && window.jQuery(input).valid && !window.jQuery(input).valid()) {
+                        valid = false;
+                    }
+                });
+                return valid;
+            }
+
+            nextBtn.addEventListener('click', function () {
+                if (validateStep(current) && current < totalSteps) showStep(current + 1);
+            });
+            prevBtn.addEventListener('click', function () {
+                if (current > 1) showStep(current - 1);
+            });
+
+            // After a failed submit the page comes back on step 1, so take the applicant to the step with the error.
+            var firstServerError = document.querySelector('.input-validation-error');
+            if (firstServerError && firstServerError.closest('.signup-panel')) {
+                showStep(Number(firstServerError.closest('.signup-panel').dataset.panel));
+            }
+        })();
+    </script>
+}

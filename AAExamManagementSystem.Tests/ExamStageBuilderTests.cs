@@ -77,9 +77,9 @@ public class ExamStageBuilderTests
             var applicant = new Applicant
             {
                 FirstName = "Ana", LastName = "Cruz", StudentNo = "1", Email = "ana@example.test",
-                AcademicYear = "2026-2027", UserId = userId, FirstChoice = choice,
+                AcademicYear = "2026-2027", UserId = userId,
             };
-            applicant.Attempts.Add(new Attempt { Section = choice, Password = "pw" });
+            applicant.Attempts.Add(new Attempt { Section = choice, ChoiceNumber = 1, Password = "pw" });
             Db.Applicants.Add(applicant);
             Db.SaveChanges();
 
