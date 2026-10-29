@@ -3,11 +3,24 @@
 @{
     ViewData["Title"] = "My Attempts";
     Layout = "_ApplicantLayout";
+
+    // Dates are stored as round-trip UTC text; show them in the viewer's local time and sort on the real value.
+    (string Text, long Order) TakenOn(string? value) =>
+        DateTime.TryParse(value, null, System.Globalization.DateTimeStyles.RoundtripKind, out var taken)
+            ? (taken.ToLocalTime().ToString("MMM d, yyyy h:mm tt"), taken.Ticks)
+            : (value ?? "-", 0L);
 }
 
-<h1 class="h4 fw-bold mb-4"><i class="bi bi-clipboard-check" aria-hidden="true"></i> My Attempts</h1>
+<h1 class="h4 fw-bold mb-4">My Attempts</h1>
 
 <div class="card border rounded-2 p-4">
+    <div class="card-header bg-white border-bottom-0">
+        <h5 class="mb-0 entity-table-title">Submitted exams</h5>
+        @if (Model.Attempts.Count > 0)
+        {
+            <p class="text-muted mt-2 mb-0">Your exam has been submitted. We'll be in touch once it has been reviewed.</p>
+        }
+    </div>
     <div class="card-body">
         @if (Model.Attempts.Count == 0)
         {
@@ -18,12 +31,11 @@
         }
         else
         {
-            <table class="table table-striped table-hover align-middle w-100">
+            <table id="myAttemptsTable" class="table table-striped table-hover align-middle w-100">
                 <thead>
                     <tr>
                         <th class="text-start">Section</th>
                         <th class="text-start">Date Taken</th>
-                        <th class="text-start">Score</th>
                         <th class="text-start">Status</th>
                         <th class="text-start">Actions</th>
                     </tr>
@@ -31,35 +43,13 @@
                 <tbody>
                     @foreach (var attempt in Model.Attempts)
                     {
+                        var taken = TakenOn(attempt.DateTaken);
                         <tr>
                             <td class="text-start">@(attempt.Section ?? "-")</td>
-                            <td class="text-start">@(attempt.DateTaken ?? "-")</td>
+                            <td class="text-start" data-order="@taken.Order">@taken.Text</td>
+                            <td class="text-start"><span class="badge rounded-pill text-bg-success">Submitted</span></td>
                             <td class="text-start">
-                                @if (attempt.IsApproved)
-                                {
-                                    @:@attempt.TotalScore / @attempt.MaxScore
-                                }
-                                else
-                                {
-                                    @:—
-                                }
-                            </td>
-                            <td class="text-start">
-                                @if (attempt.IsApproved)
-                                {
-                                    <span class="badge rounded-pill text-bg-success">Approved</span>
-                                }
-                                else if (attempt.PendingEvaluationCount > 0)
-                                {
-                                    <span class="badge rounded-pill text-bg-warning">Needs Evaluation</span>
-                                }
-                                else
-                                {
-                                    <span class="badge rounded-pill text-bg-secondary">Pending Approval</span>
-                                }
-                            </td>
-                            <td class="text-start">
-                                <a asp-page="/Attempts/MyAttemptDetails" asp-route-id="@attempt.Id" class="btn btn-primary btn-sm">View</a>
+                                <a asp-page="/Attempts/MyAttemptDetails" asp-route-id="@attempt.Id" class="btn btn-primary">View</a>
                             </td>
                         </tr>
                     }
@@ -68,3 +58,19 @@
         }
     </div>
 </div>
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
+}
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        $(function () {
+            if ($('#myAttemptsTable').length) {
+                initEntityTable('myAttemptsTable', { order: [[1, 'desc']], columnDefs: [{ orderable: false, targets: [3] }] });
+            }
+        });
+    </script>
+}

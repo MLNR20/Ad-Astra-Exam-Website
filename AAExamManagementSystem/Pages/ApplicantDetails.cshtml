@@ -24,7 +24,7 @@ else
     </div>
 
     <div class="row g-4 align-items-start">
-        <div class="col-12 col-lg-5">
+        <div class="col-12 col-lg-4">
             <div class="card border rounded-3">
                 <div class="card-body p-4">
                     <div class="d-flex align-items-center gap-3 mb-3">
@@ -70,71 +70,84 @@ else
             </div>
         </div>
 
-        <div class="col-12 col-lg-7">
-            <div class="card border rounded-3">
-                <div class="card-body p-4">
-                    <h2 class="h6 fw-bold mb-3">Exam bookings</h2>
+        <div class="col-12 col-lg-8">
+            <div class="card border rounded-2 p-4">
+                <div class="card-header bg-white border-bottom-0">
+                    <h5 class="mb-0 entity-table-title fw-bold">Exam bookings</h5>
+                    <p class="text-muted mt-2 mb-0">Every exam you've booked across your applications.</p>
+                </div>
+                <div class="card-body">
                     @if (Model.Bookings.Count == 0)
                     {
                         <p class="text-muted mb-0">You haven't booked any exams yet.</p>
                     }
                     else
                     {
-                        <div class="table-responsive">
-                            <table class="table align-middle mb-0">
-                                <thead>
+                        <table id="bookingsTable" class="table table-striped table-hover align-middle w-100">
+                            <thead>
+                                <tr>
+                                    <th class="text-start">Department</th>
+                                    <th class="text-start">Choice</th>
+                                    <th class="text-start">Year</th>
+                                    <th class="text-start">Scheduled</th>
+                                    <th class="text-start">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var booking in Model.Bookings)
+                                {
                                     <tr>
-                                        <th class="text-start">Department</th>
-                                        <th class="text-start">Year</th>
-                                        <th class="text-start">Scheduled</th>
-                                        <th class="text-start">Status</th>
+                                        <td class="text-start fw-bold">@(booking.Section ?? "-")</td>
+                                        <td class="text-start text-nowrap">@(booking.ChoiceNumber is { } choice ? (choice == 1 ? "1st choice" : "2nd choice") : "-")</td>
+                                        <td class="text-start text-nowrap">@(booking.AcademicYear ?? "-")</td>
+                                        <td class="text-start text-nowrap" data-order="@(booking.ScheduledStart?.Ticks ?? 0)">
+                                            @if (booking.ExamDate is { } date && booking.ExamTime is { } time)
+                                            {
+                                                @date.ToString("MMM d, yyyy")
+                                                <div class="text-muted small">@ExamSchedule.FormatSlot(time)</div>
+                                            }
+                                            else
+                                            {
+                                                @:-
+                                            }
+                                        </td>
+                                        <td class="text-start">
+                                            @if (booking.DateTaken is not null)
+                                            {
+                                                <span class="badge text-bg-success">Taken</span>
+                                            }
+                                            else if (!booking.IsOpenAt(DateTime.Now))
+                                            {
+                                                <span class="badge text-bg-secondary">Upcoming</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge text-bg-primary">Open</span>
+                                            }
+                                        </td>
                                     </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach (var booking in Model.Bookings)
-                                    {
-                                        <tr>
-                                            <td class="text-start">
-                                                @(booking.Section ?? "-")
-                                                @if (booking.ChoiceNumber is { } choice)
-                                                {
-                                                    <span class="badge text-bg-light border ms-1">@(choice == 1 ? "1st" : "2nd") choice</span>
-                                                }
-                                            </td>
-                                            <td class="text-start">@(booking.AcademicYear ?? "-")</td>
-                                            <td class="text-start">
-                                                @if (booking.ExamDate is { } date && booking.ExamTime is { } time)
-                                                {
-                                                    @date.ToString("MMM d, yyyy")
-                                                    <div class="text-muted small">@ExamSchedule.FormatSlot(time)</div>
-                                                }
-                                                else
-                                                {
-                                                    @:-
-                                                }
-                                            </td>
-                                            <td class="text-start">
-                                                @if (booking.DateTaken is not null)
-                                                {
-                                                    <span class="badge text-bg-success">Taken</span>
-                                                }
-                                                else if (!booking.IsOpenAt(DateTime.Now))
-                                                {
-                                                    <span class="badge text-bg-secondary">Upcoming</span>
-                                                }
-                                                else
-                                                {
-                                                    <span class="badge text-bg-primary">Open</span>
-                                                }
-                                            </td>
-                                        </tr>
-                                    }
-                                </tbody>
-                            </table>
-                        </div>
+                                }
+                            </tbody>
+                        </table>
                     }
                 </div>
             </div>
         </div>
     </div>
+}
+
+@section Styles {
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css" />
+}
+
+@section Scripts {
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+    <script>
+        $(function () {
+            if ($('#bookingsTable').length) {
+                initEntityTable('bookingsTable', { order: [[3, 'desc']] });
+            }
+        });
+    </script>
 }

@@ -1,11 +1,3 @@
-@using AAExamManagementSystem.Models.Entities
-@using Microsoft.AspNetCore.Identity
-@inject UserManager<ApplicationUser> UserManager
-@{
-    var currentUser = User.Identity != null && User.Identity.IsAuthenticated
-        ? await UserManager.GetUserAsync(User)
-        : null;
-}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,26 +15,7 @@
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body class="bg-light d-flex flex-column min-vh-100">
-    <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom mb-0">
-        <div class="container-fluid">
-            <a asp-area="" asp-page="/ApplicantPortal" class="navbar-brand d-flex align-items-center gap-2 fw-semibold text-dark">
-                <img src="~/images/adastra-mark.png" alt="" style="height: 28px;" />
-                Applicant Portal
-            </a>
-            <vc:portal-nav />
-            <div class="d-flex align-items-center gap-3">
-                @if (currentUser != null)
-                {
-                    <span class="text-muted d-none d-sm-inline">Welcome, <span class="fw-semibold text-dark">@currentUser.FirstName @currentUser.LastName</span></span>
-                }
-                <form method="post" asp-area="" asp-page="/Logout" class="d-inline">
-                    <button type="submit" class="btn btn-outline-danger btn-sm">
-                        <i class="bi bi-box-arrow-left" aria-hidden="true"></i> Logout
-                    </button>
-                </form>
-            </div>
-        </div>
-    </nav>
+    <vc:applicant-navbar />
 
     <main role="main" class="flex-grow-1">
         <div class="container-fluid p-4">

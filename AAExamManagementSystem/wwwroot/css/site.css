@@ -670,14 +670,47 @@ header .navbar {
   font-size: 1.75rem;
 }
 
-/* Applicant portal: section links in the top navbar. */
-.portal-nav {
+/* Applicant portal navbar: title row on top, links and the sign out / logo container along the bottom. */
+.applicant-navbar {
+  background-color: #fff;
+  border-bottom: 1px solid #e9e8e4;
+}
+
+.applicant-navbar-top,
+.applicant-navbar-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .75rem 1.5rem;
+}
+
+.applicant-navbar-bottom {
+  padding-top: .5rem;
+  border-top: 1px solid #f0efeb;
+}
+
+.applicant-navbar-title {
+  display: inline-flex;
+  align-items: center;
+  gap: .625rem;
+  color: #212529;
+  font-size: 1.125rem;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.applicant-navbar-logo {
+  height: 1.75rem;
+}
+
+.applicant-navbar-links {
   display: flex;
   flex-wrap: wrap;
   gap: .25rem;
 }
 
-.portal-nav-item {
+.applicant-navbar-link {
   display: inline-flex;
   align-items: center;
   gap: .5rem;
@@ -690,17 +723,17 @@ header .navbar {
   transition: background-color .15s ease, color .15s ease;
 }
 
-.portal-nav-item i {
+.applicant-navbar-link i {
   font-size: 1.125rem;
   line-height: 1;
 }
 
-.portal-nav-item:hover {
+.applicant-navbar-link:hover {
   color: #212529;
   background-color: #f4f3ef;
 }
 
-.portal-nav-item.active {
+.applicant-navbar-link.active {
   color: #fff;
-  background-color: #212529;
+  background-color: #000;
 }

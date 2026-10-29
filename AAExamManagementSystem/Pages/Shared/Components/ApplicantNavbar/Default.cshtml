@@ -1,0 +1,32 @@
+@model ApplicantNavbarViewComponent.NavbarModel
+
+<header class="applicant-navbar">
+    <div class="applicant-navbar-top">
+        <a asp-area="" asp-page="/ApplicantPortal" class="applicant-navbar-title">
+            <img src="~/images/adastra-mark.png" alt="Ad Astra" class="applicant-navbar-logo" />
+            <span>Applicant Portal</span>
+        </a>
+        <div class="d-flex align-items-center gap-3">
+            @if (!string.IsNullOrEmpty(Model.UserName))
+            {
+                <span class="text-muted d-none d-sm-inline">Welcome, <span class="fw-semibold text-dark">@Model.UserName</span></span>
+            }
+            <form method="post" asp-area="" asp-page="/Logout" class="d-inline">
+                <button type="submit" class="btn btn-outline-danger btn-sm">
+                    <i class="bi bi-box-arrow-left" aria-hidden="true"></i> Sign out
+                </button>
+            </form>
+        </div>
+    </div>
+    <div class="applicant-navbar-bottom">
+        <nav class="applicant-navbar-links" aria-label="Applicant sections">
+            @foreach (var item in Model.Items)
+            {
+                <a asp-area="" asp-page="@item.Page" class="applicant-navbar-link@(item.IsActive ? " active" : "")" aria-current="@(item.IsActive ? "page" : null)">
+                    <i class="bi @item.Icon" aria-hidden="true"></i>
+                    <span>@item.Label</span>
+                </a>
+            }
+        </nav>
+    </div>
+</header>

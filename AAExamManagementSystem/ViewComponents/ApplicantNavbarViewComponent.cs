@@ -1,14 +1,33 @@
+using AAExamManagementSystem.Models.Entities;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AAExamManagementSystem.ViewComponents;
 
-/// <summary>The applicant portal's top navigation: Dashboard, Attempts and Details, with the current section marked.</summary>
-public class PortalNavViewComponent : ViewComponent
+/// <summary>
+/// The applicant portal's navbar: the title and welcome line on top, with the section links and a container
+/// holding the sign out button and logo along its bottom row.
+/// </summary>
+public class ApplicantNavbarViewComponent : ViewComponent
 {
+    private readonly UserManager<ApplicationUser> _userManager;
+
+    public ApplicantNavbarViewComponent(UserManager<ApplicationUser> userManager)
+    {
+        _userManager = userManager;
+    }
+
     public record NavItem(string Page, string Label, string Icon, bool IsActive);
 
-    public IViewComponentResult Invoke()
+    public record NavbarModel(string? UserName, IReadOnlyList<NavItem> Items);
+
+    public async Task<IViewComponentResult> InvokeAsync()
     {
+        var user = UserClaimsPrincipal.Identity?.IsAuthenticated == true
+            ? await _userManager.GetUserAsync(UserClaimsPrincipal)
+            : null;
+        var userName = user is null ? null : $"{user.FirstName} {user.LastName}".Trim();
+
         var currentPage = ViewContext.RouteData.Values["page"] as string ?? string.Empty;
 
         // The exam-history pages count as Attempts, and the returning wizard belongs under Details.
@@ -19,7 +38,7 @@ public class PortalNavViewComponent : ViewComponent
             Item("/ApplicantDetails", "Details", "bi-person-vcard", currentPage, "/ApplicantDetails", "/Returning"),
         };
 
-        return View(items);
+        return View(new NavbarModel(userName, items));
     }
 
     private static NavItem Item(string page, string label, string icon, string currentPage, params string[] activeFor) =>

@@ -26,6 +26,9 @@ public class ApplicantPortalModel : PageModel
 
     public ApplicantDto? Applicant { get; set; }
     public int AttemptCount { get; set; }
+
+    /// <summary>How many applications the applicant has made: one per academic year they booked exams for.</summary>
+    public int ApplicationCount { get; set; }
     public AttemptListItemDto? LatestAttempt { get; set; }
     public string? FirstChoice { get; set; }
     public string? SecondChoice { get; set; }
@@ -56,6 +59,9 @@ public class ApplicantPortalModel : PageModel
         // Attempts are created at signup, so only the ones with a date taken have actually been sat.
         var takenAttempts = applicant.Attempts.Where(a => a.DateTaken is not null).ToList();
         AttemptCount = takenAttempts.Count;
+        ApplicationCount = Applicant.IsActive
+            ? applicant.Attempts.Select(a => a.AcademicYear?.Trim().ToLowerInvariant()).Where(y => !string.IsNullOrEmpty(y)).Distinct().Count()
+            : 0;
 
         var now = DateTime.Now;
         PendingAttempts = applicant.Attempts
