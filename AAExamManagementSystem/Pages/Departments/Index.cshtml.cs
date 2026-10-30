@@ -26,6 +26,9 @@ public class IndexModel : PageModel
 
     public IList<SectionOption> SectionOptions { get; set; } = new List<SectionOption>();
 
+    /// <summary>The sections each department holds, comma-separated, by department id.</summary>
+    public Dictionary<string, string> SectionNames { get; set; } = new();
+
     [BindProperty]
     public List<int> SelectedSectionIds { get; set; } = new();
 
@@ -53,13 +56,12 @@ public class IndexModel : PageModel
         var department = _mapper.Map<Department>(NewDepartment);
         await _repository.AddAsync(department);
 
-        // Only sections not already in a department can be taken.
         var sections = await _context.Sections
-            .Where(s => SelectedSectionIds.Contains(s.Id) && s.DepartmentId == null)
+            .Where(s => SelectedSectionIds.Contains(s.Id))
             .ToListAsync();
         foreach (var section in sections)
         {
-            section.DepartmentId = department.Id;
+            department.Sections.Add(section);
         }
 
         await _repository.SaveChangesAsync();
@@ -107,9 +109,17 @@ public class IndexModel : PageModel
         var departments = await _repository.GetAllIncludingInactiveAsync();
         Departments = _mapper.Map<IList<DepartmentDto>>(departments.OrderBy(d => d.Name));
 
+        var held = await _context.Departments
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .SelectMany(d => d.Sections.Where(s => s.IsActive).Select(s => new { DepartmentId = d.Id, s.Name }))
+            .ToListAsync();
+        SectionNames = held
+            .GroupBy(x => x.DepartmentId)
+            .ToDictionary(g => g.Key, g => string.Join(", ", g.Select(x => x.Name).Order()));
+
         SectionOptions = await _context.Sections
             .AsNoTracking()
-            .Where(s => s.DepartmentId == null)
             .OrderBy(s => s.Name)
             .Select(s => new SectionOption(s.Id, s.Name, SelectedSectionIds.Contains(s.Id)))
             .ToListAsync();

@@ -820,9 +820,6 @@ namespace AAExamManagementSystem.Repository.Migrations
                     b.Property<DateTime>("DateUpdated")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("DepartmentId")
-                        .HasColumnType("nvarchar(450)");
-
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -831,8 +828,6 @@ namespace AAExamManagementSystem.Repository.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("DepartmentId");
 
                     b.ToTable("Sections", "AAExam");
                 });
@@ -869,6 +864,21 @@ namespace AAExamManagementSystem.Repository.Migrations
                         .IsUnique();
 
                     b.ToTable("WebPages", "AAExam");
+                });
+
+            modelBuilder.Entity("DepartmentSection", b =>
+                {
+                    b.Property<string>("DepartmentsId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<int>("SectionsId")
+                        .HasColumnType("int");
+
+                    b.HasKey("DepartmentsId", "SectionsId");
+
+                    b.HasIndex("SectionsId");
+
+                    b.ToTable("DepartmentSection", "AAExam");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -1168,14 +1178,19 @@ namespace AAExamManagementSystem.Repository.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("AAExamManagementSystem.Models.Entities.Section", b =>
+            modelBuilder.Entity("DepartmentSection", b =>
                 {
-                    b.HasOne("AAExamManagementSystem.Models.Entities.Department", "Department")
-                        .WithMany("Sections")
-                        .HasForeignKey("DepartmentId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                    b.HasOne("AAExamManagementSystem.Models.Entities.Department", null)
+                        .WithMany()
+                        .HasForeignKey("DepartmentsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
-                    b.Navigation("Department");
+                    b.HasOne("AAExamManagementSystem.Models.Entities.Section", null)
+                        .WithMany()
+                        .HasForeignKey("SectionsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -1243,8 +1258,6 @@ namespace AAExamManagementSystem.Repository.Migrations
 
             modelBuilder.Entity("AAExamManagementSystem.Models.Entities.Department", b =>
                 {
-                    b.Navigation("Sections");
-
                     b.Navigation("Users");
                 });
 

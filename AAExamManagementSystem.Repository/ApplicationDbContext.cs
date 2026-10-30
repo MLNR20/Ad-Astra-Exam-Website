@@ -174,11 +174,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             .HasForeignKey(ps => ps.QuestionTypeId)
             .OnDelete(DeleteBehavior.Restrict);
 
-        builder.Entity<Section>()
-            .HasOne(s => s.Department)
-            .WithMany(d => d.Sections)
-            .HasForeignKey(s => s.DepartmentId)
-            .OnDelete(DeleteBehavior.SetNull);
+        // A section can be offered by many departments, and a department holds many sections.
+        builder.Entity<Department>()
+            .HasMany(d => d.Sections)
+            .WithMany(s => s.Departments);
 
         builder.Entity<Question>()
             .HasOne(q => q.PageSection)

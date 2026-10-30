@@ -10,7 +10,7 @@
     fields = new[]
     {
         new DetailsField("Name", Model.Section.Name),
-        new DetailsField("Department", Model.DepartmentName)
+        new DetailsField("Departments", string.IsNullOrEmpty(Model.DepartmentNames) ? "Unassigned" : Model.DepartmentNames)
     },
     editHref = $"/Sections/Edit/{Model.Section.Id}",
     backHref = "/Sections"

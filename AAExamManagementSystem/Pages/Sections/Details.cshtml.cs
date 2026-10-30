@@ -26,7 +26,7 @@ public class DetailsModel : PageModel
 
     public SectionDto Section { get; set; } = new();
 
-    public string DepartmentName { get; set; } = "Unassigned";
+    public string DepartmentNames { get; set; } = string.Empty;
 
     public async Task<IActionResult> OnGetAsync(int id)
     {
@@ -37,15 +37,14 @@ public class DetailsModel : PageModel
         }
 
         Section = _mapper.Map<SectionDto>(section);
-        if (section.DepartmentId is not null)
-        {
-            DepartmentName = await _context.Departments
-                .IgnoreQueryFilters()
-                .AsNoTracking()
-                .Where(d => d.Id == section.DepartmentId)
-                .Select(d => d.Name)
-                .FirstOrDefaultAsync() ?? "Unassigned";
-        }
+        DepartmentNames = string.Join(", ", await _context.Sections
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(s => s.Id == id)
+            .SelectMany(s => s.Departments)
+            .OrderBy(d => d.Name)
+            .Select(d => d.Name)
+            .ToListAsync());
 
         return Page();
     }

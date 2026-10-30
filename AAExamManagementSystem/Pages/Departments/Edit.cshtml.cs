@@ -44,8 +44,11 @@ public class EditModel : PageModel
         }
 
         Department = new DepartmentCreateUpdateDto { Name = department.Name, IsActive = department.IsActive };
-        SelectedSectionIds = await _context.Sections
-            .Where(s => s.DepartmentId == Id)
+        SelectedSectionIds = await _context.Departments
+            .IgnoreQueryFilters()
+            .Where(d => d.Id == Id)
+            .SelectMany(d => d.Sections)
+            .Where(s => s.IsActive)
             .Select(s => s.Id)
             .ToListAsync();
         await LoadSectionOptionsAsync();
@@ -71,21 +74,21 @@ public class EditModel : PageModel
         department.DateUpdated = DateTime.UtcNow;
         _repository.Update(department);
 
-        // A section sits in at most one department: take the ticked ones that are free or already here, and release
-        // the ones that were unticked.
-        var sections = await _context.Sections
-            .Where(s => s.DepartmentId == Id || SelectedSectionIds.Contains(s.Id))
-            .ToListAsync();
-        foreach (var section in sections)
+        // A section can sit in many departments, so this only changes this department's own list.
+        await _context.Entry(department).Collection(d => d.Sections).LoadAsync();
+        var chosen = SelectedSectionIds.Distinct().ToList();
+        foreach (var section in department.Sections.Where(s => !chosen.Contains(s.Id)).ToList())
         {
-            if (SelectedSectionIds.Contains(section.Id) && (section.DepartmentId is null || section.DepartmentId == Id))
-            {
-                section.DepartmentId = Id;
-            }
-            else if (!SelectedSectionIds.Contains(section.Id) && section.DepartmentId == Id)
-            {
-                section.DepartmentId = null;
-            }
+            department.Sections.Remove(section);
+        }
+
+        var currentIds = department.Sections.Select(s => s.Id).ToList();
+        var toAdd = await _context.Sections
+            .Where(s => chosen.Contains(s.Id) && !currentIds.Contains(s.Id))
+            .ToListAsync();
+        foreach (var section in toAdd)
+        {
+            department.Sections.Add(section);
         }
 
         await _repository.SaveChangesAsync();
@@ -96,10 +99,8 @@ public class EditModel : PageModel
 
     private async Task LoadSectionOptionsAsync()
     {
-        // A section sits in one department, so those held elsewhere are left out.
         SectionOptions = await _context.Sections
             .AsNoTracking()
-            .Where(s => s.DepartmentId == null || s.DepartmentId == Id)
             .OrderBy(s => s.Name)
             .Select(s => new SectionOption(s.Id, s.Name, SelectedSectionIds.Contains(s.Id)))
             .ToListAsync();

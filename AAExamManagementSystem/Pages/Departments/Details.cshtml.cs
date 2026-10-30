@@ -37,9 +37,12 @@ public class DetailsModel : PageModel
         }
 
         Department = _mapper.Map<DepartmentDto>(department);
-        SectionNames = string.Join(", ", await _context.Sections
+        SectionNames = string.Join(", ", await _context.Departments
+            .IgnoreQueryFilters()
             .AsNoTracking()
-            .Where(s => s.DepartmentId == id)
+            .Where(d => d.Id == id)
+            .SelectMany(d => d.Sections)
+            .Where(s => s.IsActive)
             .OrderBy(s => s.Name)
             .Select(s => s.Name)
             .ToListAsync());
