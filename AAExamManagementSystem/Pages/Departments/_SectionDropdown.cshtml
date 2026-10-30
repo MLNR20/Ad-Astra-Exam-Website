@@ -1,0 +1,17 @@
+@model AAExamManagementSystem.Pages.Departments.SectionDropdownModel
+
+@if (Model.Options.Count == 0)
+{
+    <div class="form-text">No unassigned sections available.</div>
+}
+else
+{
+    <select name="SelectedSectionIds" id="@(Model.IdPrefix)-sections" class="form-select" multiple size="5"
+            aria-describedby="@(Model.IdPrefix)-sections-help">
+        @foreach (var option in Model.Options)
+        {
+            <option value="@option.Id" selected="@option.Selected">@option.Name</option>
+        }
+    </select>
+    <div id="@(Model.IdPrefix)-sections-help" class="form-text">Hold Ctrl (Cmd on Mac) to select more than one.</div>
+}

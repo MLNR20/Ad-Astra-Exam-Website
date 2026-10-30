@@ -14,6 +14,7 @@ public class DepartmentDto
 public class DepartmentCreateUpdateDto
 {
     [Required, StringLength(100)]
+    [RegularExpression(NameRules.LettersOnlyPattern, ErrorMessage = NameRules.LettersOnlyMessage)]
     public string Name { get; set; } = string.Empty;
 
     [Display(Name = "Active")]

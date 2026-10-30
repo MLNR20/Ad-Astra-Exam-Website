@@ -38,6 +38,10 @@
                         <input asp-for="NewDepartment.Name" class="form-control" />
                         <span asp-validation-for="NewDepartment.Name" class="text-danger"></span>
                     </div>
+                    <div class="mb-3">
+                        <label class="form-label">Sections</label>
+                        <partial name="_SectionDropdown" model='new SectionDropdownModel(Model.SectionOptions, "create")' />
+                    </div>
                     <div class="form-check form-switch">
                         <input asp-for="NewDepartment.IsActive" class="form-check-input" role="switch" />
                         <label asp-for="NewDepartment.IsActive" class="form-check-label"></label>

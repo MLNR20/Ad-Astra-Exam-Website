@@ -24,9 +24,6 @@ public class EditModel : PageModel
         _mapper = mapper;
     }
 
-    /// <summary>A section a department can hold; one already in another department is shown but cannot be picked.</summary>
-    public record SectionOption(int Id, string Name, bool Selected, string? OtherDepartment);
-
     public IList<SectionOption> SectionOptions { get; set; } = new List<SectionOption>();
 
     [BindProperty]
@@ -99,20 +96,12 @@ public class EditModel : PageModel
 
     private async Task LoadSectionOptionsAsync()
     {
-        var sections = await _context.Sections.AsNoTracking().OrderBy(s => s.Name).ToListAsync();
-        var departmentNames = await _context.Departments
-            .IgnoreQueryFilters()
+        // A section sits in one department, so those held elsewhere are left out.
+        SectionOptions = await _context.Sections
             .AsNoTracking()
-            .ToDictionaryAsync(d => d.Id, d => d.Name);
-
-        SectionOptions = sections
-            .Select(s => new SectionOption(
-                s.Id,
-                s.Name,
-                SelectedSectionIds.Contains(s.Id),
-                s.DepartmentId is not null && s.DepartmentId != Id
-                    ? departmentNames.GetValueOrDefault(s.DepartmentId, "another department")
-                    : null))
-            .ToList();
+            .Where(s => s.DepartmentId == null || s.DepartmentId == Id)
+            .OrderBy(s => s.Name)
+            .Select(s => new SectionOption(s.Id, s.Name, SelectedSectionIds.Contains(s.Id)))
+            .ToListAsync();
     }
 }

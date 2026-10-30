@@ -15,6 +15,7 @@ public class CourseDto
 public class CourseCreateUpdateDto
 {
     [Required, StringLength(100)]
+    [RegularExpression(NameRules.LettersOnlyPattern, ErrorMessage = NameRules.LettersOnlyMessage)]
     public string Name { get; set; } = string.Empty;
 
     [StringLength(150)]

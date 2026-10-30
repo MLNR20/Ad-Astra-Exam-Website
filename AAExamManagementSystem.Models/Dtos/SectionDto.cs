@@ -13,5 +13,6 @@ public class SectionDto
 public class SectionCreateUpdateDto
 {
     [Required, StringLength(100)]
+    [RegularExpression(NameRules.LettersOnlyPattern, ErrorMessage = NameRules.LettersOnlyMessage)]
     public string Name { get; set; } = string.Empty;
 }

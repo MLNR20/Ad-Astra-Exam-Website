@@ -6,6 +6,7 @@ using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAExamManagementSystem.Pages.Departments;
 
@@ -13,13 +14,20 @@ namespace AAExamManagementSystem.Pages.Departments;
 public class IndexModel : PageModel
 {
     private readonly IGenericRepository<Department> _repository;
+    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
 
-    public IndexModel(IGenericRepository<Department> repository, IMapper mapper)
+    public IndexModel(IGenericRepository<Department> repository, ApplicationDbContext context, IMapper mapper)
     {
         _repository = repository;
+        _context = context;
         _mapper = mapper;
     }
+
+    public IList<SectionOption> SectionOptions { get; set; } = new List<SectionOption>();
+
+    [BindProperty]
+    public List<int> SelectedSectionIds { get; set; } = new();
 
     public IList<DepartmentDto> Departments { get; set; } = new List<DepartmentDto>();
 
@@ -44,6 +52,16 @@ public class IndexModel : PageModel
 
         var department = _mapper.Map<Department>(NewDepartment);
         await _repository.AddAsync(department);
+
+        // Only sections not already in a department can be taken.
+        var sections = await _context.Sections
+            .Where(s => SelectedSectionIds.Contains(s.Id) && s.DepartmentId == null)
+            .ToListAsync();
+        foreach (var section in sections)
+        {
+            section.DepartmentId = department.Id;
+        }
+
         await _repository.SaveChangesAsync();
 
         TempData["SuccessMessage"] = $"Department '{department.Name}' created successfully.";
@@ -88,5 +106,12 @@ public class IndexModel : PageModel
     {
         var departments = await _repository.GetAllIncludingInactiveAsync();
         Departments = _mapper.Map<IList<DepartmentDto>>(departments.OrderBy(d => d.Name));
+
+        SectionOptions = await _context.Sections
+            .AsNoTracking()
+            .Where(s => s.DepartmentId == null)
+            .OrderBy(s => s.Name)
+            .Select(s => new SectionOption(s.Id, s.Name, SelectedSectionIds.Contains(s.Id)))
+            .ToListAsync();
     }
 }

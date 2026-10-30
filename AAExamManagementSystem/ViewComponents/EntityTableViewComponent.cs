@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AAExamManagementSystem.ViewComponents;
 
-public record EntityTableRow(string Id, string Name, bool? IsActive = null, DateTime? DateCreated = null, string? Roles = null, DateTime? DateUpdated = null, string? Section = null);
+public record EntityTableRow(string Id, string Name, bool? IsActive = null, DateTime? DateCreated = null, string? Roles = null, DateTime? DateUpdated = null, string? Section = null, string? Department = null);
 
 public record EntityTableViewModel(
     string TableId,
@@ -25,7 +25,8 @@ public record EntityTableViewModel(
     string? SimulateBasePath = null,
     bool ShowRolesColumn = false,
     bool ShowDateUpdatedColumn = false,
-    bool ShowSectionColumn = false);
+    bool ShowSectionColumn = false,
+    bool ShowDepartmentColumn = false);
 
 public class EntityTableViewComponent : ViewComponent
 {
@@ -50,7 +51,8 @@ public class EntityTableViewComponent : ViewComponent
         string? simulateBasePath = null,
         bool showRolesColumn = false,
         bool showDateUpdatedColumn = false,
-        bool showSectionColumn = false)
+        bool showSectionColumn = false,
+        bool showDepartmentColumn = false)
     {
         var model = new EntityTableViewModel(
             tableId,
@@ -73,7 +75,8 @@ public class EntityTableViewComponent : ViewComponent
             simulateBasePath,
             showRolesColumn,
             showDateUpdatedColumn,
-            showSectionColumn);
+            showSectionColumn,
+            showDepartmentColumn);
 
         return View(model);
     }
