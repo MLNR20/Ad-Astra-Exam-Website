@@ -9,8 +9,8 @@
     title = "Department Details",
     fields = new[]
     {
-        new DetailsField("Id", Model.Department.Id.ToString()),
         new DetailsField("Name", Model.Department.Name),
+        new DetailsField("Sections", string.IsNullOrEmpty(Model.SectionNames) ? "None assigned" : Model.SectionNames),
         new DetailsField("Date Created", Model.Department.CreatedAt.ToString("MMM d, yyyy")),
         new DetailsField("Date Updated", Model.Department.DateUpdated.ToString("MMM d, yyyy"))
     },

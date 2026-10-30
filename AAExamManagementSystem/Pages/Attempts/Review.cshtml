@@ -57,6 +57,12 @@ else
                 </div>
             }
 
+        @if (attempt.Answers.Count == 0)
+        {
+            <div class="alert alert-info mb-0 mt-3" role="alert">This attempt has no answers to review yet.</div>
+        }
+        else
+        {
         <fieldset disabled="@Model.IsReadOnly" class="border-0 p-0 m-0 min-w-0">
         <div class="table-responsive border-top">
             <table class="table table-sm align-middle mb-0">
@@ -100,6 +106,7 @@ else
             </table>
         </div>
         </fieldset>
+        }
         </div>
 
         <div class="page-action-bar d-flex justify-content-between align-items-center">

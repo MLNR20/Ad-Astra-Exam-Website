@@ -5,6 +5,7 @@ using AAExamManagementSystem.Models.Mapping;
 using AAExamManagementSystem.Repository;
 using AAExamManagementSystem.Services;
 using Asp.Versioning;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -71,6 +72,8 @@ builder.Services.ConfigureApplicationCookie(options =>
         return Task.CompletedTask;
     };
 });
+
+builder.Services.AddScoped<IClaimsTransformation, ActiveRoleClaimsTransformation>();
 
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();

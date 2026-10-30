@@ -18,9 +18,9 @@
     </div>
 </div>
 
-@if (Model.IsEditor)
+@if (Model.ShowOverview)
 {
-    @if (string.IsNullOrEmpty(Model.DepartmentName))
+    @if (!Model.IsAdmin && string.IsNullOrEmpty(Model.DepartmentName))
     {
         <div class="alert alert-warning mt-4 mb-0" role="alert">Your account isn't assigned to a department yet. Ask an administrator to assign one.</div>
     }
@@ -29,7 +29,7 @@
         <div class="row g-4 mt-0">
             <div class="col-12 col-md-4">
                 <div class="card border rounded-2 h-100">
-                    <div class="card-body d-flex align-items-center gap-3">
+                    <div class="card-body d-flex align-items-center gap-3 py-4">
                         <span class="stat-icon bg-secondary text-white rounded-3" aria-hidden="true"><i class="bi bi-people"></i></span>
                         <div>
                             <div class="fs-2 fw-bold lh-1">@Model.TotalApplicants</div>
@@ -40,24 +40,22 @@
             </div>
             <div class="col-12 col-md-4">
                 <div class="card border rounded-2 h-100">
-                    <div class="card-body d-flex align-items-center gap-3">
+                    <div class="card-body d-flex align-items-center gap-3 py-4">
                         <span class="stat-icon bg-success text-white rounded-3" aria-hidden="true"><i class="bi bi-patch-check"></i></span>
                         <div>
                             <div class="fs-2 fw-bold lh-1">@Model.PassedApplicants</div>
                             <div class="text-muted">Passed applicants</div>
-                            <div class="small text-muted">Approved, @DashboardModel.PassingPercentage% or higher</div>
                         </div>
                     </div>
                 </div>
             </div>
             <div class="col-12 col-md-4">
                 <div class="card border rounded-2 h-100">
-                    <div class="card-body d-flex align-items-center gap-3">
+                    <div class="card-body d-flex align-items-center gap-3 py-4">
                         <span class="stat-icon bg-warning text-white rounded-3" aria-hidden="true"><i class="bi bi-clipboard-check"></i></span>
                         <div>
                             <div class="fs-2 fw-bold lh-1">@Model.AttemptsToCheck</div>
                             <div class="text-muted">Needs my attention</div>
-                            <div class="small text-muted">Attempts to check</div>
                         </div>
                     </div>
                 </div>
@@ -68,15 +66,14 @@
             <div class="col-12 col-xl-8">
                 <div class="card border rounded-2 p-4">
                     <div class="card-header bg-white border-bottom-0">
-                        <h5 class="mb-0 entity-table-title">
-                            <i class="bi bi-person-lines-fill" aria-hidden="true"></i>
-                            Applicants — @Model.DepartmentName
+                        <h5 class="mb-0 entity-table-title table-heading-sm fw-semibold">
+                            Applicants — @(Model.IsAdmin ? "All departments" : Model.DepartmentName)
                         </h5>
                     </div>
                     <div class="card-body">
                         @if (Model.Applicants.Count == 0)
                         {
-                            <div class="alert alert-info mb-0" role="alert">No applicants have applied to your department yet.</div>
+                            <div class="alert alert-info mb-0" role="alert">No applicants have applied@(Model.IsAdmin ? "" : " to your department") yet.</div>
                         }
                         else
                         {
@@ -85,6 +82,10 @@
                                     <tr>
                                         <th class="text-start">Applicant</th>
                                         <th class="text-start">Student No.</th>
+                                        @if (Model.IsAdmin)
+                                        {
+                                            <th class="text-start">Department</th>
+                                        }
                                         <th class="text-start">Score</th>
                                         <th class="text-start">Attempt Status</th>
                                         <th class="text-start">Actions</th>
@@ -96,6 +97,10 @@
                                         <tr>
                                             <td class="text-start">@applicant.FullName</td>
                                             <td class="text-start">@applicant.StudentNo</td>
+                                            @if (Model.IsAdmin)
+                                            {
+                                                <td class="text-start">@applicant.Department</td>
+                                            }
                                             <td class="text-start">@(applicant.IsSubmitted ? $"{applicant.TotalScore} / {applicant.MaxScore}" : "-")</td>
                                             <td class="text-start">
                                                 @if (!applicant.IsSubmitted)
@@ -140,10 +145,7 @@
             <div class="col-12 col-xl-4">
                 <div class="card border rounded-2 p-4">
                     <div class="card-body p-0">
-                        <h5 class="entity-table-title mb-3">
-                            <i class="bi bi-clipboard-check" aria-hidden="true"></i>
-                            Attempts to check
-                        </h5>
+                        <h5 class="entity-table-title fw-semibold mb-3">Attempts to check</h5>
                         @if (Model.Attention.Count == 0)
                         {
                             <p class="text-muted mb-0">You're all caught up. No attempts are waiting for you.</p>
@@ -160,6 +162,10 @@
                                                 @(item.DateTaken is { } taken ? taken.ToLocalTime().ToString("MMM d, h:mm tt") : "-")
                                                 &middot;
                                                 @(item.PendingEvaluationCount > 0 ? "Needs evaluation" : "Pending approval")
+                                                @if (Model.IsAdmin)
+                                                {
+                                                    <text>&middot; @item.Department</text>
+                                                }
                                             </div>
                                         </div>
                                         <a asp-page="/Attempts/Review" asp-route-id="@item.AttemptId" class="btn btn-primary btn-sm flex-shrink-0">Review</a>
@@ -176,10 +182,7 @@
 
                 <div class="card border rounded-2 p-4 mt-4">
                     <div class="card-body p-0">
-                        <h5 class="entity-table-title mb-3">
-                            <i class="bi bi-clock-history" aria-hidden="true"></i>
-                            Recent activity
-                        </h5>
+                        <h5 class="entity-table-title fw-semibold mb-3">Recent activity</h5>
                         @if (Model.RecentActivity.Count == 0)
                         {
                             <p class="text-muted mb-0">No activity yet.</p>
@@ -190,7 +193,7 @@
                                 @foreach (var activity in Model.RecentActivity)
                                 {
                                     <li class="py-2 border-bottom">
-                                        <div>@activity.Description</div>
+                                        <div class="fw-semibold">@activity.Description</div>
                                         <div class="small text-muted">@activity.When.ToLocalTime().ToString("MMM d, h:mm tt")</div>
                                     </li>
                                 }
@@ -213,7 +216,7 @@
     <script>
         $(function () {
             if ($('#dashboardApplicantsTable').length) {
-                initEntityTable('dashboardApplicantsTable', { order: [] });
+                initEntityTable('dashboardApplicantsTable', { order: [], pageLength: 5, lengthMenu: [5, 10, 25, 50] });
             }
         });
     </script>

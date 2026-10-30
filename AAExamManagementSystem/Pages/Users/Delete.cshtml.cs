@@ -26,7 +26,7 @@ public class DeleteModel : PageModel
     public async Task<IActionResult> OnGetAsync(string id)
     {
         var user = await _userManager.FindByIdAsync(id);
-        if (user is null)
+        if (user is null or { IsDeleted: true })
         {
             return NotFound();
         }
@@ -38,12 +38,26 @@ public class DeleteModel : PageModel
     public async Task<IActionResult> OnPostAsync(string id)
     {
         var user = await _userManager.FindByIdAsync(id);
-        if (user is null)
+        if (user is null or { IsDeleted: true })
         {
             return NotFound();
         }
 
-        var result = await _userManager.DeleteAsync(user);
+        if (user.Id == _userManager.GetUserId(User))
+        {
+            TempData["SuccessMessage"] = "You can't delete your own account.";
+            return RedirectToPage("Index");
+        }
+
+        user.IsDeleted = true;
+        user.LockoutEnabled = true;
+        user.LockoutEnd = DateTimeOffset.MaxValue;
+        var result = await _userManager.UpdateAsync(user);
+        if (result.Succeeded)
+        {
+            await _userManager.UpdateSecurityStampAsync(user);
+        }
+
         TempData["SuccessMessage"] = result.Succeeded
             ? $"User '{user.UserName}' deleted successfully."
             : string.Join(" ", result.Errors.Select(e => e.Description));

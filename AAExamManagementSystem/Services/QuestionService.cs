@@ -21,7 +21,7 @@ public class QuestionService : IQuestionService
 
     public async Task<IEnumerable<QuestionDto>> GetAllAsync()
     {
-        var questions = await _unitOfWork.Questions.GetAllAsync();
+        var questions = (await _unitOfWork.Questions.GetAllAsync()).Where(q => !q.IsDeleted).ToList();
         var dtos = _mapper.Map<IList<QuestionDto>>(questions);
         await PopulateLookupsAsync(dtos);
         return dtos;
@@ -30,7 +30,7 @@ public class QuestionService : IQuestionService
     public async Task<QuestionDto?> GetByIdAsync(Guid id)
     {
         var question = await _unitOfWork.Questions.GetByIdAsync(id);
-        if (question is null) return null;
+        if (question is null or { IsDeleted: true }) return null;
 
         var dto = _mapper.Map<QuestionDto>(question);
         await PopulateLookupsAsync(new[] { dto });
@@ -58,7 +58,7 @@ public class QuestionService : IQuestionService
     public async Task<ServiceResult> UpdateAsync(Guid id, QuestionCreateUpdateDto dto)
     {
         var question = await _unitOfWork.Questions.GetByIdAsync(id);
-        if (question is null) return ServiceResult.NotFound();
+        if (question is null or { IsDeleted: true }) return ServiceResult.NotFound();
 
         var modelState = new ModelStateDictionary();
         await _choiceService.NormalizeAndValidateAsync(dto, modelState, string.Empty);
@@ -82,10 +82,12 @@ public class QuestionService : IQuestionService
     public async Task<ServiceResult> DeleteAsync(Guid id)
     {
         var question = await _unitOfWork.Questions.GetByIdAsync(id);
-        if (question is null) return ServiceResult.NotFound();
+        if (question is null or { IsDeleted: true }) return ServiceResult.NotFound();
 
-        await _choiceService.RemoveChoicesAsync(question.Id);
-        _unitOfWork.Questions.Remove(question);
+        question.IsDeleted = true;
+        question.IsActive = false;
+        question.DateUpdated = DateTime.UtcNow;
+        _unitOfWork.Questions.Update(question);
         await _unitOfWork.SaveChangesAsync();
 
         return ServiceResult.Success();

@@ -269,6 +269,10 @@ header .navbar {
   font-size: 1.45rem;
 }
 
+.card-header h5.entity-table-title.table-heading-sm {
+  font-size: 1.25rem;
+}
+
 .dataTables_wrapper .dataTables_filter input,
 .dataTables_wrapper .dataTables_length select {
   font-size: 1.12rem;

@@ -138,6 +138,7 @@ public class SignupModel : PageModel
 
         TempData[SignupSuccessModel.SubmittedNameKey] = $"{applicant.FirstName} {applicant.LastName}".Trim();
         TempData[SignupSuccessModel.SubmittedEmailKey] = applicant.Email;
+        TempData[SignupSuccessModel.SubmittedAtKey] = DateTime.Now.ToString("MMM d, yyyy h:mm tt");
 
         return RedirectToPage("/SignupSuccess");
     }

@@ -253,6 +253,25 @@ public class SeededExamDataTests : IClassFixture<SeededExamDataFixture>
     }
 
     [Fact]
+    public async Task ContentDevelopmentHasEightTwoPointWordUsageIdentificationQuestions()
+    {
+        await using var db = _fixture.NewContext();
+        var identificationId = (await db.QuestionTypes.SingleAsync(qt => qt.Name == QuestionTypes.Identification)).Id;
+        var sectionId = (await db.Sections.SingleAsync(s => s.Name == Departments.ContentDevelopment)).Id;
+
+        var questions = await db.Questions
+            .Where(q => q.SectionId == sectionId && q.QuestionTypeId == identificationId && q.QuestionTitle.StartsWith("Type the correct word"))
+            .ToListAsync();
+
+        Assert.Equal(8, questions.Count);
+        Assert.All(questions, q =>
+        {
+            Assert.Equal(2, q.Score);
+            Assert.Single(db.QuestionAndChoices.Where(qc => qc.QuestionId == q.Id));
+        });
+    }
+
+    [Fact]
     public async Task SeedingAgainDoesNotDuplicateQuestionsPagesOrUsers()
     {
         await using (var before = _fixture.NewContext())

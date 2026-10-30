@@ -3,6 +3,7 @@ using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Repository;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 
@@ -42,6 +43,38 @@ public class IndexModel : PageModel
     public bool IsAdmin { get; set; }
 
     public string? DepartmentName { get; set; }
+
+    // Archiving hides the applicant and locks their login; their attempts and answers stay on record.
+    public async Task<IActionResult> OnPostArchiveAsync(int id)
+    {
+        if (!User.IsInRole(AppRoles.Admin))
+        {
+            return Forbid();
+        }
+
+        var applicant = await _context.Applicants.FirstOrDefaultAsync(a => a.Id == id && a.IsActive);
+        if (applicant is null)
+        {
+            return NotFound();
+        }
+
+        applicant.IsActive = false;
+        applicant.DateUpdated = DateTime.UtcNow;
+
+        var user = await _userManager.FindByIdAsync(applicant.UserId);
+        if (user is not null)
+        {
+            user.LockoutEnabled = true;
+            user.LockoutEnd = DateTimeOffset.MaxValue;
+            await _userManager.UpdateAsync(user);
+            await _userManager.UpdateSecurityStampAsync(user);
+        }
+
+        await _context.SaveChangesAsync();
+
+        TempData["SuccessMessage"] = $"Applicant '{applicant.FirstName} {applicant.LastName}'".TrimEnd() + " archived successfully.";
+        return RedirectToPage();
+    }
 
     public async Task OnGetAsync()
     {

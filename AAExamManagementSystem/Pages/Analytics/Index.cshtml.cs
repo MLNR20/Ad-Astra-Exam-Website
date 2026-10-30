@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AAExamManagementSystem.Pages.Analytics;
 
-[Authorize(Roles = AppRoles.Admin + "," + AppRoles.Instructor + "," + AppRoles.Staffer + "," + AppRoles.Editor)]
+[Authorize(Roles = AppRoles.Admin + "," + AppRoles.Instructor + "," + AppRoles.Staffer + "," + AppRoles.Editor + "," + AppRoles.OIC)]
 public class IndexModel : PageModel
 {
     private const int MonthsInTrend = 12;

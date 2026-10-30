@@ -2,6 +2,7 @@ using AppRoles = AAExamManagementSystem.Models.Entities.Roles;
 using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -37,7 +38,7 @@ public class EditModel : PageModel
     public async Task<IActionResult> OnGetAsync()
     {
         var user = await _userManager.FindByIdAsync(Id);
-        if (user is null)
+        if (user is null or { IsDeleted: true })
         {
             return NotFound();
         }
@@ -65,7 +66,7 @@ public class EditModel : PageModel
         }
 
         var user = await _userManager.FindByIdAsync(Id);
-        if (user is null)
+        if (user is null or { IsDeleted: true })
         {
             return NotFound();
         }
@@ -81,6 +82,14 @@ public class EditModel : PageModel
             }
 
             await _userManager.SetEmailAsync(user, TargetUser.Email);
+        }
+
+        var ruleError = RoleAssignmentRules.Validate(user.UserName, TargetUser.SectionId, TargetUser.SelectedRoles ?? new List<string>());
+        if (ruleError is not null)
+        {
+            ModelState.AddModelError(string.Empty, ruleError);
+            await LoadOptionsAsync();
+            return Page();
         }
 
         user.FirstName = TargetUser.FirstName;

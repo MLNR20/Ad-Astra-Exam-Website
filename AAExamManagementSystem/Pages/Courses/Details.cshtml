@@ -9,7 +9,6 @@
     title = "Course Details",
     fields = new[]
     {
-        new DetailsField("Id", Model.Course.Id.ToString()),
         new DetailsField("Name", Model.Course.Name),
         new DetailsField("School Name", Model.Course.SchoolName ?? "-"),
         new DetailsField("Date Created", Model.Course.CreatedAt.ToString("MMM d, yyyy")),

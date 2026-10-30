@@ -236,6 +236,9 @@ namespace AAExamManagementSystem.Repository.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<string>("LastName")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -673,6 +676,9 @@ namespace AAExamManagementSystem.Repository.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsUpToEvaluation")
                         .HasColumnType("bit");
 
@@ -814,6 +820,9 @@ namespace AAExamManagementSystem.Repository.Migrations
                     b.Property<DateTime>("DateUpdated")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("DepartmentId")
+                        .HasColumnType("nvarchar(450)");
+
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
@@ -822,6 +831,8 @@ namespace AAExamManagementSystem.Repository.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("DepartmentId");
 
                     b.ToTable("Sections", "AAExam");
                 });
@@ -1157,6 +1168,16 @@ namespace AAExamManagementSystem.Repository.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("AAExamManagementSystem.Models.Entities.Section", b =>
+                {
+                    b.HasOne("AAExamManagementSystem.Models.Entities.Department", "Department")
+                        .WithMany("Sections")
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Department");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("AAExamManagementSystem.Models.Entities.ApplicationRole", null)
@@ -1222,6 +1243,8 @@ namespace AAExamManagementSystem.Repository.Migrations
 
             modelBuilder.Entity("AAExamManagementSystem.Models.Entities.Department", b =>
                 {
+                    b.Navigation("Sections");
+
                     b.Navigation("Users");
                 });
 

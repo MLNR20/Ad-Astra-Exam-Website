@@ -95,7 +95,8 @@ public class EditorDashboardTests
 
         await model.OnGetAsync();
 
-        Assert.True(model.IsEditor);
+        Assert.True(model.ShowOverview);
+        Assert.False(model.IsAdmin);
         Assert.Equal("Web Development", model.DepartmentName);
         Assert.Equal(new[] { "Cai Eve", "Ana Cruz" }, model.Applicants.Select(a => a.FullName));
     }
@@ -126,14 +127,60 @@ public class EditorDashboardTests
     }
 
     [Fact]
-    public async Task Dashboard_ForAnAdmin_DoesNotLoadTheApplicantView()
+    public async Task Dashboard_ForAnAdmin_ListsEveryDepartmentsAttemptsWithTheirDepartment()
     {
         var f = new Fixture();
         var model = f.DashboardAs(AppRoles.Admin, null);
 
         await model.OnGetAsync();
 
-        Assert.False(model.IsEditor);
+        Assert.True(model.ShowOverview);
+        Assert.True(model.IsAdmin);
+        Assert.Null(model.DepartmentName);
+        Assert.Equal(4, model.Applicants.Count);
+        Assert.Equal(3, model.TotalApplicants);
+        Assert.Equal(new[] { "Photo", "Web Development" }, model.Applicants.Where(a => a.Id == f.BothApplicant.Id).Select(a => a.Department).Order());
+    }
+
+    [Fact]
+    public async Task Dashboard_ForAnAdmin_CountsPassedAndToCheckAcrossDepartments()
+    {
+        var f = new Fixture();
+        Grade(f, f.WebDevApplicant, "Web Development", score: 8, max: 10, approved: true);
+        Grade(f, f.PhotoApplicant, "Photo", score: 1, max: 10, approved: false);
+        Grade(f, f.BothApplicant, "Photo", score: 9, max: 10, approved: true);
+        var model = f.DashboardAs(AppRoles.Admin, null);
+
+        await model.OnGetAsync();
+
+        Assert.Equal(2, model.PassedApplicants);
+        Assert.Equal(1, model.AttemptsToCheck);
+        Assert.Contains(model.RecentActivity, a => a.Description == "Ben Diaz submitted the Photo exam");
+    }
+
+    [Fact]
+    public async Task Dashboard_ForAnOic_ListsOnlyTheirDepartmentsApplicants()
+    {
+        var f = new Fixture();
+        var model = f.DashboardAs(AppRoles.OIC, PhotoId);
+
+        await model.OnGetAsync();
+
+        Assert.True(model.ShowOverview);
+        Assert.False(model.IsAdmin);
+        Assert.Equal("Photo", model.DepartmentName);
+        Assert.Equal(new[] { "Cai Eve", "Ben Diaz" }, model.Applicants.Select(a => a.FullName));
+    }
+
+    [Fact]
+    public async Task Dashboard_ForAStaffer_DoesNotLoadTheApplicantView()
+    {
+        var f = new Fixture();
+        var model = f.DashboardAs(AppRoles.Staffer, WebDevId);
+
+        await model.OnGetAsync();
+
+        Assert.False(model.ShowOverview);
         Assert.Empty(model.Applicants);
     }
 

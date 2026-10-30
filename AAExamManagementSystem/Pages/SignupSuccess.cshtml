@@ -18,6 +18,18 @@
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
 <body class="bg-light d-flex flex-column min-vh-100">
+    <nav class="navbar navbar-light bg-white shadow-sm mb-0 site-navbar">
+        <div class="container-fluid d-flex align-items-center justify-content-between px-5">
+            <a asp-page="/Index" class="navbar-brand d-flex align-items-center gap-2 mb-0">
+                <img src="~/images/adastra-mark.png" alt="" class="signup-navbar-mark" />
+                <span class="fw-semibold">AD ASTRA</span>
+            </a>
+            <div class="d-flex align-items-center gap-2">
+                <a asp-page="/ApplicantPortal" class="btn btn-dark fw-semibold">My Portal</a>
+            </div>
+        </div>
+    </nav>
+
     <main class="signup-success d-flex align-items-center justify-content-center flex-grow-1 p-3">
         <div class="signup-success-card text-center w-100">
             <img src="~/images/adastra-mark.png" alt="Ad Astra" class="signup-success-logo mb-4" />
@@ -25,6 +37,10 @@
             <p class="signup-subtitle text-muted mb-2">
                 Thank you, @Model.ApplicantName. Your application has been submitted.
             </p>
+            @if (!string.IsNullOrEmpty(Model.SubmittedAt))
+            {
+                <p class="text-muted mb-2">Submitted on <strong>@Model.SubmittedAt</strong></p>
+            }
             @if (!string.IsNullOrEmpty(Model.Email))
             {
                 <p class="text-muted mb-4">Your registration details and exam instructions will be emailed to <strong>@Model.Email</strong>.</p>

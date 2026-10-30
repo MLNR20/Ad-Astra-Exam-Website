@@ -42,7 +42,7 @@ public class DeleteModel : PageModel
     public async Task<IActionResult> OnGetAsync(Guid id)
     {
         var question = await _repository.GetByIdAsync(id);
-        if (question is null)
+        if (question is null or { IsDeleted: true })
         {
             return NotFound();
         }
@@ -67,7 +67,7 @@ public class DeleteModel : PageModel
     public async Task<IActionResult> OnPostAsync(Guid id)
     {
         var question = await _repository.GetByIdAsync(id);
-        if (question is null)
+        if (question is null or { IsDeleted: true })
         {
             return NotFound();
         }
@@ -81,8 +81,10 @@ public class DeleteModel : PageModel
             }
         }
 
-        await _choiceService.RemoveChoicesAsync(question.Id);
-        _repository.Remove(question);
+        question.IsDeleted = true;
+        question.IsActive = false;
+        question.DateUpdated = DateTime.UtcNow;
+        _repository.Update(question);
         await _repository.SaveChangesAsync();
 
         TempData["SuccessMessage"] = "Question deleted successfully.";

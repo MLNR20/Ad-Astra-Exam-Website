@@ -106,7 +106,7 @@ public class IndexModel : PageModel
     public async Task<IActionResult> OnPostDeleteAsync(Guid id)
     {
         var question = await _repository.GetByIdAsync(id);
-        if (question is null)
+        if (question is null or { IsDeleted: true })
         {
             return NotFound();
         }
@@ -120,8 +120,10 @@ public class IndexModel : PageModel
             }
         }
 
-        await _choiceService.RemoveChoicesAsync(question.Id);
-        _repository.Remove(question);
+        question.IsDeleted = true;
+        question.IsActive = false;
+        question.DateUpdated = DateTime.UtcNow;
+        _repository.Update(question);
         await _repository.SaveChangesAsync();
 
         TempData["SuccessMessage"] = "Question deleted successfully.";
@@ -130,7 +132,7 @@ public class IndexModel : PageModel
 
     private async Task LoadQuestionsAsync()
     {
-        var questions = await _repository.GetAllAsync();
+        var questions = (await _repository.GetAllAsync()).Where(q => !q.IsDeleted);
         var questionTypes = await _questionTypeRepository.GetAllAsync();
         var sections = await _sectionRepository.GetAllIncludingInactiveAsync();
         var questionTypeNames = questionTypes.ToDictionary(qt => qt.Id, qt => qt.Name);

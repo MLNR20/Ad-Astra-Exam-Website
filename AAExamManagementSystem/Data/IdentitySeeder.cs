@@ -131,6 +131,7 @@ public static class IdentitySeeder
         await SeedGeneralKnowledgeExamPagesAsync(dbContext);
         await SeedContentDevelopmentSpellingQuestionsAsync(dbContext);
         await SeedContentDevelopmentEssayQuestionsAsync(dbContext);
+        await SeedContentDevelopmentWordUsageQuestionsAsync(dbContext);
         await SeedPhotoQuestionsAsync(dbContext);
         await SeedArtAndDesignQuestionsAsync(dbContext);
         await SeedVideoQuestionsAsync(dbContext);
@@ -976,7 +977,8 @@ public static class IdentitySeeder
     private static async Task SeedIdentificationQuestionsAsync(
         ApplicationDbContext dbContext,
         string departmentName,
-        (string QuestionTitle, string Answer)[] questionSet)
+        (string QuestionTitle, string Answer)[] questionSet,
+        int score = 1)
     {
         var section = dbContext.Sections.IgnoreQueryFilters().FirstOrDefault(s => s.Name == departmentName);
         if (section is null)
@@ -1003,7 +1005,7 @@ public static class IdentitySeeder
                 QuestionTypeId = identificationType.Id,
                 SectionId = section.Id,
                 QuestionTitle = questionTitle,
-                Score = 1
+                Score = score
             };
 
             dbContext.Questions.Add(question);
@@ -1175,6 +1177,25 @@ public static class IdentitySeeder
         }
 
         await dbContext.SaveChangesAsync();
+    }
+
+    // Applicants type the word that fits, choosing between commonly confused words; the answers are compared
+    // case-insensitively and use a straight apostrophe.
+    private static readonly (string QuestionTitle, string Answer)[] ContentDevelopmentWordUsageQuestions =
+    {
+        ("Type the correct word to complete the sentence (there / their / they're): Please leave your notes over ____.", "there"),
+        ("Type the correct word to complete the sentence (there / their / they're): The writers submitted ____ drafts before the deadline.", "their"),
+        ("Type the correct word to complete the sentence (there / their / they're): ____ planning a feature on campus life.", "They're"),
+        ("Type the correct word to complete the sentence (there / their / they're): I think ____ is a typo in the second paragraph.", "there"),
+        ("Type the correct word to complete the sentence (we're / were / where): ____ you able to attend the editorial meeting yesterday?", "were"),
+        ("Type the correct word to complete the sentence (we're / were / where): ____ finalizing the article layout tonight.", "We're"),
+        ("Type the correct word to complete the sentence (we're / were / where): Do you know ____ the press kit is stored?", "where"),
+        ("Type the correct word to complete the sentence (we're / were / where): The editors said ____ ready to publish the issue.", "we're")
+    };
+
+    private static async Task SeedContentDevelopmentWordUsageQuestionsAsync(ApplicationDbContext dbContext)
+    {
+        await SeedIdentificationQuestionsAsync(dbContext, Departments.ContentDevelopment, ContentDevelopmentWordUsageQuestions, score: 2);
     }
 
     private static readonly string[] ContentDevelopmentEssayQuestions =

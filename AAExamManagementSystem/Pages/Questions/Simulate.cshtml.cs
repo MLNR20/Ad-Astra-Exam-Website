@@ -32,7 +32,7 @@ public class SimulateModel : PageModel
     public async Task<IActionResult> OnGetAsync(Guid id)
     {
         var question = await _repository.GetByIdAsync(id);
-        if (question is null)
+        if (question is null or { IsDeleted: true })
         {
             return NotFound();
         }

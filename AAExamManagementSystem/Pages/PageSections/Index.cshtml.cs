@@ -482,7 +482,7 @@ public class IndexModel : PageModel
         var orderedQuestions = pageSection.Id == 0
             ? new List<Question>()
             : await _context.Questions
-                .Where(q => q.PageSectionId == pageSection.Id)
+                .Where(q => q.PageSectionId == pageSection.Id && !q.IsDeleted)
                 .OrderBy(q => q.PageOrder)
                 .ThenBy(q => q.DateCreated)
                 .ToListAsync();

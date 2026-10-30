@@ -2,6 +2,7 @@ using AppRoles = AAExamManagementSystem.Models.Entities.Roles;
 using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -71,6 +72,16 @@ public class IndexModel : PageModel
             return Page();
         }
 
+        var ruleError = RoleAssignmentRules.Validate(user.UserName, user.SectionId, new[] { role.Name });
+        if (ruleError is not null)
+        {
+            ModelState.AddModelError(string.Empty, ruleError);
+            await LoadAssignmentsAsync();
+            LoadOptions();
+            ShowCreateModal = true;
+            return Page();
+        }
+
         await AssignRoleAsync(user.Id, role.Id);
 
         TempData["SuccessMessage"] = $"Role '{role.Name}' assigned to '{user.UserName}' successfully.";
@@ -89,6 +100,12 @@ public class IndexModel : PageModel
         if (user is null || role is null || string.IsNullOrEmpty(role.Name))
         {
             return NotFound();
+        }
+
+        if (role.Name == AppRoles.Admin && userId == _userManager.GetUserId(User))
+        {
+            TempData["SuccessMessage"] = "You can't deactivate your own Admin assignment.";
+            return RedirectToPage("Index");
         }
 
         var deactivated = await DeactivateUserRoleAsync(userId, roleId);
@@ -183,7 +200,7 @@ public class IndexModel : PageModel
 
     private void LoadOptions()
     {
-        var users = _userManager.Users.OrderBy(u => u.UserName).ToList();
+        var users = _userManager.Users.Where(u => !u.IsDeleted).OrderBy(u => u.UserName).ToList();
         UserOptions = new SelectList(
             users.Select(u => new { u.Id, DisplayName = $"{u.FirstName} {u.LastName} ({u.UserName})".Trim() }),
             "Id", "DisplayName");

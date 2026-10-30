@@ -147,7 +147,7 @@ public class QuestionServiceTests
     }
 
     [Fact]
-    public async Task Delete_WithExistingId_RemovesChoicesAndQuestion()
+    public async Task Delete_WithExistingId_SoftDeletesAndKeepsChoices()
     {
         var f = new Fixture();
         var question = new Question();
@@ -156,9 +156,24 @@ public class QuestionServiceTests
         var result = await f.Service.DeleteAsync(question.Id);
 
         Assert.True(result.Succeeded);
-        f.Choices.Verify(c => c.RemoveChoicesAsync(question.Id), Times.Once);
-        f.Questions.Verify(r => r.Remove(question), Times.Once);
+        Assert.True(question.IsDeleted);
+        Assert.False(question.IsActive);
+        f.Choices.Verify(c => c.RemoveChoicesAsync(It.IsAny<Guid>()), Times.Never);
+        f.Questions.Verify(r => r.Remove(It.IsAny<Question>()), Times.Never);
         f.UnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task Delete_WithAlreadyDeletedQuestion_ReturnsNotFound()
+    {
+        var f = new Fixture();
+        var question = new Question { IsDeleted = true };
+        f.Questions.Setup(r => r.GetByIdAsync(question.Id)).ReturnsAsync(question);
+
+        var result = await f.Service.DeleteAsync(question.Id);
+
+        Assert.Equal(ServiceStatus.NotFound, result.Status);
+        f.UnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
     }
 
     [Fact]

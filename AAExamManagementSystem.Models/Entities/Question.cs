@@ -17,6 +17,8 @@ public class Question
     public DateTime DateCreated { get; set; } = DateTime.UtcNow;
     public DateTime DateUpdated { get; set; } = DateTime.UtcNow;
     public bool IsActive { get; set; } = true;
+    // Deleting a question only hides it, so submitted answers keep resolving their question.
+    public bool IsDeleted { get; set; }
 
     public ICollection<QuestionAndChoice> QuestionAndChoices { get; set; } = new List<QuestionAndChoice>();
     public ICollection<Answer> Answers { get; set; } = new List<Answer>();

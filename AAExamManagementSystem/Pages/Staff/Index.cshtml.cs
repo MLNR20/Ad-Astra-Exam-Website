@@ -40,7 +40,7 @@ public class IndexModel : PageModel
         DepartmentName = sections.FirstOrDefault(s => s.Id == currentUser.SectionId)?.Name;
 
         var departmentUsers = _userManager.Users
-            .Where(u => u.SectionId == currentUser.SectionId)
+            .Where(u => u.SectionId == currentUser.SectionId && !u.IsDeleted)
             .OrderBy(u => u.FirstName)
             .ThenBy(u => u.LastName)
             .ToList();

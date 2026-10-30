@@ -9,8 +9,8 @@
     title = "Section Details",
     fields = new[]
     {
-        new DetailsField("Id", Model.Section.Id.ToString()),
-        new DetailsField("Name", Model.Section.Name)
+        new DetailsField("Name", Model.Section.Name),
+        new DetailsField("Department", Model.DepartmentName)
     },
     editHref = $"/Sections/Edit/{Model.Section.Id}",
     backHref = "/Sections"

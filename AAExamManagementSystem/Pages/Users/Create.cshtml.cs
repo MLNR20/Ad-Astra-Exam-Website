@@ -2,6 +2,7 @@ using AppRoles = AAExamManagementSystem.Models.Entities.Roles;
 using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -49,6 +50,15 @@ public class CreateModel : PageModel
         if (existingUser is not null)
         {
             ModelState.AddModelError(string.Empty, "A user with that username or email already exists.");
+            await LoadOptionsAsync();
+            return Page();
+        }
+
+        var requestedRoles = NewUser.SelectedRoles is { Count: > 0 } ? NewUser.SelectedRoles : new List<string> { Models.Entities.Roles.Staffer };
+        var ruleError = RoleAssignmentRules.Validate(NewUser.UserName, NewUser.SectionId, requestedRoles);
+        if (ruleError is not null)
+        {
+            ModelState.AddModelError(string.Empty, ruleError);
             await LoadOptionsAsync();
             return Page();
         }

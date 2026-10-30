@@ -29,7 +29,7 @@ public class DetailsModel : PageModel
     public async Task<IActionResult> OnGetAsync(string id)
     {
         var user = await _userManager.FindByIdAsync(id);
-        if (user is null)
+        if (user is null or { IsDeleted: true })
         {
             return NotFound();
         }

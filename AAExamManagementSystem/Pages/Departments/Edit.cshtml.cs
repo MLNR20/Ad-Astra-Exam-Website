@@ -6,6 +6,7 @@ using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 
 namespace AAExamManagementSystem.Pages.Departments;
 
@@ -13,13 +14,23 @@ namespace AAExamManagementSystem.Pages.Departments;
 public class EditModel : PageModel
 {
     private readonly IGenericRepository<Department> _repository;
+    private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
 
-    public EditModel(IGenericRepository<Department> repository, IMapper mapper)
+    public EditModel(IGenericRepository<Department> repository, ApplicationDbContext context, IMapper mapper)
     {
         _repository = repository;
+        _context = context;
         _mapper = mapper;
     }
+
+    /// <summary>A section a department can hold; one already in another department is shown but cannot be picked.</summary>
+    public record SectionOption(int Id, string Name, bool Selected, string? OtherDepartment);
+
+    public IList<SectionOption> SectionOptions { get; set; } = new List<SectionOption>();
+
+    [BindProperty]
+    public List<int> SelectedSectionIds { get; set; } = new();
 
     [BindProperty(SupportsGet = true)]
     public string Id { get; set; } = string.Empty;
@@ -36,6 +47,11 @@ public class EditModel : PageModel
         }
 
         Department = new DepartmentCreateUpdateDto { Name = department.Name, IsActive = department.IsActive };
+        SelectedSectionIds = await _context.Sections
+            .Where(s => s.DepartmentId == Id)
+            .Select(s => s.Id)
+            .ToListAsync();
+        await LoadSectionOptionsAsync();
         return Page();
     }
 
@@ -43,6 +59,7 @@ public class EditModel : PageModel
     {
         if (!ModelState.IsValid)
         {
+            await LoadSectionOptionsAsync();
             return Page();
         }
 
@@ -56,9 +73,46 @@ public class EditModel : PageModel
         department.IsActive = Department.IsActive;
         department.DateUpdated = DateTime.UtcNow;
         _repository.Update(department);
+
+        // A section sits in at most one department: take the ticked ones that are free or already here, and release
+        // the ones that were unticked.
+        var sections = await _context.Sections
+            .Where(s => s.DepartmentId == Id || SelectedSectionIds.Contains(s.Id))
+            .ToListAsync();
+        foreach (var section in sections)
+        {
+            if (SelectedSectionIds.Contains(section.Id) && (section.DepartmentId is null || section.DepartmentId == Id))
+            {
+                section.DepartmentId = Id;
+            }
+            else if (!SelectedSectionIds.Contains(section.Id) && section.DepartmentId == Id)
+            {
+                section.DepartmentId = null;
+            }
+        }
+
         await _repository.SaveChangesAsync();
 
         TempData["SuccessMessage"] = $"Department '{department.Name}' updated successfully.";
         return RedirectToPage("Index");
+    }
+
+    private async Task LoadSectionOptionsAsync()
+    {
+        var sections = await _context.Sections.AsNoTracking().OrderBy(s => s.Name).ToListAsync();
+        var departmentNames = await _context.Departments
+            .IgnoreQueryFilters()
+            .AsNoTracking()
+            .ToDictionaryAsync(d => d.Id, d => d.Name);
+
+        SectionOptions = sections
+            .Select(s => new SectionOption(
+                s.Id,
+                s.Name,
+                SelectedSectionIds.Contains(s.Id),
+                s.DepartmentId is not null && s.DepartmentId != Id
+                    ? departmentNames.GetValueOrDefault(s.DepartmentId, "another department")
+                    : null))
+            .ToList();
     }
 }

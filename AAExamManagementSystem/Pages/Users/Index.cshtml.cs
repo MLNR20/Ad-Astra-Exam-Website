@@ -34,12 +34,26 @@ public class IndexModel : PageModel
     public async Task<IActionResult> OnPostDeleteAsync(string id)
     {
         var user = await _userManager.FindByIdAsync(id);
-        if (user is null)
+        if (user is null or { IsDeleted: true })
         {
             return NotFound();
         }
 
-        var result = await _userManager.DeleteAsync(user);
+        if (user.Id == _userManager.GetUserId(User))
+        {
+            TempData["SuccessMessage"] = "You can't delete your own account.";
+            return RedirectToPage("Index");
+        }
+
+        user.IsDeleted = true;
+        user.LockoutEnabled = true;
+        user.LockoutEnd = DateTimeOffset.MaxValue;
+        var result = await _userManager.UpdateAsync(user);
+        if (result.Succeeded)
+        {
+            await _userManager.UpdateSecurityStampAsync(user);
+        }
+
         TempData["SuccessMessage"] = result.Succeeded
             ? $"User '{user.UserName}' deleted successfully."
             : string.Join(" ", result.Errors.Select(e => e.Description));
@@ -49,7 +63,7 @@ public class IndexModel : PageModel
 
     private async Task LoadUsersAsync()
     {
-        var users = _userManager.Users.OrderBy(u => u.UserName).ToList();
+        var users = _userManager.Users.Where(u => !u.IsDeleted).OrderBy(u => u.UserName).ToList();
         var sections = await _sectionRepository.GetAllIncludingInactiveAsync();
         var sectionNames = sections.ToDictionary(s => s.Id, s => s.Name);
         var userDtos = new List<UserDto>();

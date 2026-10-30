@@ -74,6 +74,12 @@ public class IndexModel : PageModel
             return NotFound();
         }
 
+        if (role.Name == AppRoles.Admin)
+        {
+            TempData["SuccessMessage"] = "The Admin role can't be deactivated; it would lock everyone out of administration.";
+            return RedirectToPage("Index");
+        }
+
         role.IsActive = false;
         role.DateUpdated = DateTime.UtcNow;
         var result = await _roleManager.UpdateAsync(role);

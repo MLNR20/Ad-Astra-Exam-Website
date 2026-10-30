@@ -2,6 +2,7 @@ using AppRoles = AAExamManagementSystem.Models.Entities.Roles;
 using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -59,6 +60,9 @@ public class RoleAssignmentsController : ControllerBase
         if (await _userManager.IsInRoleAsync(user, role.Name))
             return BadRequest($"User is already assigned to role '{role.Name}'.");
 
+        var createRuleError = RoleAssignmentRules.Validate(user.UserName, user.SectionId, new[] { role.Name });
+        if (createRuleError is not null) return BadRequest(createRuleError);
+
         await AssignRoleAsync(user.Id, role.Id);
 
         var assignment = await BuildAssignmentAsync(user.Id, role.Id);
@@ -88,6 +92,9 @@ public class RoleAssignmentsController : ControllerBase
         if (await _userManager.IsInRoleAsync(user, newRole.Name))
             return BadRequest($"User is already assigned to role '{newRole.Name}'.");
 
+        var ruleError = RoleAssignmentRules.Validate(user.UserName, user.SectionId, new[] { newRole.Name });
+        if (ruleError is not null) return BadRequest(ruleError);
+
         await DeactivateUserRoleAsync(userId, oldRoleId);
         await AssignRoleAsync(userId, newRole.Id);
 
@@ -105,6 +112,8 @@ public class RoleAssignmentsController : ControllerBase
         var user = await _userManager.FindByIdAsync(userId);
         var role = await _roleManager.FindByIdAsync(roleId);
         if (user is null || role is null || string.IsNullOrEmpty(role.Name)) return NotFound();
+
+        if (role.Name == AppRoles.Admin && userId == _userManager.GetUserId(User)) return Forbid();
 
         var deactivated = await DeactivateUserRoleAsync(userId, roleId);
         if (!deactivated) return NotFound();

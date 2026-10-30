@@ -9,4 +9,5 @@ public class Department
     public DateTime DateUpdated { get; set; } = DateTime.UtcNow;
 
     public ICollection<ApplicationUser> Users { get; set; } = new List<ApplicationUser>();
+    public ICollection<Section> Sections { get; set; } = new List<Section>();
 }

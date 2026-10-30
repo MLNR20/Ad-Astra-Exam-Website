@@ -55,7 +55,7 @@ public class EditModel : PageModel
     public async Task<IActionResult> OnGetAsync()
     {
         var question = await _repository.GetByIdAsync(Id);
-        if (question is null)
+        if (question is null or { IsDeleted: true })
         {
             return NotFound();
         }
@@ -90,7 +90,7 @@ public class EditModel : PageModel
     public async Task<IActionResult> OnPostAsync()
     {
         var question = await _repository.GetByIdAsync(Id);
-        if (question is null)
+        if (question is null or { IsDeleted: true })
         {
             return NotFound();
         }

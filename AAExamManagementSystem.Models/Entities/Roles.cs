@@ -8,10 +8,11 @@ public static class Roles
     public const string Applicant = "Applicant";
     public const string Staffer = "Staffer";
     public const string Editor = "Editor";
+    public const string OIC = "OIC";
     public const string Guest = "Guest";
 
     public static readonly string[] All =
     {
-        Admin, Instructor, Student, Applicant, Staffer, Editor, Guest
+        Admin, Instructor, Student, Applicant, Staffer, Editor, OIC, Guest
     };
 }

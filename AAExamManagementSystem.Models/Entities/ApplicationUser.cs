@@ -17,5 +17,8 @@ public class ApplicationUser : IdentityUser
     public int? CourseId { get; set; }
     public Course? Course { get; set; }
 
+    // Deleting a user locks the account and hides it; the row stays so history keeps resolving it.
+    public bool IsDeleted { get; set; }
+
     public Applicant? Applicant { get; set; }
 }

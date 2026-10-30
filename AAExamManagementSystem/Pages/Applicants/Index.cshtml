@@ -6,7 +6,7 @@
 
 <div class="card border rounded-2 p-4">
     <div class="card-header bg-white border-bottom-0">
-        <h5 class="mb-0 entity-table-title">
+        <h5 class="mb-0 entity-table-title table-heading-sm">
             Applicants@(string.IsNullOrEmpty(Model.DepartmentName) ? "" : $" — {Model.DepartmentName}")
         </h5>
     </div>
@@ -71,7 +71,16 @@
                             </td>
                             <td class="text-start" data-order="@applicant.DateApplied.Ticks">@applicant.DateApplied.ToLocalTime().ToString("MMM d, yyyy")</td>
                             <td class="text-start">
-                                <a asp-page="/Applicants/Details" asp-route-id="@applicant.Id" class="btn btn-primary">Details</a>
+                                <div class="d-flex gap-1">
+                                    <a asp-page="/Applicants/Details" asp-route-id="@applicant.Id" class="btn btn-primary">Details</a>
+                                    @if (Model.IsAdmin)
+                                    {
+                                        <form method="post" asp-page-handler="Archive" asp-route-id="@applicant.Id"
+                                              onsubmit="return confirm('Archive @applicant.FullName.Replace("'", "\\'")? They will be hidden and unable to log in.');">
+                                            <button type="submit" class="btn btn-danger">Delete</button>
+                                        </form>
+                                    }
+                                </div>
                             </td>
                         </tr>
                     }

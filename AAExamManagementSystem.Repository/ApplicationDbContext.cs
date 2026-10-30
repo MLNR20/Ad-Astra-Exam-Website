@@ -174,6 +174,12 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             .HasForeignKey(ps => ps.QuestionTypeId)
             .OnDelete(DeleteBehavior.Restrict);
 
+        builder.Entity<Section>()
+            .HasOne(s => s.Department)
+            .WithMany(d => d.Sections)
+            .HasForeignKey(s => s.DepartmentId)
+            .OnDelete(DeleteBehavior.SetNull);
+
         builder.Entity<Question>()
             .HasOne(q => q.PageSection)
             .WithMany(ps => ps.Questions)

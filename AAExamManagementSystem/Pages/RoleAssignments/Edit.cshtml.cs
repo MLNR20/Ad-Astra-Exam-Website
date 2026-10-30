@@ -2,6 +2,7 @@ using AppRoles = AAExamManagementSystem.Models.Entities.Roles;
 using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -97,6 +98,21 @@ public class EditModel : PageModel
             if (await _userManager.IsInRoleAsync(user, newRole.Name))
             {
                 ModelState.AddModelError("Assignment.RoleId", $"'{user.UserName}' is already assigned to role '{newRole.Name}'.");
+                LoadRoleOptions(oldRoleId);
+                return Page();
+            }
+
+            var ruleError = RoleAssignmentRules.Validate(user.UserName, user.SectionId, new[] { newRole.Name });
+            if (ruleError is not null)
+            {
+                ModelState.AddModelError("Assignment.RoleId", ruleError);
+                LoadRoleOptions(oldRoleId);
+                return Page();
+            }
+
+            if (oldRole.Name == AppRoles.Admin && userId == _userManager.GetUserId(User))
+            {
+                ModelState.AddModelError("Assignment.RoleId", "You can't move yourself off the Admin role.");
                 LoadRoleOptions(oldRoleId);
                 return Page();
             }
