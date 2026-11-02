@@ -3,6 +3,8 @@
   <ItemGroup>
     <ProjectReference Include="..\AAExamManagementSystem.Models\AAExamManagementSystem.Models.csproj" />
     <ProjectReference Include="..\AAExamManagementSystem.Repository\AAExamManagementSystem.Repository.csproj" />
+    <ProjectReference Include="..\AAExamManagementSystem.Migrations.Postgres\AAExamManagementSystem.Migrations.Postgres.csproj" />
+    <ProjectReference Include="..\AAExamManagementSystem.Migrations.SqlServer\AAExamManagementSystem.Migrations.SqlServer.csproj" />
   </ItemGroup>
 
   <ItemGroup>

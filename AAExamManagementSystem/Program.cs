@@ -35,8 +35,23 @@ builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddAutoMapper(cfg => { }, typeof(MappingProfile));
 
+// Supabase PostgreSQL or SQL Server, from "Database:Provider" ("Postgres" / "SqlServer") or else inferred from the
+// connection string. Each provider's migrations live in their own project.
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var databaseProvider = DatabaseProviders.Resolve(builder.Configuration["Database:Provider"], connectionString);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    if (databaseProvider == DatabaseProviders.SqlServer)
+    {
+        options.UseSqlServer(connectionString,
+            sql => sql.MigrationsAssembly("AAExamManagementSystem.Migrations.SqlServer"));
+    }
+    else
+    {
+        options.UseNpgsql(connectionString,
+            npgsql => npgsql.MigrationsAssembly("AAExamManagementSystem.Migrations.Postgres"));
+    }
+});
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()

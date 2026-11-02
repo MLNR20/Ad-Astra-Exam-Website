@@ -1,4 +1,6 @@
 <Solution>
+  <Project Path="AAExamManagementSystem.Migrations.Postgres/AAExamManagementSystem.Migrations.Postgres.csproj" />
+  <Project Path="AAExamManagementSystem.Migrations.SqlServer/AAExamManagementSystem.Migrations.SqlServer.csproj" />
   <Project Path="AAExamManagementSystem.Models/AAExamManagementSystem.Models.csproj" />
   <Project Path="AAExamManagementSystem.Repository/AAExamManagementSystem.Repository.csproj" />
   <Project Path="AAExamManagementSystem.Tests/AAExamManagementSystem.Tests.csproj" />

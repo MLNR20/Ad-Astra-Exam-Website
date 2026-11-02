@@ -385,3 +385,19 @@ Ordered roughly by how much they matter. These are observations from reading the
 | Change login/session lifetime | `ConfigureApplicationCookie` and `RefreshToken:LifetimeDays` (`Program.cs`, `appsettings.json`). |
 | Change exam content | `IdentitySeeder` (`Seed…Questions`), `ExamPage`/`PageSection` tables, `Questions/*` pages. |
 | Send a notification | `NotificationService.SendAsync(userId, title, message, url)`. |
+
+## Database providers (PostgreSQL / SQL Server)
+
+The app runs on Supabase PostgreSQL or SQL Server. `Program.cs` picks the provider from `Database:Provider` (`Postgres` or `SqlServer`), or infers it from `ConnectionStrings:DefaultConnection`: a string starting with `Host=` is PostgreSQL, anything else is SQL Server. Each provider's migrations live in their own project, because EF cannot keep two providers' migrations in one assembly:
+
+- `AAExamManagementSystem.Migrations.Postgres`: one `InitialCreate` for Supabase / Render.
+- `AAExamManagementSystem.Migrations.SqlServer`: the original migration history for local SQL Server.
+
+After a model change, add a migration to **both** projects (set the matching connection string first, for example via user secrets or `ConnectionStrings__DefaultConnection`):
+
+```
+dotnet ef migrations add <Name> --project AAExamManagementSystem.Migrations.Postgres --startup-project AAExamManagementSystem
+dotnet ef migrations add <Name> --project AAExamManagementSystem.Migrations.SqlServer --startup-project AAExamManagementSystem
+```
+
+Local SQL Server keeps its connection string in user secrets. A `ConnectionStrings__DefaultConnection` environment variable overrides user secrets, so use it for one-off Supabase commands.
