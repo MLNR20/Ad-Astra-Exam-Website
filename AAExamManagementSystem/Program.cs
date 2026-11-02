@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
-// Keep DateTime.Now/Unspecified values working: Npgsql 6+ otherwise only accepts UTC DateTimes.
+// Keep local and unspecified-kind DateTime values working: Npgsql 6+ otherwise only accepts UTC DateTimes.
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
