@@ -370,7 +370,7 @@ public class IndexModel : PageModel
 
     public record TopAttempt(string ApplicantName, string StudentNo, string? FirstChoice, int Score, DateTime DateTaken, string Status)
     {
-        public string DateLabel => DateTaken.ToLocalTime().ToString("MMM d, yyyy");
+        public string DateLabel => LocalTime.Of(DateTaken).ToString("MMM d, yyyy");
 
         public string StatusBadgeClass => TopAttemptStatus.BadgeClass(Status);
     }

@@ -159,7 +159,7 @@
                                         <div class="min-w-0">
                                             <div class="fw-semibold text-truncate">@item.ApplicantName</div>
                                             <div class="small text-muted">
-                                                @(item.DateTaken is { } taken ? taken.ToLocalTime().ToString("MMM d, h:mm tt") : "-")
+                                                @(item.DateTaken is { } taken ? LocalTime.Of(taken).ToString("MMM d, h:mm tt") : "-")
                                                 &middot;
                                                 @(item.PendingEvaluationCount > 0 ? "Needs evaluation" : "Pending approval")
                                                 @if (Model.IsAdmin)
@@ -194,7 +194,7 @@
                                 {
                                     <li class="py-2 border-bottom">
                                         <div class="fw-semibold">@activity.Description</div>
-                                        <div class="small text-muted">@activity.When.ToLocalTime().ToString("MMM d, h:mm tt")</div>
+                                        <div class="small text-muted">@LocalTime.Of(activity.When).ToString("MMM d, h:mm tt")</div>
                                     </li>
                                 }
                             </ul>

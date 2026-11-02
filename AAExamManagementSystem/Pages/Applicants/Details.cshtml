@@ -55,7 +55,7 @@
                         }
                     </dd>
                     <dt class="col-sm-4">Applied</dt>
-                    <dd class="col-sm-8">@applicant.DateCreated.ToLocalTime().ToString("MMM d, yyyy")</dd>
+                    <dd class="col-sm-8">@LocalTime.Of(applicant.DateCreated).ToString("MMM d, yyyy")</dd>
                 </dl>
             </div>
         </div>
@@ -83,7 +83,7 @@
                         {
                             <tr>
                                 <td class="text-start">@(attempt.Section ?? "-")</td>
-                                <td class="text-start">@(attempt.DateTaken ?? "-")</td>
+                                <td class="text-start">@LocalTime.Taken(attempt.DateTaken)</td>
                                 <td class="text-start">@(attempt.IsSubmitted ? $"{attempt.TotalScore} / {attempt.MaxScore}" : "-")</td>
                                 <td class="text-start">
                                     @if (!attempt.IsSubmitted)
