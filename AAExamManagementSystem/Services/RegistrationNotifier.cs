@@ -11,6 +11,9 @@ public class EmailSettings
     public int Port { get; set; } = 587;
     public string From { get; set; } = "adastra.recruitment.test@gmail.com";
 
+    /// <summary>The SMTP login. Gmail uses the sender address; relays such as Brevo have their own login.</summary>
+    public string? Username { get; set; }
+
     /// <summary>The Gmail app password. Read from the "ad-astra-exam-password" setting (see .env).</summary>
     public string? Password { get; set; }
 }
@@ -111,7 +114,7 @@ public class SmtpRegistrationNotifier : IRegistrationNotifier
         using var client = new SmtpClient(_settings.Host, _settings.Port)
         {
             EnableSsl = true,
-            Credentials = new NetworkCredential(_settings.From, password),
+            Credentials = new NetworkCredential(string.IsNullOrWhiteSpace(_settings.Username) ? _settings.From : _settings.Username.Trim(), password),
             Timeout = 15_000,
         };
 
