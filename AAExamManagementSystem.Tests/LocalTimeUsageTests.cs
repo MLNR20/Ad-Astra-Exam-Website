@@ -39,6 +39,13 @@ public class LocalTimeUsageTests
                 var lines = File.ReadAllLines(file);
                 for (var i = 0; i < lines.Length; i++)
                 {
+                    // Comments and Razor comments can mention the banned calls; only code counts.
+                    var trimmed = lines[i].TrimStart();
+                    if (trimmed.StartsWith("//") || trimmed.StartsWith("@*"))
+                    {
+                        continue;
+                    }
+
                     yield return (Path.GetRelativePath(root, file), i + 1, lines[i]);
                 }
             }
