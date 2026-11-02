@@ -64,7 +64,7 @@ else
                         }
 
                         <dt class="col-5 text-muted fw-semibold">First Applied</dt>
-                        <dd class="col-7 mb-0">@applicant.DateCreated.ToString("MMM d, yyyy")</dd>
+                        <dd class="col-7 mb-0">@LocalTime.Of(applicant.DateCreated).ToString("MMM d, yyyy")</dd>
                     </dl>
                 </div>
             </div>

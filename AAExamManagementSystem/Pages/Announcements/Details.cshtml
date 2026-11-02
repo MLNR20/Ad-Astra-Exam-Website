@@ -12,8 +12,8 @@
         new DetailsField("Title", Model.Announcement.Title),
         new DetailsField("Subheader", Model.Announcement.Subheader),
         new DetailsField("Body", Model.Announcement.Body),
-        new DetailsField("Date Created", Model.Announcement.CreatedAt.ToString("MMM d, yyyy")),
-        new DetailsField("Date Updated", Model.Announcement.DateUpdated.ToString("MMM d, yyyy"))
+        new DetailsField("Date Created", LocalTime.Of(Model.Announcement.CreatedAt).ToString("MMM d, yyyy")),
+        new DetailsField("Date Updated", LocalTime.Of(Model.Announcement.DateUpdated).ToString("MMM d, yyyy"))
     },
     showStatus = true,
     isActive = Model.Announcement.IsActive,

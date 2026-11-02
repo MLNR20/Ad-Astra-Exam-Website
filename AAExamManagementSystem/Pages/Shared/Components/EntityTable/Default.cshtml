@@ -88,11 +88,11 @@
                                 }
                                 @if (Model.ShowDateCreatedColumn)
                                 {
-                                    <td class="text-start">@(item.DateCreated?.ToString("MMM d, yyyy") ?? "-")</td>
+                                    <td class="text-start">@(LocalTime.Of(item.DateCreated)?.ToString("MMM d, yyyy") ?? "-")</td>
                                 }
                                 @if (Model.ShowDateUpdatedColumn)
                                 {
-                                    <td class="text-start">@(item.DateUpdated?.ToString("MMM d, yyyy") ?? "-")</td>
+                                    <td class="text-start">@(LocalTime.Of(item.DateUpdated)?.ToString("MMM d, yyyy") ?? "-")</td>
                                 }
                                 <td class="text-start">
                                     <a href="@Model.BasePath/Details/@item.Id" class="btn btn-secondary">Details</a>

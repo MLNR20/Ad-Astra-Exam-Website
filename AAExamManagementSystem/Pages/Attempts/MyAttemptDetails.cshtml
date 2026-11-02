@@ -6,7 +6,7 @@
 
     (string Text, long Order) TakenOn(string? value) =>
         DateTime.TryParse(value, null, System.Globalization.DateTimeStyles.RoundtripKind, out var taken)
-            ? (taken.ToLocalTime().ToString("MMM d, yyyy h:mm tt"), taken.Ticks)
+            ? (LocalTime.Of(taken).ToString("MMM d, yyyy h:mm tt"), taken.Ticks)
             : (value ?? "-", 0L);
 }
 

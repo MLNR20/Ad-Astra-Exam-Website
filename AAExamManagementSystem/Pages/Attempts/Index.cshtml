@@ -38,7 +38,7 @@
                             <td class="text-start">@attempt.ApplicantName</td>
                             <td class="text-start">@attempt.StudentNo</td>
                             <td class="text-start">@(attempt.Section ?? "-")</td>
-                            <td class="text-start">@(attempt.DateTaken ?? "-")</td>
+                            <td class="text-start">@LocalTime.Taken(attempt.DateTaken)</td>
                             <td class="text-start">@attempt.TotalScore / @attempt.MaxScore</td>
                             <td class="text-start">
                                 @if (attempt.IsApproved)

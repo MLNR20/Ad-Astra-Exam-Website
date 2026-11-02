@@ -17,6 +17,13 @@ public static class ExamClock
 
     public static DateOnly Today => DateOnly.FromDateTime(Now);
 
+    /// <summary>Converts a stored time to local exam time. Values with no kind (read back from the database) are UTC.</summary>
+    public static DateTime ToLocal(DateTime value) => value.Kind switch
+    {
+        DateTimeKind.Local => TimeZoneInfo.ConvertTime(value, _zone),
+        _ => TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(value, DateTimeKind.Utc), _zone),
+    };
+
     /// <summary>Sets the exam time zone from an IANA or Windows id, falling back to Philippine time if it isn't known.</summary>
     public static void Configure(string? timeZoneId) =>
         _zone = Resolve(string.IsNullOrWhiteSpace(timeZoneId) ? DefaultTimeZoneId : timeZoneId.Trim());
