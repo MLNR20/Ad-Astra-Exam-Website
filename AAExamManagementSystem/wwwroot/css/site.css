@@ -94,6 +94,45 @@ header .navbar {
   flex-shrink: 0;
 }
 
+.site-navbar > .container-fluid {
+  flex-wrap: nowrap;
+  gap: 0.5rem;
+}
+
+.site-navbar .navbar-brand {
+  margin-right: 0;
+  white-space: nowrap;
+}
+
+@media (max-width: 575.98px) {
+  .site-navbar > .container-fluid {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  .site-navbar .navbar-brand {
+    font-size: 1rem;
+  }
+
+  .site-navbar .btn {
+    --bs-btn-padding-x: 0.6rem;
+    --bs-btn-padding-y: 0.3rem;
+    --bs-btn-font-size: 0.875rem;
+    white-space: nowrap;
+  }
+}
+
+.publication-list {
+  list-style-position: inside;
+  padding-left: 6rem;
+}
+
+@media (max-width: 575.98px) {
+  .publication-list {
+    padding-left: 0;
+  }
+}
+
 .navbar-search-wrapper {
   width: 75%;
 }
@@ -301,6 +340,37 @@ header .navbar {
   background-repeat: no-repeat;
 }
 
+.hero-title {
+  font-size: 2.8rem;
+}
+
+.hero-cta {
+  font-size: 1.2rem;
+}
+
+/* Landscape tablets (iPad mini/Air) and laptops */
+@media (min-width: 1024px) and (orientation: landscape) {
+  .hero-title {
+    font-size: 2.82rem;
+  }
+
+  .hero-cta {
+    font-size: 1.22rem;
+  }
+
+  .hero-eyebrow,
+  .hero-lead {
+    font-size: calc(1.275rem + 0.3vw + 0.02rem) !important;
+  }
+}
+
+@media (min-width: 1200px) and (orientation: landscape) {
+  .hero-eyebrow,
+  .hero-lead {
+    font-size: calc(1.5rem + 0.02rem) !important;
+  }
+}
+
 .hero-footer-bar {
   background-color: #000;
   min-height: 9rem;
@@ -403,6 +473,14 @@ header .navbar {
 /* Signup wizard */
 .signup-wizard-wrapper {
   max-width: 1040px;
+}
+
+/* iPad mini (744-1133px) and iPad Air (820-1180px), portrait and landscape */
+@media (min-width: 744px) and (max-width: 1180px) {
+  .exam-content {
+    padding-left: 2.5rem !important;
+    padding-right: 2.5rem !important;
+  }
 }
 
 .signup-wizard-card {
@@ -524,38 +602,45 @@ header .navbar {
   font-family: 'Manrope', sans-serif;
 }
 
-.stat-label {
-  color: #52514e;
-  font-size: .875rem;
-  font-weight: 600;
+.analytics-subtitle {
+  font-size: 1.1rem;
 }
 
-.stat-label i {
-  margin-right: .35rem;
+/* Per-card date filter */
+[data-filter-target] {
+  transition: opacity .15s;
 }
 
-.stat-value {
-  font-size: 2rem;
-  font-weight: 700;
-  line-height: 1.2;
-  margin-top: .25rem;
-  font-variant-numeric: tabular-nums;
+[data-filter-target].is-loading {
+  opacity: .55;
+  pointer-events: none;
 }
 
-.stat-meta {
-  color: #6c757d;
+.card-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  white-space: nowrap;
   font-size: .8125rem;
+}
+
+.card-filter-toggle.is-active {
+  background-color: #e8f0fb;
+  border-color: #2a78d6 !important;
+  color: #1f5db0;
+}
+
+.card-filter-toggle.is-error {
+  border-color: #dc3545 !important;
+}
+
+.card-filter-menu {
+  min-width: 15rem;
 }
 
 .chart-title {
-  font-size: 1rem;
-  font-weight: 700;
-  margin-bottom: .125rem;
-}
-
-.chart-subtitle {
-  color: #6c757d;
-  font-size: .8125rem;
+  font-size: 1.45rem;
+  font-weight: 500;
   margin-bottom: 1rem;
 }
 

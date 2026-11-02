@@ -66,7 +66,7 @@ else
     </div>
 
     <div class="py-4 px-0">
-        <div class="signup-wizard-wrapper mx-auto w-100 px-3">
+        <div class="signup-wizard-wrapper exam-content mx-auto w-100 px-3">
             @await Html.PartialAsync("_ExamPageCounter", (Current: Model.PageNumber, Total: Model.TotalPages))
 
             <div class="signup-wizard-card w-100">
@@ -247,7 +247,7 @@ else
         .exam-sim-hero-content {
             position: relative;
             z-index: 1;
-            max-width: 640px;
+            width: 100%;
         }
 
         .exam-sim-hero-title {
@@ -257,7 +257,7 @@ else
         }
 
         .exam-sim-hero-subtitle {
-            font-size: 1.25rem;
+            font-size: 1.26rem;
             opacity: 0.9;
         }
     </style>

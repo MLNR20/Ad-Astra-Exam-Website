@@ -1,5 +1,6 @@
 using AppRoles = AAExamManagementSystem.Models.Entities.Roles;
 using AAExamManagementSystem.Models.Dtos;
+using AAExamManagementSystem.Models.Validation;
 using AAExamManagementSystem.Services;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
@@ -35,6 +36,7 @@ public class CoursesController : ControllerBase
     }
 
     [HttpPost]
+    [TypeFilter(typeof(UniqueActiveNameFilter), Arguments = new object[] { NamedEntityKind.Course })]
     public async Task<ActionResult<CourseDto>> Create(CourseCreateUpdateDto dto)
     {
         var course = await _courseService.CreateAsync(dto);
@@ -42,6 +44,7 @@ public class CoursesController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [TypeFilter(typeof(UniqueActiveNameFilter), Arguments = new object[] { NamedEntityKind.Course })]
     public async Task<IActionResult> Update(int id, CourseCreateUpdateDto dto)
     {
         var result = await _courseService.UpdateAsync(id, dto);

@@ -2,6 +2,8 @@ using AppRoles = AAExamManagementSystem.Models.Entities.Roles;
 using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
+using AAExamManagementSystem.Models.Validation;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,11 +16,13 @@ public class EditModel : PageModel
 {
     private readonly IGenericRepository<Course> _repository;
     private readonly IMapper _mapper;
+    private readonly ActiveNameValidator _names;
 
-    public EditModel(IGenericRepository<Course> repository, IMapper mapper)
+    public EditModel(IGenericRepository<Course> repository, IMapper mapper, ActiveNameValidator names)
     {
         _repository = repository;
         _mapper = mapper;
+        _names = names;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -41,6 +45,11 @@ public class EditModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        if (ModelState.IsValid && Course.IsActive)
+        {
+            await _names.ValidateAsync(ModelState, "Course.Name", NamedEntityKind.Course, Course.Name, Id.ToString());
+        }
+
         if (!ModelState.IsValid)
         {
             return Page();

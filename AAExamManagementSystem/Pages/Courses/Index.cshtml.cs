@@ -2,6 +2,8 @@ using AppRoles = AAExamManagementSystem.Models.Entities.Roles;
 using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
+using AAExamManagementSystem.Models.Validation;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,11 +16,13 @@ public class IndexModel : PageModel
 {
     private readonly IGenericRepository<Course> _repository;
     private readonly IMapper _mapper;
+    private readonly ActiveNameValidator _names;
 
-    public IndexModel(IGenericRepository<Course> repository, IMapper mapper)
+    public IndexModel(IGenericRepository<Course> repository, IMapper mapper, ActiveNameValidator names)
     {
         _repository = repository;
         _mapper = mapper;
+        _names = names;
     }
 
     public IList<CourseDto> Courses { get; set; } = new List<CourseDto>();
@@ -35,6 +39,11 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostCreateAsync()
     {
+        if (ModelState.IsValid && NewCourse.IsActive)
+        {
+            await _names.ValidateAsync(ModelState, "NewCourse.Name", NamedEntityKind.Course, NewCourse.Name);
+        }
+
         if (!ModelState.IsValid)
         {
             await LoadCoursesAsync();
@@ -73,6 +82,12 @@ public class IndexModel : PageModel
         if (course is null)
         {
             return NotFound();
+        }
+
+        if (!await _names.IsAvailableAsync(NamedEntityKind.Course, course.Name, course.Id.ToString()))
+        {
+            TempData["ErrorMessage"] = $"Can't activate '{course.Name}': another active course already uses that name.";
+            return RedirectToPage("Index");
         }
 
         course.IsActive = true;

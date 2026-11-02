@@ -2,6 +2,8 @@ using AppRoles = AAExamManagementSystem.Models.Entities.Roles;
 using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
+using AAExamManagementSystem.Models.Validation;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,11 +16,13 @@ public class IndexModel : PageModel
 {
     private readonly IGenericRepository<Section> _repository;
     private readonly IMapper _mapper;
+    private readonly ActiveNameValidator _names;
 
-    public IndexModel(IGenericRepository<Section> repository, IMapper mapper)
+    public IndexModel(IGenericRepository<Section> repository, IMapper mapper, ActiveNameValidator names)
     {
         _repository = repository;
         _mapper = mapper;
+        _names = names;
     }
 
     public IList<SectionDto> Sections { get; set; } = new List<SectionDto>();
@@ -35,6 +39,11 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostCreateAsync()
     {
+        if (ModelState.IsValid)
+        {
+            await _names.ValidateAsync(ModelState, "NewSection.Name", NamedEntityKind.Section, NewSection.Name);
+        }
+
         if (!ModelState.IsValid)
         {
             await LoadSectionsAsync();
@@ -72,6 +81,12 @@ public class IndexModel : PageModel
         if (section is null)
         {
             return NotFound();
+        }
+
+        if (!await _names.IsAvailableAsync(NamedEntityKind.Section, section.Name, section.Id.ToString()))
+        {
+            TempData["ErrorMessage"] = $"Can't activate '{section.Name}': another active section already uses that name.";
+            return RedirectToPage("Index");
         }
 
         section.IsActive = true;

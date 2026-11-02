@@ -2,6 +2,8 @@ using AppRoles = AAExamManagementSystem.Models.Entities.Roles;
 using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
+using AAExamManagementSystem.Models.Validation;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,12 +18,14 @@ public class IndexModel : PageModel
     private readonly IGenericRepository<Department> _repository;
     private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
+    private readonly ActiveNameValidator _names;
 
-    public IndexModel(IGenericRepository<Department> repository, ApplicationDbContext context, IMapper mapper)
+    public IndexModel(IGenericRepository<Department> repository, ApplicationDbContext context, IMapper mapper, ActiveNameValidator names)
     {
         _repository = repository;
         _context = context;
         _mapper = mapper;
+        _names = names;
     }
 
     public IList<SectionOption> SectionOptions { get; set; } = new List<SectionOption>();
@@ -46,6 +50,11 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostCreateAsync()
     {
+        if (ModelState.IsValid && NewDepartment.IsActive)
+        {
+            await _names.ValidateAsync(ModelState, "NewDepartment.Name", NamedEntityKind.Department, NewDepartment.Name);
+        }
+
         if (!ModelState.IsValid)
         {
             await LoadDepartmentsAsync();
@@ -93,6 +102,12 @@ public class IndexModel : PageModel
         if (department is null)
         {
             return NotFound();
+        }
+
+        if (!await _names.IsAvailableAsync(NamedEntityKind.Department, department.Name, department.Id))
+        {
+            TempData["ErrorMessage"] = $"Can't activate '{department.Name}': another active department already uses that name.";
+            return RedirectToPage("Index");
         }
 
         department.IsActive = true;

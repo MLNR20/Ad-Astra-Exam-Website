@@ -1,5 +1,6 @@
 using AppRoles = AAExamManagementSystem.Models.Entities.Roles;
 using AAExamManagementSystem.Models.Dtos;
+using AAExamManagementSystem.Models.Validation;
 using AAExamManagementSystem.Services;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authorization;
@@ -35,6 +36,7 @@ public class SectionsController : ControllerBase
     }
 
     [HttpPost]
+    [TypeFilter(typeof(UniqueActiveNameFilter), Arguments = new object[] { NamedEntityKind.Section })]
     public async Task<ActionResult<SectionDto>> Create(SectionCreateUpdateDto dto)
     {
         var section = await _sectionService.CreateAsync(dto);
@@ -42,6 +44,7 @@ public class SectionsController : ControllerBase
     }
 
     [HttpPut("{id:int}")]
+    [TypeFilter(typeof(UniqueActiveNameFilter), Arguments = new object[] { NamedEntityKind.Section })]
     public async Task<IActionResult> Update(int id, SectionCreateUpdateDto dto)
     {
         var result = await _sectionService.UpdateAsync(id, dto);

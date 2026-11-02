@@ -2,6 +2,8 @@ using AppRoles = AAExamManagementSystem.Models.Entities.Roles;
 using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
+using AAExamManagementSystem.Models.Validation;
 using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -16,12 +18,14 @@ public class EditModel : PageModel
     private readonly IGenericRepository<Department> _repository;
     private readonly ApplicationDbContext _context;
     private readonly IMapper _mapper;
+    private readonly ActiveNameValidator _names;
 
-    public EditModel(IGenericRepository<Department> repository, ApplicationDbContext context, IMapper mapper)
+    public EditModel(IGenericRepository<Department> repository, ApplicationDbContext context, IMapper mapper, ActiveNameValidator names)
     {
         _repository = repository;
         _context = context;
         _mapper = mapper;
+        _names = names;
     }
 
     public IList<SectionOption> SectionOptions { get; set; } = new List<SectionOption>();
@@ -57,6 +61,11 @@ public class EditModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        if (ModelState.IsValid && Department.IsActive)
+        {
+            await _names.ValidateAsync(ModelState, "Department.Name", NamedEntityKind.Department, Department.Name, Id);
+        }
+
         if (!ModelState.IsValid)
         {
             await LoadSectionOptionsAsync();

@@ -22,7 +22,7 @@ public class DetailsCardViewComponent : ViewComponent
         string backHref,
         bool showStatus = false,
         bool isActive = false,
-        string columnClass = "col-md-4")
+        string columnClass = "col-12")
     {
         var model = new DetailsCardViewModel(title, fields.ToList(), showStatus, isActive, editHref, backHref, columnClass);
         return View(model);

@@ -2,6 +2,7 @@ using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Pages.Departments;
 using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
 using AutoMapper;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -30,7 +31,7 @@ public class DepartmentSectionsTests
 
         public EditModel EditFor(Department department, params int[] selected)
         {
-            var model = new EditModel(new GenericRepository<Department>(Db), Db, null!)
+            var model = new EditModel(new GenericRepository<Department>(Db), Db, null!, new ActiveNameValidator(Db))
             {
                 Id = department.Id,
                 Department = new DepartmentCreateUpdateDto { Name = department.Name, IsActive = true },
@@ -49,7 +50,7 @@ public class DepartmentSectionsTests
                     cfg.CreateMap<DepartmentCreateUpdateDto, Department>();
                 },
                 Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance);
-            var model = new IndexModel(new GenericRepository<Department>(Db), Db, configuration.CreateMapper())
+            var model = new IndexModel(new GenericRepository<Department>(Db), Db, configuration.CreateMapper(), new ActiveNameValidator(Db))
             {
                 NewDepartment = new DepartmentCreateUpdateDto { Name = "Creative", IsActive = true },
                 SelectedSectionIds = selected.ToList(),

@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using AAExamManagementSystem.Models.Validation;
 
 namespace AAExamManagementSystem.Models.Dtos;
 
@@ -15,6 +16,7 @@ public class DepartmentCreateUpdateDto
 {
     [Required, StringLength(100)]
     [RegularExpression(NameRules.LettersOnlyPattern, ErrorMessage = NameRules.LettersOnlyMessage)]
+    [UniqueActiveName(NamedEntityKind.Department)]
     public string Name { get; set; } = string.Empty;
 
     [Display(Name = "Active")]
