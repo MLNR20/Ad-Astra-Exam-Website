@@ -322,7 +322,7 @@ public class TakeModel : PageModel
     // Closes the exam while the booked slot hasn't started: no questions are handed out and nothing is saved.
     private bool IsBeforeScheduledTime()
     {
-        if (_activeAttempt is null || _activeAttempt.IsOpenAt(DateTime.Now))
+        if (_activeAttempt is null || _activeAttempt.IsOpenAt(ExamClock.Now))
         {
             return false;
         }

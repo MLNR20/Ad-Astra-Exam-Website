@@ -60,6 +60,7 @@ public class SignupModel : PageModel
         await LoadChoiceOptionsAsync();
         ExamChoicePlanner.Validate(ModelState, Input, ChoiceOptions.ToList());
         ValidateSchool();
+        ValidateYearLevel();
         await ValidateStudentNoAsync();
 
         if (!ModelState.IsValid)
@@ -138,7 +139,7 @@ public class SignupModel : PageModel
 
         TempData[SignupSuccessModel.SubmittedNameKey] = $"{applicant.FirstName} {applicant.LastName}".Trim();
         TempData[SignupSuccessModel.SubmittedEmailKey] = applicant.Email;
-        TempData[SignupSuccessModel.SubmittedAtKey] = DateTime.Now.ToString("MMM d, yyyy h:mm tt");
+        TempData[SignupSuccessModel.SubmittedAtKey] = ExamClock.Now.ToString("MMM d, yyyy h:mm tt");
 
         return RedirectToPage("/SignupSuccess");
     }
@@ -160,6 +161,23 @@ public class SignupModel : PageModel
         }
 
         Input.School = match;
+    }
+
+    private void ValidateYearLevel()
+    {
+        if (string.IsNullOrWhiteSpace(Input.YearLevel))
+        {
+            Input.YearLevel = null;
+            return;
+        }
+
+        var match = YearLevels.Normalize(Input.YearLevel);
+        if (match is null)
+        {
+            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.YearLevel)}", "Please pick a year level from the list.");
+        }
+
+        Input.YearLevel = match;
     }
 
     private async Task ValidateStudentNoAsync()

@@ -52,7 +52,7 @@ public class ApplicantRegisterDto : ExamChoicesDto
     [Display(Name = "Academic Year")]
     public string AcademicYear { get; set; } = string.Empty;
 
-    [StringLength(20)]
+    [StringLength(30)]
     [Display(Name = "Year Level")]
     public string? YearLevel { get; set; }
 
@@ -123,7 +123,7 @@ public class ReturningApplicantDto : ExamChoicesDto
     [Display(Name = "Academic Year")]
     public string AcademicYear { get; set; } = string.Empty;
 
-    [StringLength(20)]
+    [StringLength(30)]
     [Display(Name = "Year Level")]
     public string? YearLevel { get; set; }
 

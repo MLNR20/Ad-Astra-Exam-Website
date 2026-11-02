@@ -88,6 +88,62 @@ public class ExamChoicePlannerTests
     }
 
     [Fact]
+    public void TwoExamsThatOverlapOnTheSameDay_AreRejected()
+    {
+        var input = Valid();
+        input.FirstExamTime = new TimeOnly(9, 30);
+        input.SecondExamDate = input.FirstExamDate;
+        input.SecondExamTime = new TimeOnly(9, 30);
+
+        Assert.True(Validate(input).ContainsKey("Input.SecondExamTime"));
+    }
+
+    [Fact]
+    public void BackToBackSlotsOnTheSameDay_AreAccepted()
+    {
+        var input = Valid();
+        input.SecondExamDate = input.FirstExamDate;
+        input.FirstExamTime = new TimeOnly(8, 0);
+        input.SecondExamTime = new TimeOnly(9, 30);
+
+        Assert.True(Validate(input).IsValid);
+    }
+
+    [Fact]
+    public void SameTimeOnDifferentDays_IsAccepted()
+    {
+        var input = Valid();
+        input.SecondExamDate = new DateOnly(2026, 11, 4);
+        input.SecondExamTime = input.FirstExamTime;
+
+        Assert.True(Validate(input).IsValid);
+    }
+
+    [Fact]
+    public void ASlotThatClashesWithAnExistingBooking_IsRejected()
+    {
+        var input = Valid();
+        var modelState = new ModelStateDictionary();
+
+        ExamChoicePlanner.Validate(modelState, input, Options, now: Now,
+            existingBookings: new[] { new DateTime(2026, 11, 3, 8, 0, 0) });
+
+        Assert.True(modelState.ContainsKey("Input.FirstExamTime"));
+        Assert.False(modelState.ContainsKey("Input.SecondExamTime"));
+    }
+
+    [Fact]
+    public void ASlotAwayFromExistingBookings_IsAccepted()
+    {
+        var modelState = new ModelStateDictionary();
+
+        ExamChoicePlanner.Validate(modelState, Valid(), Options, now: Now,
+            existingBookings: new[] { new DateTime(2026, 11, 5, 8, 0, 0) });
+
+        Assert.True(modelState.IsValid);
+    }
+
+    [Fact]
     public void ADepartmentOutsideTheList_IsRejected()
     {
         var input = Valid();

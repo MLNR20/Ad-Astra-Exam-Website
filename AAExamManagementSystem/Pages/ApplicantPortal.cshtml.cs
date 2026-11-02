@@ -63,7 +63,7 @@ public class ApplicantPortalModel : PageModel
             ? applicant.Attempts.Select(a => a.AcademicYear?.Trim().ToLowerInvariant()).Where(y => !string.IsNullOrEmpty(y)).Distinct().Count()
             : 0;
 
-        var now = DateTime.Now;
+        var now = ExamClock.Now;
         PendingAttempts = applicant.Attempts
             .Where(a => a.DateTaken is null)
             .OrderBy(a => a.Id)

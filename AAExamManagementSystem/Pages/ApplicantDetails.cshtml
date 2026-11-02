@@ -116,7 +116,7 @@ else
                                             {
                                                 <span class="badge text-bg-success">Taken</span>
                                             }
-                                            else if (!booking.IsOpenAt(DateTime.Now))
+                                            else if (!booking.IsOpenAt(ExamClock.Now))
                                             {
                                                 <span class="badge text-bg-secondary">Upcoming</span>
                                             }

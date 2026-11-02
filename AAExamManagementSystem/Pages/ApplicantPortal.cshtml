@@ -8,7 +8,7 @@
     // "in 3 days", "in 2 hours", "in 15 minutes" for an exam that hasn't started yet.
     string OpensIn(DateTime start)
     {
-        var left = start - DateTime.Now;
+        var left = start - ExamClock.Now;
         if (left.TotalDays >= 1) return $"in {(int)left.TotalDays} day{((int)left.TotalDays == 1 ? "" : "s")}";
         if (left.TotalHours >= 1) return $"in {(int)left.TotalHours} hour{((int)left.TotalHours == 1 ? "" : "s")}";
         return $"in {Math.Max(1, (int)left.TotalMinutes)} minutes";

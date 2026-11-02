@@ -18,6 +18,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Secrets such as the Gmail app password live in a git-ignored .env at the repository root.
 builder.Configuration.AddEnvFile(builder.Environment.ContentRootPath);
 
+// Exam slots are booked in local time (Philippine time by default), whatever time zone the host runs in.
+ExamClock.Configure(builder.Configuration["Exam:TimeZone"]);
+
 // Add services to the container.
 builder.Services.AddRazorPages(options =>
 {

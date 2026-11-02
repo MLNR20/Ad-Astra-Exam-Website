@@ -15,6 +15,10 @@ public static class ExamSchedule
 
     public static bool IsValidSlot(TimeOnly time) => Slots.Contains(time);
 
+    /// <summary>True when two exams that start at these times would run at the same time for any part of their slots.</summary>
+    public static bool Overlaps(DateTime startA, DateTime startB) =>
+        startA < startB.Add(SlotLength) && startB < startA.Add(SlotLength);
+
     public static string FormatSlot(TimeOnly start) =>
         $"{start:h:mm tt} - {start.Add(SlotLength):h:mm tt}";
 
