@@ -31,6 +31,8 @@ namespace AAExamManagementSystem.Pages
                 return Page();
             }
 
+            Input.Email = Input.Email.Trim();
+
             var user = await _userManager.FindByEmailAsync(Input.Email);
 
             // No email service is configured for this project, so instead of sending an

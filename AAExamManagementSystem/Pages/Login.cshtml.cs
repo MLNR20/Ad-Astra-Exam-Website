@@ -43,6 +43,8 @@ namespace AAExamManagementSystem.Pages
                 return Page();
             }
 
+            Input.UserName = Input.UserName.Trim();
+
             var user = Input.UserName.Contains('@')
                 ? await _userManager.FindByEmailAsync(Input.UserName)
                 : await _userManager.FindByNameAsync(Input.UserName);
