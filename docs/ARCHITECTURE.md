@@ -15,7 +15,7 @@ A server-rendered ASP.NET Core web application (.NET 10) for running entrance ex
 | **Instructor / Staffer** | Question authoring and attempt review (same page set as Editor, minus a few). |
 | **Admin** | Everything above plus master data (departments, sections, courses, roles, users, role assignments, announcements, audit log). |
 
-**Stack:** ASP.NET Core Razor Pages + a versioned REST API, ASP.NET Core Identity (cookie auth), EF Core 10 on SQL Server, SignalR for push notifications, AutoMapper for DTO mapping, xUnit + Moq + EF InMemory for tests, Docker for deployment. Front end is Bootstrap 5 + Bootstrap Icons + SweetAlert, with a few small hand-written JS files.
+**Stack:** ASP.NET Core Razor Pages + a versioned REST API, ASP.NET Core Identity (cookie auth), EF Core 10 on PostgreSQL (Supabase, Npgsql provider), SignalR for push notifications, AutoMapper for DTO mapping, xUnit + Moq + EF InMemory for tests, Docker for deployment. Front end is Bootstrap 5 + Bootstrap Icons + SweetAlert, with a few small hand-written JS files.
 
 ```mermaid
 flowchart LR
@@ -70,7 +70,7 @@ All wiring is in [`Program.cs`](../AAExamManagementSystem/Program.cs).
 | UI | `AddRazorPages` with `AuthorizeFolder("/")` — **everything requires login unless allow-listed**: `/Index`, `/Login`, `/ApplicantLogin`, `/Signup`, `/ForgotPassword*`, `/ResetPassword*`. |
 | API | `AddControllers` + `AddApiVersioning` (default `1.0`, route `api/v{version}/[controller]`). |
 | Real time | `AddSignalR`. |
-| Data | `AddDbContext<ApplicationDbContext>` (SQL Server); `DbContext` is also aliased to the same instance so the generic repository can take a plain `DbContext`. |
+| Data | `AddDbContext<ApplicationDbContext>` (PostgreSQL via Npgsql); `DbContext` is also aliased to the same instance so the generic repository can take a plain `DbContext`. |
 | Identity | `AddIdentity<ApplicationUser, ApplicationRole>` + EF stores + default token providers. Cookie: `/Login`, 30-minute sliding expiry. |
 | Data access | `IGenericRepository<>` → `GenericRepository<>` (open generic), `IUnitOfWork` → `UnitOfWork`. All scoped. |
 | Services | `IRoleService`, `ISectionService`, `IDepartmentService`, `ICourseService`, `IChoiceService`, `IQuestionService`, `QuestionChoiceService`, `NotificationService`, `IRefreshTokenService`. |
@@ -353,9 +353,9 @@ Details worth knowing:
 | Model/data | `ModelRelationshipTests`, `SeededExamDataTests`, `AttemptPasswordTests`, DTO validation | Asserts FK wiring, seed content, generator output. |
 | Refresh token | `RefreshTokenTests`, additions to `LoginTests` | Fake `TimeProvider`; covers rotation, expiry, reuse detection, logout, middleware. |
 
-Not covered by tests: the real middleware pipeline end to end, SignalR delivery, SQL Server specifics (InMemory ignores FKs, unique indexes and query-filter edge cases).
+Not covered by tests: the real middleware pipeline end to end, SignalR delivery, PostgreSQL specifics (InMemory ignores FKs, unique indexes and query-filter edge cases).
 
-**Run:** `dotnet run --project AAExamManagementSystem`. **Docker:** multi-stage `Dockerfile` (SDK 10 build → ASP.NET 10 runtime), listening on 8080. The container applies migrations and seeds on start, so it needs a reachable SQL Server and the connection string/env secrets.
+**Run:** `dotnet run --project AAExamManagementSystem`. **Docker:** multi-stage `Dockerfile` (SDK 10 build → ASP.NET 10 runtime), listening on 8080. The container applies migrations and seeds on start, so it needs a reachable PostgreSQL database and the connection string/env secrets.
 
 ---
 

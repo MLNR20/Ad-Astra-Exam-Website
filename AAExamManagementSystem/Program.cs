@@ -6,8 +6,12 @@ using AAExamManagementSystem.Repository;
 using AAExamManagementSystem.Services;
 using Asp.Versioning;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Mvc.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+
+// Keep DateTime.Now/Unspecified values working: Npgsql 6+ otherwise only accepts UTC DateTimes.
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -32,7 +36,7 @@ builder.Services.AddSignalR();
 builder.Services.AddAutoMapper(cfg => { }, typeof(MappingProfile));
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()
@@ -74,6 +78,8 @@ builder.Services.ConfigureApplicationCookie(options =>
 });
 
 builder.Services.AddScoped<IClaimsTransformation, ActiveRoleClaimsTransformation>();
+builder.Services.AddScoped<ActiveNameValidator>();
+builder.Services.AddSingleton<IValidationAttributeAdapterProvider, UniqueActiveNameAdapterProvider>();
 
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
