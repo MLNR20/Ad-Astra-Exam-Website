@@ -72,7 +72,9 @@
                             </div>
                             <div class="col-12 mb-3">
                                 <label asp-for="Input.YearLevel" class="form-label fw-semibold"></label>
-                                <input asp-for="Input.YearLevel" class="form-control" />
+                                <select asp-for="Input.YearLevel" asp-items="@(new SelectList(YearLevels.All))" class="form-select">
+                                    <option value="">Select your year level</option>
+                                </select>
                                 <span asp-validation-for="Input.YearLevel" class="text-danger small"></span>
                             </div>
                             <div class="col-12 mb-3">

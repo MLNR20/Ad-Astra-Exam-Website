@@ -338,43 +338,29 @@ public class IndexModel : PageModel
             .Select(g => new { Value = g.Key, Count = g.Count() })
             .ToListAsync();
 
-        // YearLevel is free text ("3rd Year", "2nd", "3"), so bucket by the first digit in it.
-        var byYear = new SortedDictionary<int, int>();
+        // Older rows hold free text ("2nd", "3"), so map each onto the dropdown options.
+        var counts = YearLevels.All.ToDictionary(y => y, _ => 0);
         var unspecified = 0;
         foreach (var row in raw)
         {
-            var digit = (row.Value ?? string.Empty).FirstOrDefault(char.IsDigit);
-            if (digit is >= '1' and <= '9')
-            {
-                var year = digit - '0';
-                byYear[year] = byYear.GetValueOrDefault(year) + row.Count;
-            }
-            else
+            var level = YearLevels.Normalize(row.Value);
+            if (level is null)
             {
                 unspecified += row.Count;
             }
+            else
+            {
+                counts[level] += row.Count;
+            }
         }
 
-        for (var year = 1; year <= 4; year++)
-        {
-            byYear.TryAdd(year, 0);
-        }
-
-        var levels = byYear.Select(x => new LabeledCount($"{Ordinal(x.Key)} Year", x.Value)).ToList();
+        var levels = YearLevels.All.Select(y => new LabeledCount(y, counts[y])).ToList();
         if (unspecified > 0)
         {
             levels.Add(new LabeledCount("Not specified", unspecified));
         }
         ApplicantsPerYearLevel = levels;
     }
-
-    private static string Ordinal(int n) => n switch
-    {
-        1 => "1st",
-        2 => "2nd",
-        3 => "3rd",
-        _ => $"{n}th"
-    };
 
     public record CardFilter(string Card, string Hint);
 

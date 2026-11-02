@@ -18,7 +18,8 @@ public static class ExamChoicePlanner
         ExamChoicesDto input,
         IReadOnlyCollection<string> options,
         string prefix = "Input",
-        DateTime? now = null)
+        DateTime? now = null,
+        IEnumerable<DateTime>? existingBookings = null)
     {
         input.FirstChoice = MatchOption(modelState, prefix, nameof(input.FirstChoice), input.FirstChoice, options);
         input.SecondChoice = MatchOption(modelState, prefix, nameof(input.SecondChoice), input.SecondChoice, options);
@@ -29,15 +30,44 @@ public static class ExamChoicePlanner
             modelState.AddModelError($"{prefix}.{nameof(input.SecondChoice)}", "Pick a different department for your second choice.");
         }
 
-        var clock = now ?? DateTime.Now;
+        var clock = now ?? ExamClock.Now;
         CheckSlot(modelState, prefix, "First", input.FirstChoice, input.FirstExamDate, input.FirstExamTime, clock);
         CheckSlot(modelState, prefix, "Second", input.SecondChoice, input.SecondExamDate, input.SecondExamTime, clock);
 
-        if (input.FirstExamDate is { } firstDate && input.FirstExamTime is { } firstTime
-            && !string.IsNullOrEmpty(input.FirstChoice) && !string.IsNullOrEmpty(input.SecondChoice)
-            && input.SecondExamDate == firstDate && input.SecondExamTime == firstTime)
+        var firstStart = SlotStart(input.FirstChoice, input.FirstExamDate, input.FirstExamTime);
+        var secondStart = SlotStart(input.SecondChoice, input.SecondExamDate, input.SecondExamTime);
+
+        if (firstStart is { } first && secondStart is { } second && ExamSchedule.Overlaps(first, second))
         {
-            modelState.AddModelError($"{prefix}.{nameof(input.SecondExamTime)}", "Your two exams can't be at the same time.");
+            modelState.AddModelError($"{prefix}.{nameof(input.SecondExamTime)}",
+                "Your two exams can't be at the same time. Each one runs 1 hour 30 minutes, so book them in different slots.");
+        }
+
+        // Exams the applicant already has booked count too, so a returning applicant can't double-book.
+        var booked = existingBookings?.ToList() ?? new List<DateTime>();
+        CheckAgainstBookings(modelState, prefix, "First", firstStart, booked);
+        CheckAgainstBookings(modelState, prefix, "Second", secondStart, booked);
+    }
+
+    // The start of a pick, or null while it's incomplete or not a real slot (those get their own errors).
+    private static DateTime? SlotStart(string? choice, DateOnly? date, TimeOnly? time) =>
+        !string.IsNullOrEmpty(choice) && date is { } d && time is { } t && ExamSchedule.IsValidSlot(t)
+            ? d.ToDateTime(t)
+            : null;
+
+    private static void CheckAgainstBookings(
+        ModelStateDictionary modelState, string prefix, string which, DateTime? start, IReadOnlyCollection<DateTime> booked)
+    {
+        if (start is not { } slot)
+        {
+            return;
+        }
+
+        var clash = booked.Where(b => ExamSchedule.Overlaps(slot, b)).Select(b => (DateTime?)b).FirstOrDefault();
+        if (clash is { } when)
+        {
+            modelState.AddModelError($"{prefix}.{which}ExamTime",
+                $"You already have an exam booked on {when:MMM d, yyyy} at {when:h:mm tt}. Pick a different slot.");
         }
     }
 

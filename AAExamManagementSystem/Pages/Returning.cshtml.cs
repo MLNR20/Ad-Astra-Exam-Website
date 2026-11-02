@@ -55,7 +55,7 @@ public class ReturningModel : PageModel
             FirstName = applicant.FirstName,
             LastName = applicant.LastName,
             Email = applicant.Email,
-            YearLevel = applicant.YearLevel,
+            YearLevel = YearLevels.Normalize(applicant.YearLevel),
             School = applicant.School,
             IsScholar = applicant.IsScholar,
             Resume = applicant.Resume,
@@ -85,8 +85,13 @@ public class ReturningModel : PageModel
         }
 
         ValidateSchool();
+        ValidateYearLevel();
         await ValidateUniqueDetailsAsync(applicant);
-        ExamChoicePlanner.Validate(ModelState, Input, ChoiceOptions.ToList());
+        var pendingBookings = applicant.Attempts
+            .Where(a => a.DateTaken is null && a.ScheduledStart is not null)
+            .Select(a => a.ScheduledStart!.Value)
+            .ToList();
+        ExamChoicePlanner.Validate(ModelState, Input, ChoiceOptions.ToList(), existingBookings: pendingBookings);
         ValidateChoicesPicked();
         ValidateNotAppliedThisPeriod(applicant);
 
@@ -148,6 +153,23 @@ public class ReturningModel : PageModel
     }
 
     // The school comes from a dropdown, but a posted form can say anything, so check it against the same list.
+    private void ValidateYearLevel()
+    {
+        if (string.IsNullOrWhiteSpace(Input.YearLevel))
+        {
+            Input.YearLevel = null;
+            return;
+        }
+
+        var match = YearLevels.Normalize(Input.YearLevel);
+        if (match is null)
+        {
+            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.YearLevel)}", "Please pick a year level from the list.");
+        }
+
+        Input.YearLevel = match;
+    }
+
     private void ValidateSchool()
     {
         var trimmed = Input.School?.Trim();
