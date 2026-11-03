@@ -47,13 +47,14 @@ public class SmtpRegistrationNotifier : IRegistrationNotifier
 
         var subject = BuildSubject(applicantName);
         var body = BuildBody(firstName, lastName, studentNo, academicYear, exams);
+        var htmlBody = BuildHtmlBody(firstName, lastName, studentNo, academicYear, exams);
 
         // Sent in the background so a slow or failing mail server never holds up the signup page.
         _ = Task.Run(async () =>
         {
             try
             {
-                await SendAsync(email, subject, body);
+                await SendAsync(email, subject, body, htmlBody);
             }
             catch (Exception ex)
             {
@@ -106,7 +107,77 @@ public class SmtpRegistrationNotifier : IRegistrationNotifier
         return body.ToString();
     }
 
-    private async Task SendAsync(string recipient, string subject, string body)
+    private const string HeaderGreen = "#1f5a35";
+
+    /// <summary>The styled HTML version of <see cref="BuildBody"/>: a green header, a greeting, and the details as label and value rows.</summary>
+    public static string BuildHtmlBody(string firstName, string lastName, string studentNo, string academicYear, IReadOnlyList<string> exams)
+    {
+        static string Encode(string value) => WebUtility.HtmlEncode(value);
+
+        var applicantName = Encode($"{firstName} {lastName}".Trim());
+
+        static string Row(string label, string value) =>
+            "<tr>" +
+            $"<td style=\"padding:8px 0;width:150px;font-weight:bold;color:#666666;vertical-align:top;\">{label}</td>" +
+            $"<td style=\"padding:8px 0;color:#333333;vertical-align:top;\">{value}</td>" +
+            "</tr>";
+
+        var details = new StringBuilder();
+        details.Append(Row("Applicant", applicantName));
+        details.Append(Row("Student No.", Encode(studentNo)));
+        details.Append(Row("Academic Year", Encode(academicYear)));
+
+        if (exams.Count == 0)
+        {
+            details.Append(Row("Exam Choice", "None selected"));
+        }
+        else
+        {
+            for (var i = 0; i < exams.Count; i++)
+            {
+                details.Append(Row(exams.Count == 1 ? "Exam Choice" : $"Choice {i + 1}", Encode(exams[i])));
+            }
+        }
+
+        const string paragraph = "margin:0 0 16px;font-size:16px;line-height:1.6;color:#333333;";
+
+        return $"""
+            <!DOCTYPE html>
+            <html>
+            <body style="margin:0;padding:0;background-color:#f4f5f9;font-family:'Segoe UI',Helvetica,Arial,sans-serif;">
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f5f9;padding:24px 0;">
+            <tr><td align="center">
+              <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;">
+                <tr><td style="background-color:{HeaderGreen};padding:32px 40px;border-radius:8px 8px 0 0;">
+                  <div style="font-size:24px;font-weight:bold;color:#ffffff;">Welcome to Ad Astra</div>
+                  <div style="margin-top:8px;font-size:14px;color:#d6e6dc;">Entrance Exam Registration</div>
+                </td></tr>
+                <tr><td style="background-color:#ffffff;padding:32px 40px;">
+                  <p style="{paragraph}">Hi <strong>{applicantName}</strong>,</p>
+                  <p style="{paragraph}">Glad to have you! Before we begin your journey, we invite you to take our entrance exam to gauge your interests and your specialties.</p>
+                  <p style="margin:0 0 8px;font-size:16px;font-weight:bold;color:#333333;">Exam instructions</p>
+                  <ul style="margin:0 0 24px;padding-left:20px;font-size:15px;line-height:1.7;color:#333333;">
+                    <li>Each exam may take up to 90 minutes.</li>
+                    <li>You can go back to a previous page and change your answers.</li>
+                    <li>Once you submit the final page, your answers are final and cannot be changed.</li>
+                    <li>Each exam can only be taken once.</li>
+                    <li>Don't share your exam password with anyone.</li>
+                  </ul>
+                  <p style="margin:0 0 8px;font-size:16px;font-weight:bold;color:#333333;">Your registration details</p>
+                  <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:16px;">{details}</table>
+                </td></tr>
+                <tr><td style="padding:20px 40px;text-align:center;font-size:12px;color:#888888;">
+                  This is an automated notification. Please do not reply to this email.
+                </td></tr>
+              </table>
+            </td></tr>
+            </table>
+            </body>
+            </html>
+            """;
+    }
+
+    private async Task SendAsync(string recipient, string subject, string body, string htmlBody)
     {
         // Google shows app passwords in groups of four separated by spaces; the spaces are not part of it.
         var password = new string(_settings.Password!.Where(c => !char.IsWhiteSpace(c)).ToArray());
@@ -124,6 +195,7 @@ public class SmtpRegistrationNotifier : IRegistrationNotifier
             Body = body,
             IsBodyHtml = false,
         };
+        message.AlternateViews.Add(AlternateView.CreateAlternateViewFromString(htmlBody, null, "text/html"));
 
         await client.SendMailAsync(message);
     }
