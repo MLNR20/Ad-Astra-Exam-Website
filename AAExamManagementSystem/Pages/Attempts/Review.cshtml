@@ -34,12 +34,19 @@ else
                         <dt class="small text-muted fw-normal">Score</dt>
                         <dd class="mb-0 fw-semibold">@attempt.TotalScore / @attempt.MaxScore</dd>
                     </div>
+                    @if (attempt.Passed is { } passed)
+                    {
+                        <div class="col-sm-6 col-lg-4">
+                            <dt class="small text-muted fw-normal">Result</dt>
+                            <dd class="mb-0"><partial name="_AttemptOutcome" model="passed" /></dd>
+                        </div>
+                    }
                     <div class="col-sm-6 col-lg-4">
                         <dt class="small text-muted fw-normal">Status</dt>
                         <dd class="mb-0">
                             @if (attempt.IsApproved)
                             {
-                                <span class="badge bg-success">Approved by @attempt.ApprovedBy</span>
+                                <span class="badge bg-secondary">Approved by @attempt.ApprovedBy</span>
                             }
                             else
                             {

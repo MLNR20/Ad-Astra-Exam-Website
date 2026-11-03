@@ -1,0 +1,13 @@
+@* Result of an approved attempt: Model is true when the applicant passed. *@
+@model bool
+
+@if (Model)
+{
+    <span class="badge rounded-pill text-bg-success">Passed</span>
+    <div class="small text-success fw-semibold mt-1">For interview</div>
+}
+else
+{
+    <span class="badge rounded-pill text-bg-danger">Failed</span>
+    <div class="small text-danger fw-semibold mt-1">No longer under consideration</div>
+}

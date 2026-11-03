@@ -213,7 +213,7 @@ public class IndexModel : PageModel
             return pendingEvaluation > 0 ? TopAttemptStatus.NeedsEvaluation : TopAttemptStatus.PendingApproval;
         }
 
-        return maxScore > 0 && score * 100 >= DashboardModel.PassingPercentage * maxScore
+        return AttemptResult.IsPassing(score, maxScore)
             ? TopAttemptStatus.Passed
             : TopAttemptStatus.Failed;
     }

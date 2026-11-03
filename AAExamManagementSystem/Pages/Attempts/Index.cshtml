@@ -41,9 +41,9 @@
                             <td class="text-start">@LocalTime.Taken(attempt.DateTaken)</td>
                             <td class="text-start">@attempt.TotalScore / @attempt.MaxScore</td>
                             <td class="text-start">
-                                @if (attempt.IsApproved)
+                                @if (attempt.Passed is { } passed)
                                 {
-                                    <span class="badge rounded-pill text-bg-success">Approved</span>
+                                    <partial name="_AttemptOutcome" model="passed" />
                                 }
                                 else if (attempt.PendingEvaluationCount > 0)
                                 {
