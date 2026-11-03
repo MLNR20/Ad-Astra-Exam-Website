@@ -142,6 +142,9 @@ app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
 app.MapControllers();
+// Anonymous and database-free, so an uptime monitor can keep a free-tier host awake.
+app.MapGet("/healthz", () => Results.Ok("healthy"))
+   .AllowAnonymous();
 app.MapHub<NotificationHub>("/hubs/notifications");
 
 app.Run();
