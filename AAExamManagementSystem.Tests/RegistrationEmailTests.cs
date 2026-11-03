@@ -39,6 +39,33 @@ public class RegistrationEmailTests
     }
 
     [Fact]
+    public void BuildHtmlBody_ListsTheDetailsAndEveryExamChoice()
+    {
+        var html = SmtpRegistrationNotifier.BuildHtmlBody("Ana", "Reyes", "2026-0042", "2026-2027", new[] { "Web Development", "Managing" });
+
+        Assert.Contains("Welcome to Ad Astra", html);
+        Assert.Contains("<strong>Ana Reyes</strong>", html);
+        Assert.Contains("2026-0042", html);
+        Assert.Contains("2026-2027", html);
+        Assert.Contains("Choice 1", html);
+        Assert.Contains("Web Development", html);
+        Assert.Contains("Managing", html);
+        Assert.Contains("Don't share your exam password", html);
+        Assert.Contains("Please do not reply to this email.", html);
+    }
+
+    [Fact]
+    public void BuildHtmlBody_EncodesApplicantInput()
+    {
+        var html = SmtpRegistrationNotifier.BuildHtmlBody("<script>alert(1)</script>", "O'Neil", "1", "2026-2027", new[] { "R&D <Lab>" });
+
+        Assert.DoesNotContain("<script>", html);
+        Assert.Contains("&lt;script&gt;", html);
+        Assert.DoesNotContain("<Lab>", html);
+        Assert.Contains("R&amp;D &lt;Lab&gt;", html);
+    }
+
+    [Fact]
     public void BuildSubject_NamesTheApplicantOnASingleLine()
     {
         var subject = SmtpRegistrationNotifier.BuildSubject("Ana\r\nBcc: someone@example.com");
