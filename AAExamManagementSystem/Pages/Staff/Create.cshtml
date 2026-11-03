@@ -1,0 +1,51 @@
+@page
+@model AAExamManagementSystem.Pages.Staff.CreateModel
+@{
+    ViewData["Title"] = "Add Staffer";
+}
+
+<edit-card title="Add Staffer@(string.IsNullOrEmpty(Model.DepartmentName) ? "" : $" — {Model.DepartmentName}")">
+    <div class="row">
+        <div class="col-md-4">
+            <form method="post">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <div class="mb-3">
+                    <label asp-for="NewUser.UserName" class="form-label"></label>
+                    <input asp-for="NewUser.UserName" class="form-control" />
+                    <span asp-validation-for="NewUser.UserName" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="NewUser.FirstName" class="form-label"></label>
+                    <input asp-for="NewUser.FirstName" class="form-control" />
+                    <span asp-validation-for="NewUser.FirstName" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="NewUser.LastName" class="form-label"></label>
+                    <input asp-for="NewUser.LastName" class="form-control" />
+                    <span asp-validation-for="NewUser.LastName" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="NewUser.Email" class="form-label"></label>
+                    <input asp-for="NewUser.Email" class="form-control" />
+                    <span asp-validation-for="NewUser.Email" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="NewUser.Password" class="form-label"></label>
+                    <input asp-for="NewUser.Password" class="form-control" autocomplete="new-password" />
+                    <span asp-validation-for="NewUser.Password" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="NewUser.ConfirmPassword" class="form-label"></label>
+                    <input asp-for="NewUser.ConfirmPassword" class="form-control" autocomplete="new-password" />
+                    <span asp-validation-for="NewUser.ConfirmPassword" class="text-danger"></span>
+                </div>
+                <button type="submit" class="btn btn-primary">Add Staffer</button>
+                <a asp-page="Index" class="btn btn-secondary">Cancel</a>
+            </form>
+        </div>
+    </div>
+</edit-card>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}
