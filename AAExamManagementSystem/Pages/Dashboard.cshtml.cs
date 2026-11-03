@@ -14,7 +14,7 @@ namespace AAExamManagementSystem.Pages
     public class DashboardModel : PageModel
     {
         /// <summary>An approved attempt counts as passed when it scores at least this share of the maximum.</summary>
-        public const int PassingPercentage = 70;
+        public const int PassingPercentage = AttemptResult.PassingPercentage;
 
         private const int AttentionListSize = 5;
         private const int RecentActivitySize = 6;
@@ -39,7 +39,11 @@ namespace AAExamManagementSystem.Pages
             int PendingEvaluationCount,
             int TotalScore,
             int MaxScore,
-            DateTime DateApplied);
+            DateTime DateApplied)
+        {
+            /// <summary>Null until the attempt is approved.</summary>
+            public bool? Passed => AttemptResult.Passed(IsApproved, TotalScore, MaxScore);
+        }
 
         public record AttentionItem(int AttemptId, string ApplicantName, DateTime? DateTaken, int PendingEvaluationCount, string Department);
 
@@ -131,7 +135,7 @@ namespace AAExamManagementSystem.Pages
                 p.Applicant.DateCreated)).ToList();
 
             PassedApplicants = Applicants
-                .Where(a => a.IsApproved && a.MaxScore > 0 && a.TotalScore * 100 >= PassingPercentage * a.MaxScore)
+                .Where(a => a.Passed == true)
                 .Select(a => a.Id)
                 .Distinct()
                 .Count();

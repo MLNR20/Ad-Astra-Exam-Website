@@ -1,3 +1,5 @@
+using AAExamManagementSystem.Models.Entities;
+
 namespace AAExamManagementSystem.Models.Dtos;
 
 public class AttemptListItemDto
@@ -12,6 +14,9 @@ public class AttemptListItemDto
     public int PendingEvaluationCount { get; set; }
     public bool IsApproved { get; set; }
     public DateTime DateCreated { get; set; }
+
+    /// <summary>Null until the attempt is approved.</summary>
+    public bool? Passed => AttemptResult.Passed(IsApproved, TotalScore, MaxScore);
 }
 
 public class AttemptAnswerReviewDto
@@ -38,5 +43,9 @@ public class AttemptReviewDto
     public int MaxScore { get; set; }
     public bool IsApproved { get; set; }
     public string? ApprovedBy { get; set; }
+
+    /// <summary>Null until the attempt is approved.</summary>
+    public bool? Passed => AttemptResult.Passed(IsApproved, TotalScore, MaxScore);
+
     public IList<AttemptAnswerReviewDto> Answers { get; set; } = new List<AttemptAnswerReviewDto>();
 }

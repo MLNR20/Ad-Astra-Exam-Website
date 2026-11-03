@@ -107,9 +107,9 @@
                                                 {
                                                     <span class="badge rounded-pill text-bg-light border">Not Taken</span>
                                                 }
-                                                else if (applicant.IsApproved)
+                                                else if (applicant.Passed is { } passed)
                                                 {
-                                                    <span class="badge rounded-pill text-bg-success">Approved</span>
+                                                    <partial name="_AttemptOutcome" model="passed" />
                                                 }
                                                 else if (applicant.PendingEvaluationCount > 0)
                                                 {
