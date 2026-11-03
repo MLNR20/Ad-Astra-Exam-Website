@@ -27,45 +27,69 @@ else
         <div class="col-12 col-lg-4">
             <div class="card border rounded-3 h-100">
                 <div class="card-body p-4">
-                    <div class="d-flex align-items-center gap-3 mb-3">
-                        <span class="stat-icon bg-dark text-white rounded-circle" aria-hidden="true"><i class="bi bi-person"></i></span>
-                        <div>
-                            <div class="fs-5 fw-bold lh-sm">@applicant.FirstName @applicant.LastName</div>
-                            <div class="text-muted small">@applicant.StudentNo</div>
-                        </div>
-                        <span class="badge ms-auto @(applicant.IsActive ? "text-bg-success" : "text-bg-secondary")">@(applicant.IsActive ? "Active" : "Inactive")</span>
-                    </div>
-                    <dl class="row mb-0 small">
-                        <dt class="col-5 text-muted fw-semibold">Email</dt>
-                        <dd class="col-7 text-break">@applicant.Email</dd>
-
-                        <dt class="col-5 text-muted fw-semibold">Academic Year</dt>
-                        <dd class="col-7">@applicant.AcademicYear</dd>
-
-                        <dt class="col-5 text-muted fw-semibold">Year Level</dt>
-                        <dd class="col-7">@(applicant.YearLevel ?? "-")</dd>
-
-                        <dt class="col-5 text-muted fw-semibold">School</dt>
-                        <dd class="col-7">@(applicant.School ?? "-")</dd>
-
-                        <dt class="col-5 text-muted fw-semibold">Expected Graduation</dt>
-                        <dd class="col-7">@(applicant.ExpectedGradDate ?? "-")</dd>
-
-                        <dt class="col-5 text-muted fw-semibold">Terms Remaining</dt>
-                        <dd class="col-7">@applicant.TermsRemaining</dd>
-
-                        <dt class="col-5 text-muted fw-semibold">Scholar</dt>
-                        <dd class="col-7">@(applicant.IsScholar ? "Yes" : "No")</dd>
-
-                        @if (!string.IsNullOrEmpty(applicant.Resume))
-                        {
-                            <dt class="col-5 text-muted fw-semibold">Resume</dt>
-                            <dd class="col-7 text-break"><a href="@applicant.Resume" target="_blank" rel="noopener">@applicant.Resume</a></dd>
-                        }
-
-                        <dt class="col-5 text-muted fw-semibold">First Applied</dt>
-                        <dd class="col-7 mb-0">@LocalTime.Of(applicant.DateCreated).ToString("MMM d, yyyy")</dd>
-                    </dl>
+                    <table class="table table-bordered small mb-0">
+                        <tbody>
+                            <tr>
+                                <td colspan="2">
+                                    <div class="d-flex align-items-center gap-3">
+                                        <span class="stat-icon bg-dark text-white rounded-circle" aria-hidden="true"><i class="bi bi-person"></i></span>
+                                        <div>
+                                            <div class="fs-5 fw-bold lh-sm">@applicant.FirstName @applicant.LastName</div>
+                                            <div class="text-muted small">@applicant.StudentNo</div>
+                                        </div>
+                                        <span class="badge ms-auto @(applicant.IsActive ? "text-bg-success" : "text-bg-secondary")">@(applicant.IsActive ? "Active" : "Inactive")</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="w-50 bg-body-secondary text-muted fw-semibold">First Name</th>
+                                <td>@applicant.FirstName</td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="bg-body-secondary text-muted fw-semibold">Last Name</th>
+                                <td>@applicant.LastName</td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="bg-body-secondary text-muted fw-semibold">Email</th>
+                                <td class="text-break">@applicant.Email</td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="bg-body-secondary text-muted fw-semibold">Academic Year</th>
+                                <td>@applicant.AcademicYear</td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="bg-body-secondary text-muted fw-semibold">Year Level</th>
+                                <td>@(applicant.YearLevel ?? "-")</td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="bg-body-secondary text-muted fw-semibold">School</th>
+                                <td>@(applicant.School ?? "-")</td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="bg-body-secondary text-muted fw-semibold">Expected Graduation</th>
+                                <td>@(applicant.ExpectedGradDate ?? "-")</td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="bg-body-secondary text-muted fw-semibold">Terms Remaining</th>
+                                <td>@applicant.TermsRemaining</td>
+                            </tr>
+                            <tr>
+                                <th scope="row" class="bg-body-secondary text-muted fw-semibold">Scholar</th>
+                                <td>@(applicant.IsScholar ? "Yes" : "No")</td>
+                            </tr>
+                            @if (!string.IsNullOrEmpty(applicant.Resume))
+                            {
+                                <tr>
+                                    <th scope="row" class="bg-body-secondary text-muted fw-semibold">Resume</th>
+                                    <td class="text-break"><a href="@applicant.Resume" target="_blank" rel="noopener">@applicant.Resume</a></td>
+                                </tr>
+                            }
+                            <tr>
+                                <th scope="row" class="bg-body-secondary text-muted fw-semibold">First Applied</th>
+                                <td>@LocalTime.Of(applicant.DateCreated).ToString("MMM d, yyyy")</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
