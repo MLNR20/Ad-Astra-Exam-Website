@@ -5,11 +5,15 @@
 }
 
 <div class="card border rounded-2 p-4">
-    <div class="card-header bg-white border-bottom-0">
+    <div class="card-header bg-white border-bottom-0 d-flex justify-content-between align-items-center">
         <h5 class="mb-0 entity-table-title">
             <i class="bi bi-people" aria-hidden="true"></i>
             Department Staff@(string.IsNullOrEmpty(Model.DepartmentName) ? "" : $" — {Model.DepartmentName}")
         </h5>
+        @if (!string.IsNullOrEmpty(Model.DepartmentName))
+        {
+            <a asp-page="Create" class="btn btn-primary"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add Staffer</a>
+        }
     </div>
     <div class="card-body">
         @if (string.IsNullOrEmpty(Model.DepartmentName))
