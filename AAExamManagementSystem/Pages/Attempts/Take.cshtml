@@ -164,15 +164,6 @@
                     }
                 </div>
 
-                <div class="alert alert-secondary">
-                    <h2 class="h6 fw-bold mb-2">Instructions</h2>
-                    <ul class="mb-0 ps-3">
-                        <li>Answer every question on this page before continuing.</li>
-                        <li>You can go back to a previous page to review your answers.</li>
-                        <li>Once you submit the final page, your answers are final and cannot be changed.</li>
-                        <li>This exam can only be taken once.</li>
-                    </ul>
-                </div>
             </form>
             </div>
         }
@@ -197,6 +188,27 @@
 
         .exam-sim-input {
             width: 100%;
+        }
+
+        /* No highlight glow or outline when a choice, field or button is clicked. */
+        #examForm .form-check-input:focus,
+        #examForm .form-control:focus,
+        #examForm .btn:focus,
+        #examForm .btn:focus-visible,
+        #examForm .btn:active {
+            box-shadow: none;
+            outline: none;
+        }
+
+        #examForm .form-control:focus,
+        #examForm .form-check-input:focus {
+            border-color: #000;
+        }
+
+        #examForm .form-check-label,
+        #examForm .exam-sim-choice {
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
         }
 
         .exam-sim-essay {
