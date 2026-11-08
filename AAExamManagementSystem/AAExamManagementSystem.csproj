@@ -3,6 +3,9 @@
   <ItemGroup>
     <ProjectReference Include="..\AAExamManagementSystem.Models\AAExamManagementSystem.Models.csproj" />
     <ProjectReference Include="..\AAExamManagementSystem.Repository\AAExamManagementSystem.Repository.csproj" />
+    <!-- Referenced so each provider's migrations assembly is copied next to the app; the chosen one is loaded by name. -->
+    <ProjectReference Include="..\AAExamManagementSystem.Migrations.Postgres\AAExamManagementSystem.Migrations.Postgres.csproj" />
+    <ProjectReference Include="..\AAExamManagementSystem.Migrations.SqlServer\AAExamManagementSystem.Migrations.SqlServer.csproj" />
   </ItemGroup>
 
   <ItemGroup>

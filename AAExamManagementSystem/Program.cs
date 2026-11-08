@@ -38,8 +38,10 @@ builder.Services.AddControllers();
 builder.Services.AddSignalR();
 builder.Services.AddAutoMapper(cfg => { }, typeof(MappingProfile));
 
+// PostgreSQL by default; set Database:Provider to SqlServer to run on SQL Server (each has its own migrations).
+var databaseProvider = DatabaseProvider.Parse(builder.Configuration[DatabaseProvider.ConfigKey]);
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+    DatabaseProvider.Configure(options, databaseProvider, builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<DbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
 builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()
