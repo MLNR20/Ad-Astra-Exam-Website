@@ -105,6 +105,22 @@ builder.Services.PostConfigure<EmailSettings>(settings =>
     settings.Password = builder.Configuration["ad-astra-exam-password"]);
 builder.Services.AddSingleton<IRegistrationNotifier, SmtpRegistrationNotifier>();
 
+// Migrate and seed in the background so the server is already listening, and /healthz answering, while it runs.
+builder.Services.AddSingleton<DatabaseInitializationState>();
+builder.Services.AddSingleton<IDatabaseBootstrapper, DatabaseBootstrapper>();
+builder.Services.AddHostedService<DatabaseInitializer>();
+
+// Pings the site's own /healthz so a free-tier host does not put it to sleep. Off unless an address is known;
+// Render supplies RENDER_EXTERNAL_URL on its own.
+var keepAlive = builder.Configuration.GetSection("KeepAlive").Get<KeepAliveSettings>() ?? new KeepAliveSettings();
+keepAlive.Url = string.IsNullOrWhiteSpace(keepAlive.Url) ? builder.Configuration["RENDER_EXTERNAL_URL"] : keepAlive.Url;
+builder.Services.AddSingleton(keepAlive);
+builder.Services.AddHttpClient("keep-alive", client => client.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddHostedService(sp => new KeepAliveService(
+    sp.GetRequiredService<IHttpClientFactory>().CreateClient("keep-alive"),
+    sp.GetRequiredService<KeepAliveSettings>(),
+    sp.GetRequiredService<ILogger<KeepAliveService>>()));
+
 builder.Services.AddApiVersioning(options =>
 {
     options.DefaultApiVersion = new ApiVersion(1, 0);
@@ -118,13 +134,6 @@ builder.Services.AddApiVersioning(options =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    db.Database.Migrate();
-    await IdentitySeeder.SeedAsync(scope.ServiceProvider);
-}
-
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
@@ -132,6 +141,9 @@ if (!app.Environment.IsDevelopment())
     // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
+
+// Holds back everything but /healthz until the database is ready (see DatabaseInitializer).
+app.UseMiddleware<StartupGateMiddleware>();
 
 app.UseHttpsRedirection();
 

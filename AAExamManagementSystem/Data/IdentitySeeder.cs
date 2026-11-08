@@ -7,7 +7,7 @@ namespace AAExamManagementSystem.Data;
 
 public static class IdentitySeeder
 {
-    private const string AdminUserName = "admin";
+    public const string AdminUserName = "admin";
     private const string AdminEmail = "admin@aaexams.local";
     private const string AdminPassword = "P@ssword2026!";
 
