@@ -1,10 +1,20 @@
 (function () {
     var STORAGE_KEY = 'ems-sidebar-collapsed';
+    var mobileQuery = window.matchMedia('(max-width: 767.98px)');
 
-    function applyState(sidebar, toggle, collapsed) {
+    function applyCollapsed(sidebar, toggle, collapsed) {
         sidebar.classList.toggle('collapsed', collapsed);
         if (toggle) {
             toggle.setAttribute('aria-expanded', String(!collapsed));
+        }
+    }
+
+    // On small screens the sidebar is a drawer that overlays the page; "collapsed" only applies to desktop.
+    function setDrawerOpen(sidebar, toggle, open) {
+        sidebar.classList.toggle('mobile-open', open);
+        document.body.classList.toggle('sidebar-open', open);
+        if (toggle) {
+            toggle.setAttribute('aria-expanded', String(open));
         }
     }
 
@@ -23,22 +33,64 @@
         var toggle = document.getElementById('sidebarToggle');
         if (!sidebar) return;
 
-        var collapsed = false;
+        var backdrop = document.createElement('div');
+        backdrop.className = 'sidebar-backdrop';
+        backdrop.setAttribute('aria-hidden', 'true');
+        sidebar.insertAdjacentElement('afterend', backdrop);
+
+        var storedCollapsed = false;
         try {
-            collapsed = localStorage.getItem(STORAGE_KEY) === 'true';
+            storedCollapsed = localStorage.getItem(STORAGE_KEY) === 'true';
         } catch (e) { /* localStorage unavailable */ }
 
-        applyState(sidebar, toggle, collapsed);
+        function syncToViewport() {
+            if (mobileQuery.matches) {
+                applyCollapsed(sidebar, null, false);
+                setDrawerOpen(sidebar, toggle, false);
+            } else {
+                setDrawerOpen(sidebar, null, false);
+                applyCollapsed(sidebar, toggle, storedCollapsed);
+            }
+        }
+
+        syncToViewport();
         highlightActiveLink(sidebar);
+
+        if (mobileQuery.addEventListener) {
+            mobileQuery.addEventListener('change', syncToViewport);
+        } else {
+            mobileQuery.addListener(syncToViewport);
+        }
 
         if (toggle) {
             toggle.addEventListener('click', function () {
-                var willCollapse = !sidebar.classList.contains('collapsed');
-                applyState(sidebar, toggle, willCollapse);
+                if (mobileQuery.matches) {
+                    setDrawerOpen(sidebar, toggle, !sidebar.classList.contains('mobile-open'));
+                    return;
+                }
+
+                storedCollapsed = !sidebar.classList.contains('collapsed');
+                applyCollapsed(sidebar, toggle, storedCollapsed);
                 try {
-                    localStorage.setItem(STORAGE_KEY, String(willCollapse));
+                    localStorage.setItem(STORAGE_KEY, String(storedCollapsed));
                 } catch (e) { /* localStorage unavailable */ }
             });
         }
+
+        backdrop.addEventListener('click', function () {
+            setDrawerOpen(sidebar, toggle, false);
+        });
+
+        sidebar.addEventListener('click', function (event) {
+            if (mobileQuery.matches && event.target.closest('.sidebar-link, .sidebar-brand')) {
+                setDrawerOpen(sidebar, toggle, false);
+            }
+        });
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key === 'Escape' && mobileQuery.matches) {
+                setDrawerOpen(sidebar, toggle, false);
+            }
+        });
     });
 })();

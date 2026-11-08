@@ -190,6 +190,45 @@ header .navbar {
   margin-right: 0;
 }
 
+.sidebar-backdrop {
+  display: none;
+}
+
+/* Phones and small tablets: the sidebar is an off-canvas drawer that overlays the page instead of squeezing it. */
+@media (max-width: 767.98px) {
+  #sidebar.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1045;
+    width: 240px;
+    min-width: 240px;
+    transform: translateX(-100%);
+    visibility: hidden;
+    transition: transform 0.2s ease, visibility 0s linear 0.2s;
+  }
+
+  #sidebar.sidebar.mobile-open {
+    transform: none;
+    visibility: visible;
+    transition: transform 0.2s ease, visibility 0s;
+    box-shadow: 0 0 2rem rgba(0, 0, 0, 0.25);
+  }
+
+  .main-content {
+    width: 100%;
+    flex-basis: 100%;
+  }
+
+  body.sidebar-open .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 1040;
+    background: rgba(0, 0, 0, 0.45);
+  }
+}
+
 .sidebar-logo-badge {
   width: 28px;
   height: 28px;

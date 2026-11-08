@@ -43,7 +43,7 @@
                                 <span class="text-muted">Welcome, <span class="fw-semibold text-dark">@currentUser.FirstName @currentUser.LastName</span></span>
                             }
                         </div>
-                        <div class="flex-grow-1 mx-4 d-flex justify-content-center">
+                        <div class="flex-grow-1 mx-4 d-none d-md-flex justify-content-center">
                             <div class="navbar-search-wrapper position-relative">
                                 <div class="input-group">
                                     <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted" aria-hidden="true"></i></span>
@@ -53,8 +53,8 @@
                             </div>
                         </div>
                         <div class="d-flex align-items-center gap-4">
-                            <span id="currentTime" class="text-muted fw-semibold"></span>
-                            <div class="dropdown">
+                            <span id="currentTime" class="text-muted fw-semibold d-none d-md-inline"></span>
+                            <div class="dropdown d-none d-md-block">
                                 <button type="button" class="btn btn-light rounded-circle d-flex align-items-center justify-content-center fw-semibold border-0 text-dark"
                                         style="width: 38px; height: 38px;" aria-label="Account" title="Account"
                                         data-bs-toggle="dropdown" aria-expanded="false">
