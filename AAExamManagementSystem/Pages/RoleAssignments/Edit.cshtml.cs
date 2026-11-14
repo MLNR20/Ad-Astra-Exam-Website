@@ -1,29 +1,27 @@
 using AppRoles = AAExamManagementSystem.Models.Entities.Roles;
 using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Models.Entities;
-using AAExamManagementSystem.Repository;
 using AAExamManagementSystem.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
 
 namespace AAExamManagementSystem.Pages.RoleAssignments;
 
 [Authorize(Roles = AppRoles.Admin)]
 public class EditModel : PageModel
 {
+    private readonly IRoleAssignmentService _roleAssignmentService;
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<ApplicationRole> _roleManager;
-    private readonly ApplicationDbContext _dbContext;
 
-    public EditModel(UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager, ApplicationDbContext dbContext)
+    public EditModel(IRoleAssignmentService roleAssignmentService, UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager)
     {
+        _roleAssignmentService = roleAssignmentService;
         _userManager = userManager;
         _roleManager = roleManager;
-        _dbContext = dbContext;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -38,120 +36,56 @@ public class EditModel : PageModel
 
     public async Task<IActionResult> OnGetAsync()
     {
-        if (!RoleAssignmentId.TryParse(Id, out var userId, out var roleId))
+        var current = await _roleAssignmentService.GetByIdAsync(Id);
+        if (current is null)
         {
             return NotFound();
         }
 
-        var user = await _userManager.FindByIdAsync(userId);
-        var role = await _roleManager.FindByIdAsync(roleId);
-        if (user is null || role is null || string.IsNullOrEmpty(role.Name))
-        {
-            return NotFound();
-        }
-
-        var userRoleExists = await _dbContext.UserRoles.IgnoreQueryFilters()
-            .AnyAsync(ur => ur.UserId == userId && ur.RoleId == roleId);
-        if (!userRoleExists)
-        {
-            return NotFound();
-        }
-
-        UserDisplayName = $"{user.FirstName} {user.LastName} ({user.UserName})".Trim();
-        Assignment = new RoleAssignmentEditDto { RoleId = role.Id };
-        LoadRoleOptions(role.Id);
+        UserDisplayName = await DisplayNameForAsync(current.UserId, current.UserName);
+        Assignment = new RoleAssignmentEditDto { RoleId = current.RoleId };
+        LoadRoleOptions(current.RoleId);
         return Page();
     }
 
     public async Task<IActionResult> OnPostAsync()
     {
-        if (!RoleAssignmentId.TryParse(Id, out var userId, out var oldRoleId))
+        var current = await _roleAssignmentService.GetByIdAsync(Id);
+        if (current is null)
         {
             return NotFound();
         }
 
-        var user = await _userManager.FindByIdAsync(userId);
-        var oldRole = await _roleManager.FindByIdAsync(oldRoleId);
-        if (user is null || oldRole is null || string.IsNullOrEmpty(oldRole.Name))
-        {
-            return NotFound();
-        }
-
-        UserDisplayName = $"{user.FirstName} {user.LastName} ({user.UserName})".Trim();
+        UserDisplayName = await DisplayNameForAsync(current.UserId, current.UserName);
 
         if (!ModelState.IsValid)
         {
-            LoadRoleOptions(oldRoleId);
+            LoadRoleOptions(current.RoleId);
             return Page();
         }
 
-        var newRole = await _roleManager.FindByIdAsync(Assignment.RoleId);
-        if (newRole is null || string.IsNullOrEmpty(newRole.Name))
+        var result = await _roleAssignmentService.ChangeRoleAsync(Id, Assignment.RoleId, _userManager.GetUserId(User));
+        if (result.Status == ServiceStatus.NotFound)
         {
-            ModelState.AddModelError("Assignment.RoleId", "Selected role could not be found.");
-            LoadRoleOptions(oldRoleId);
+            return NotFound();
+        }
+
+        if (!result.Succeeded)
+        {
+            ModelState.AddModelError("Assignment.RoleId", result.Error ?? "The role could not be changed.");
+            LoadRoleOptions(current.RoleId);
             return Page();
         }
 
-        if (!string.Equals(oldRole.Id, newRole.Id, StringComparison.Ordinal))
-        {
-            if (await _userManager.IsInRoleAsync(user, newRole.Name))
-            {
-                ModelState.AddModelError("Assignment.RoleId", $"'{user.UserName}' is already assigned to role '{newRole.Name}'.");
-                LoadRoleOptions(oldRoleId);
-                return Page();
-            }
-
-            var ruleError = RoleAssignmentRules.Validate(user.UserName, user.SectionId, new[] { newRole.Name });
-            if (ruleError is not null)
-            {
-                ModelState.AddModelError("Assignment.RoleId", ruleError);
-                LoadRoleOptions(oldRoleId);
-                return Page();
-            }
-
-            if (oldRole.Name == AppRoles.Admin && userId == _userManager.GetUserId(User))
-            {
-                ModelState.AddModelError("Assignment.RoleId", "You can't move yourself off the Admin role.");
-                LoadRoleOptions(oldRoleId);
-                return Page();
-            }
-
-            await DeactivateUserRoleAsync(userId, oldRoleId);
-            await AssignRoleAsync(userId, newRole.Id);
-        }
-
-        TempData["SuccessMessage"] = $"Role assignment for '{user.UserName}' updated successfully.";
+        TempData["SuccessMessage"] = $"Role assignment for '{result.Value!.UserName}' updated successfully.";
         return RedirectToPage("Index");
     }
 
-    /// <summary>Creates the user-role row, or reactivates a previously deactivated one, preserving its CreatedAt.</summary>
-    private async Task AssignRoleAsync(string userId, string roleId)
+    // The edit form shows "First Last (login)", which the assignment itself does not carry.
+    private async Task<string> DisplayNameForAsync(string userId, string fallback)
     {
-        var existing = await _dbContext.UserRoles.IgnoreQueryFilters()
-            .FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId);
-
-        if (existing is null)
-        {
-            _dbContext.UserRoles.Add(new ApplicationUserRole { UserId = userId, RoleId = roleId });
-        }
-        else
-        {
-            existing.IsActive = true;
-            existing.DateUpdated = DateTime.UtcNow;
-        }
-
-        await _dbContext.SaveChangesAsync();
-    }
-
-    private async Task DeactivateUserRoleAsync(string userId, string roleId)
-    {
-        var userRole = await _dbContext.UserRoles.FirstOrDefaultAsync(ur => ur.UserId == userId && ur.RoleId == roleId);
-        if (userRole is null) return;
-
-        userRole.IsActive = false;
-        userRole.DateUpdated = DateTime.UtcNow;
-        await _dbContext.SaveChangesAsync();
+        var user = await _userManager.FindByIdAsync(userId);
+        return user is null ? fallback : $"{user.FirstName} {user.LastName} ({user.UserName})".Trim();
     }
 
     private void LoadRoleOptions(string currentRoleId)
