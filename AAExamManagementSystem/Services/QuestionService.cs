@@ -11,12 +11,14 @@ public class QuestionService : IQuestionService
     private readonly IUnitOfWork _unitOfWork;
     private readonly IQuestionChoiceService _choiceService;
     private readonly IMapper _mapper;
+    private readonly ActiveQuestionValidator _titles;
 
-    public QuestionService(IUnitOfWork unitOfWork, IQuestionChoiceService choiceService, IMapper mapper)
+    public QuestionService(IUnitOfWork unitOfWork, IQuestionChoiceService choiceService, IMapper mapper, ActiveQuestionValidator titles)
     {
         _unitOfWork = unitOfWork;
         _choiceService = choiceService;
         _mapper = mapper;
+        _titles = titles;
     }
 
     public async Task<IEnumerable<QuestionDto>> GetAllAsync()
@@ -42,6 +44,7 @@ public class QuestionService : IQuestionService
     {
         var modelState = new ModelStateDictionary();
         await _choiceService.NormalizeAndValidateAsync(dto, modelState, string.Empty);
+        await _titles.ValidateAsync(modelState, nameof(dto.QuestionTitle), dto.SectionId, dto.QuestionTitle, dto.IsActive);
         if (!modelState.IsValid) return ServiceResult<QuestionDto>.ValidationFailed(modelState);
 
         var question = _mapper.Map<Question>(dto);
@@ -62,6 +65,7 @@ public class QuestionService : IQuestionService
 
         var modelState = new ModelStateDictionary();
         await _choiceService.NormalizeAndValidateAsync(dto, modelState, string.Empty);
+        await _titles.ValidateAsync(modelState, nameof(dto.QuestionTitle), dto.SectionId, dto.QuestionTitle, dto.IsActive, id);
         if (!modelState.IsValid) return ServiceResult.ValidationFailed(modelState);
 
         question.QuestionTypeId = dto.QuestionTypeId;

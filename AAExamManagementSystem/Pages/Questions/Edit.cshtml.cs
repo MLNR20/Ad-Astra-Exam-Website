@@ -21,6 +21,7 @@ public class EditModel : PageModel
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly QuestionChoiceService _choiceService;
     private readonly IMapper _mapper;
+    private readonly ActiveQuestionValidator _titles;
 
     public EditModel(
         IGenericRepository<Question> repository,
@@ -28,7 +29,8 @@ public class EditModel : PageModel
         IGenericRepository<Section> sectionRepository,
         UserManager<ApplicationUser> userManager,
         QuestionChoiceService choiceService,
-        IMapper mapper)
+        IMapper mapper,
+        ActiveQuestionValidator titles)
     {
         _repository = repository;
         _questionTypeRepository = questionTypeRepository;
@@ -36,6 +38,7 @@ public class EditModel : PageModel
         _userManager = userManager;
         _choiceService = choiceService;
         _mapper = mapper;
+        _titles = titles;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -108,6 +111,9 @@ public class EditModel : PageModel
         }
 
         await _choiceService.NormalizeAndValidateAsync(Question, ModelState, nameof(Question));
+        await _titles.ValidateAsync(
+            ModelState, $"{nameof(Question)}.{nameof(Question.QuestionTitle)}",
+            Question.SectionId, Question.QuestionTitle, Question.IsActive, Id);
         if (!ModelState.IsValid)
         {
             await LoadOptionsAsync();

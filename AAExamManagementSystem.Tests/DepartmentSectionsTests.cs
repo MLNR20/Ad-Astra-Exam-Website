@@ -103,6 +103,35 @@ public class DepartmentSectionsTests
     }
 
     [Fact]
+    public async Task Saving_AnInactiveDepartmentDoesNotInsertItsExistingLinksAgain()
+    {
+        var f = new Fixture();
+        f.Academics.IsActive = false;
+        f.Db.SaveChanges();
+        f.Db.ChangeTracker.Clear(); // a real request starts with nothing tracked
+
+        var result = await f.EditFor(f.Academics, f.Photo.Id, f.Web.Id).OnPostAsync();
+
+        Assert.IsType<RedirectToPageResult>(result);
+        Assert.Equal(new[] { "Photo", "Web Development" }, f.SectionsOf(f.Academics.Id));
+    }
+
+    [Fact]
+    public async Task Saving_KeepsLinksToDeactivatedSections()
+    {
+        var f = new Fixture();
+        f.Photo.IsActive = false;
+        f.Db.SaveChanges();
+        f.Db.ChangeTracker.Clear();
+
+        await f.EditFor(f.Academics, f.Web.Id).OnPostAsync();
+
+        f.Db.Sections.IgnoreQueryFilters().Single(s => s.Id == f.Photo.Id).IsActive = true;
+        f.Db.SaveChanges();
+        Assert.Equal(new[] { "Photo", "Web Development" }, f.SectionsOf(f.Academics.Id));
+    }
+
+    [Fact]
     public async Task Editing_OffersEverySectionWithTheDepartmentsOwnTicked()
     {
         var f = new Fixture();

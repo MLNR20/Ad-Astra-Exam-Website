@@ -57,7 +57,7 @@ public class SignupStudentNoTests
         var result = await page.OnPostAsync();
 
         Assert.IsType<Microsoft.AspNetCore.Mvc.RazorPages.PageResult>(result);
-        Assert.Equal("That student number is already registered.",
+        Assert.Equal(ActiveIdentityValidator.StudentNoMessage("2026-00042"),
             page.ModelState["Input.StudentNo"]!.Errors.Single().ErrorMessage);
     }
 
@@ -101,16 +101,17 @@ public class SignupStudentNoTests
     }
 
     [Fact]
-    public async Task Post_CountsInactiveApplicantsAsTaken()
+    public async Task Post_LetsAnArchivedApplicantsStudentNoBeReused()
     {
         var fixture = new Fixture();
         fixture.Db.Applicants.Single().IsActive = false;
         fixture.Db.SaveChanges();
         var page = fixture.Page("2026-00042");
+        page.ModelState.AddModelError(string.Empty, "stop after student number validation");
 
         await page.OnPostAsync();
 
-        Assert.True(page.ModelState.ContainsKey("Input.StudentNo"));
+        Assert.False(page.ModelState.ContainsKey("Input.StudentNo"));
     }
 
     [Theory]

@@ -17,18 +17,34 @@ public class CreateModel : PageModel
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly IGenericRepository<Section> _sectionRepository;
+    private readonly IGenericRepository<Department> _departmentRepository;
+    private readonly IGenericRepository<Course> _courseRepository;
+    private readonly ActiveIdentityValidator _identity;
 
-    public CreateModel(UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager, IGenericRepository<Section> sectionRepository)
+    public CreateModel(
+        UserManager<ApplicationUser> userManager,
+        RoleManager<ApplicationRole> roleManager,
+        IGenericRepository<Section> sectionRepository,
+        IGenericRepository<Department> departmentRepository,
+        IGenericRepository<Course> courseRepository,
+        ActiveIdentityValidator identity)
     {
         _userManager = userManager;
         _roleManager = roleManager;
         _sectionRepository = sectionRepository;
+        _departmentRepository = departmentRepository;
+        _courseRepository = courseRepository;
+        _identity = identity;
     }
 
     [BindProperty]
     public UserCreateDto NewUser { get; set; } = new();
 
     public SelectList SectionOptions { get; set; } = new(new List<Section>(), "Id", "Name");
+
+    public SelectList DepartmentOptions { get; set; } = new(new List<Department>(), "Id", "Name");
+
+    public SelectList CourseOptions { get; set; } = new(new List<Course>(), "Id", "Name");
 
     public IList<ApplicationRole> RoleOptions { get; set; } = new List<ApplicationRole>();
 
@@ -45,11 +61,29 @@ public class CreateModel : PageModel
             return Page();
         }
 
-        var existingUser = await _userManager.FindByNameAsync(NewUser.UserName)
-            ?? await _userManager.FindByEmailAsync(NewUser.Email);
-        if (existingUser is not null)
+        // Only active records hold a username or email; an archived user's can be reused.
+        await _identity.ValidateUserNameAsync(ModelState, "NewUser.UserName", NewUser.UserName);
+        await _identity.ValidateEmailAsync(ModelState, "NewUser.Email", NewUser.Email);
+        if (!ModelState.IsValid)
         {
-            ModelState.AddModelError(string.Empty, "A user with that username or email already exists.");
+            await LoadOptionsAsync();
+            return Page();
+        }
+
+        var activeDepartments = (await _departmentRepository.GetAllAsync()).Select(d => d.Id).ToHashSet();
+        if (NewUser.DepartmentId is not null && !activeDepartments.Contains(NewUser.DepartmentId))
+        {
+            ModelState.AddModelError("NewUser.DepartmentId", "Choose an active department.");
+        }
+
+        var activeCourses = (await _courseRepository.GetAllAsync()).Select(c => c.Id).ToHashSet();
+        if (NewUser.CourseId is { } courseId && !activeCourses.Contains(courseId))
+        {
+            ModelState.AddModelError("NewUser.CourseId", "Choose an active course.");
+        }
+
+        if (!ModelState.IsValid)
+        {
             await LoadOptionsAsync();
             return Page();
         }
@@ -70,7 +104,9 @@ public class CreateModel : PageModel
             EmailConfirmed = true,
             FirstName = NewUser.FirstName,
             LastName = NewUser.LastName,
-            SectionId = NewUser.SectionId
+            SectionId = NewUser.SectionId,
+            DepartmentId = NewUser.DepartmentId,
+            CourseId = NewUser.CourseId
         };
 
         var createResult = await _userManager.CreateAsync(user, NewUser.Password);
@@ -110,6 +146,8 @@ public class CreateModel : PageModel
     {
         var sections = await _sectionRepository.GetAllAsync();
         SectionOptions = new SelectList(sections.OrderBy(s => s.Name), "Id", "Name");
+        DepartmentOptions = new SelectList((await _departmentRepository.GetAllAsync()).OrderBy(d => d.Name), "Id", "Name");
+        CourseOptions = new SelectList((await _courseRepository.GetAllAsync()).OrderBy(c => c.Name), "Id", "Name");
         RoleOptions = _roleManager.Roles.Where(r => r.IsActive).OrderBy(r => r.Name).ToList();
     }
 }

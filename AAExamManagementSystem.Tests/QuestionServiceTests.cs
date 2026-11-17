@@ -17,6 +17,7 @@ public class QuestionServiceTests
         public Mock<IGenericRepository<QuestionType>> QuestionTypes { get; } = new();
         public Mock<IGenericRepository<Section>> Sections { get; } = new();
         public Mock<IQuestionChoiceService> Choices { get; } = new();
+        public ApplicationDbContext Db { get; } = TestSupport.CreateContext();
         public QuestionService Service { get; }
 
         public Fixture()
@@ -27,7 +28,7 @@ public class QuestionServiceTests
             QuestionTypes.Setup(r => r.GetAllAsync()).ReturnsAsync(new[] { new QuestionType { Id = 1, Name = "Multiple Choice" } });
             Sections.Setup(r => r.GetAllIncludingInactiveAsync()).ReturnsAsync(new[] { new Section { Id = 2, Name = "Basics" } });
             Choices.Setup(c => c.GetChoicesAsync(It.IsAny<Guid>())).ReturnsAsync(new List<ChoiceDto>());
-            Service = new QuestionService(UnitOfWork.Object, Choices.Object, CreateMapper());
+            Service = new QuestionService(UnitOfWork.Object, Choices.Object, CreateMapper(), new ActiveQuestionValidator(Db));
         }
     }
 
@@ -113,6 +114,56 @@ public class QuestionServiceTests
         f.Questions.Verify(r => r.AddAsync(It.Is<Question>(q => q.QuestionTitle == "Q")), Times.Once);
         f.Choices.Verify(c => c.ReplaceChoicesAsync(It.IsAny<Question>(), dto.Choices), Times.Once);
         f.UnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task Create_WithTheTitleOfAnActiveQuestionInTheSection_ReturnsValidationFailed_AndDoesNotSave()
+    {
+        var f = new Fixture();
+        f.Db.Questions.Add(new Question { QuestionTypeId = 1, SectionId = 2, QuestionTitle = "What is HTML?" });
+        f.Db.SaveChanges();
+
+        var result = await f.Service.CreateAsync(
+            new QuestionCreateUpdateDto { QuestionTypeId = 1, SectionId = 2, QuestionTitle = "what is html?" });
+
+        Assert.Equal(ServiceStatus.ValidationFailed, result.Status);
+        Assert.True(result.ValidationErrors!.ContainsKey(nameof(QuestionCreateUpdateDto.QuestionTitle)));
+        f.Questions.Verify(r => r.AddAsync(It.IsAny<Question>()), Times.Never);
+        f.UnitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task Create_AnInactiveDuplicate_IsAllowed()
+    {
+        var f = new Fixture();
+        f.Db.Questions.Add(new Question { QuestionTypeId = 1, SectionId = 2, QuestionTitle = "What is HTML?" });
+        f.Db.SaveChanges();
+
+        var result = await f.Service.CreateAsync(
+            new QuestionCreateUpdateDto { QuestionTypeId = 1, SectionId = 2, QuestionTitle = "What is HTML?", IsActive = false });
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task Update_ReactivatingADuplicateOfAnActiveQuestion_IsBlocked_ButKeepingItsOwnTitleIsFine()
+    {
+        var f = new Fixture();
+        var active = new Question { QuestionTypeId = 1, SectionId = 2, QuestionTitle = "What is HTML?" };
+        var inactive = new Question { QuestionTypeId = 1, SectionId = 2, QuestionTitle = "What is HTML?", IsActive = false };
+        f.Db.Questions.AddRange(active, inactive);
+        f.Db.SaveChanges();
+        f.Questions.Setup(r => r.GetByIdAsync(active.Id)).ReturnsAsync(active);
+        f.Questions.Setup(r => r.GetByIdAsync(inactive.Id)).ReturnsAsync(inactive);
+
+        var reactivate = await f.Service.UpdateAsync(inactive.Id,
+            new QuestionCreateUpdateDto { QuestionTypeId = 1, SectionId = 2, QuestionTitle = "What is HTML?", IsActive = true });
+        var keepOwn = await f.Service.UpdateAsync(active.Id,
+            new QuestionCreateUpdateDto { QuestionTypeId = 1, SectionId = 2, QuestionTitle = "What is HTML?", IsActive = true });
+
+        Assert.Equal(ServiceStatus.ValidationFailed, reactivate.Status);
+        Assert.False(inactive.IsActive);
+        Assert.True(keepOwn.Succeeded);
     }
 
     [Fact]

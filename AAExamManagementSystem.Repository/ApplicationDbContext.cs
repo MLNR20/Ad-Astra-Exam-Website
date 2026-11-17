@@ -185,6 +185,25 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, Applicati
             .HasForeignKey(q => q.PageSectionId)
             .OnDelete(DeleteBehavior.SetNull);
 
+        // A username only has to be unique among users that are not archived: an archived user (IsDeleted) keeps its
+        // username for history but frees it up. Identity's own UserNameIndex is unique over every row, so narrow it.
+        // The filter is SQL, so it is written per provider; ActiveIdentityValidator and ActiveUserStore enforce the
+        // same rule in code.
+        var activeUserNameFilter = Database.ProviderName switch
+        {
+            "Npgsql.EntityFrameworkCore.PostgreSQL" => "\"IsDeleted\" = false",
+            "Microsoft.EntityFrameworkCore.SqlServer" => "[NormalizedUserName] IS NOT NULL AND [IsDeleted] = 0",
+            _ => null,
+        };
+        if (activeUserNameFilter is not null)
+        {
+            builder.Entity<ApplicationUser>()
+                .HasIndex(u => u.NormalizedUserName)
+                .HasDatabaseName("UserNameIndex")
+                .IsUnique()
+                .HasFilter(activeUserNameFilter);
+        }
+
         builder.Entity<ApplicationUserRole>()
             .HasQueryFilter(ur => ur.IsActive);
 

@@ -51,6 +51,12 @@ public class UserCreateDto
     [Display(Name = "Section")]
     public int? SectionId { get; set; }
 
+    [Display(Name = "Department")]
+    public string? DepartmentId { get; set; }
+
+    [Display(Name = "Course")]
+    public int? CourseId { get; set; }
+
     [Display(Name = "Roles")]
     public List<string> SelectedRoles { get; set; } = new() { Roles.Staffer };
 }
@@ -76,6 +82,12 @@ public class UserEditDto
 
     [Display(Name = "Section")]
     public int? SectionId { get; set; }
+
+    [Display(Name = "Department")]
+    public string? DepartmentId { get; set; }
+
+    [Display(Name = "Course")]
+    public int? CourseId { get; set; }
 
     [Display(Name = "Roles")]
     public List<string> SelectedRoles { get; set; } = new();

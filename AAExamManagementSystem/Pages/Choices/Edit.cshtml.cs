@@ -2,6 +2,7 @@ using AppRoles = AAExamManagementSystem.Models.Entities.Roles;
 using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -12,10 +13,12 @@ namespace AAExamManagementSystem.Pages.Choices;
 public class EditModel : PageModel
 {
     private readonly IGenericRepository<Choice> _repository;
+    private readonly ActiveCorrectChoiceValidator _correctChoices;
 
-    public EditModel(IGenericRepository<Choice> repository)
+    public EditModel(IGenericRepository<Choice> repository, ActiveCorrectChoiceValidator correctChoices)
     {
         _repository = repository;
+        _correctChoices = correctChoices;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -52,6 +55,12 @@ public class EditModel : PageModel
         if (choice is null)
         {
             return NotFound();
+        }
+
+        if (!await _correctChoices.ValidateAsync(
+                ModelState, $"{nameof(Choice)}.{nameof(Choice.IsCorrect)}", Id, Choice.IsCorrect, Choice.IsActive))
+        {
+            return Page();
         }
 
         choice.ChoiceText = Choice.ChoiceText;

@@ -17,12 +17,24 @@ public class EditModel : PageModel
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly RoleManager<ApplicationRole> _roleManager;
     private readonly IGenericRepository<Section> _sectionRepository;
+    private readonly IGenericRepository<Department> _departmentRepository;
+    private readonly IGenericRepository<Course> _courseRepository;
+    private readonly ActiveIdentityValidator _identity;
 
-    public EditModel(UserManager<ApplicationUser> userManager, RoleManager<ApplicationRole> roleManager, IGenericRepository<Section> sectionRepository)
+    public EditModel(
+        UserManager<ApplicationUser> userManager,
+        RoleManager<ApplicationRole> roleManager,
+        IGenericRepository<Section> sectionRepository,
+        IGenericRepository<Department> departmentRepository,
+        IGenericRepository<Course> courseRepository,
+        ActiveIdentityValidator identity)
     {
         _userManager = userManager;
         _roleManager = roleManager;
         _sectionRepository = sectionRepository;
+        _departmentRepository = departmentRepository;
+        _courseRepository = courseRepository;
+        _identity = identity;
     }
 
     [BindProperty(SupportsGet = true)]
@@ -32,6 +44,10 @@ public class EditModel : PageModel
     public UserEditDto TargetUser { get; set; } = new();
 
     public SelectList SectionOptions { get; set; } = new(new List<Section>(), "Id", "Name");
+
+    public SelectList DepartmentOptions { get; set; } = new(new List<Department>(), "Id", "Name");
+
+    public SelectList CourseOptions { get; set; } = new(new List<Course>(), "Id", "Name");
 
     public IList<ApplicationRole> RoleOptions { get; set; } = new List<ApplicationRole>();
 
@@ -51,6 +67,8 @@ public class EditModel : PageModel
             Email = user.Email ?? string.Empty,
             IsActive = !(user.LockoutEnd.HasValue && user.LockoutEnd > DateTimeOffset.UtcNow),
             SectionId = user.SectionId,
+            DepartmentId = user.DepartmentId,
+            CourseId = user.CourseId,
             SelectedRoles = currentRoles.ToList()
         };
         await LoadOptionsAsync();
@@ -71,12 +89,29 @@ public class EditModel : PageModel
             return NotFound();
         }
 
+        // Only an active department or course can be newly chosen; the one the user already has may stay.
+        var activeDepartments = (await _departmentRepository.GetAllAsync()).Select(d => d.Id).ToHashSet();
+        if (TargetUser.DepartmentId is not null && TargetUser.DepartmentId != user.DepartmentId && !activeDepartments.Contains(TargetUser.DepartmentId))
+        {
+            ModelState.AddModelError("TargetUser.DepartmentId", "Choose an active department.");
+        }
+
+        var activeCourses = (await _courseRepository.GetAllAsync()).Select(c => c.Id).ToHashSet();
+        if (TargetUser.CourseId is { } courseId && courseId != user.CourseId && !activeCourses.Contains(courseId))
+        {
+            ModelState.AddModelError("TargetUser.CourseId", "Choose an active course.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            await LoadOptionsAsync();
+            return Page();
+        }
+
         if (!string.Equals(user.Email, TargetUser.Email, StringComparison.OrdinalIgnoreCase))
         {
-            var existing = await _userManager.FindByEmailAsync(TargetUser.Email);
-            if (existing is not null && existing.Id != user.Id)
+            if (!await _identity.ValidateEmailAsync(ModelState, "TargetUser.Email", TargetUser.Email, excludeUserId: user.Id))
             {
-                ModelState.AddModelError("TargetUser.Email", $"Email '{TargetUser.Email}' is already in use.");
                 await LoadOptionsAsync();
                 return Page();
             }
@@ -95,6 +130,8 @@ public class EditModel : PageModel
         user.FirstName = TargetUser.FirstName;
         user.LastName = TargetUser.LastName;
         user.SectionId = TargetUser.SectionId;
+        user.DepartmentId = TargetUser.DepartmentId;
+        user.CourseId = TargetUser.CourseId;
 
         var result = await _userManager.UpdateAsync(user);
         if (!result.Succeeded)
@@ -152,6 +189,14 @@ public class EditModel : PageModel
         var sections = (await _sectionRepository.GetAllIncludingInactiveAsync())
             .Where(s => s.IsActive || s.Id == TargetUser.SectionId);
         SectionOptions = new SelectList(sections.OrderBy(s => s.Name), "Id", "Name");
+
+        var departments = (await _departmentRepository.GetAllIncludingInactiveAsync())
+            .Where(d => d.IsActive || d.Id == TargetUser.DepartmentId);
+        DepartmentOptions = new SelectList(departments.OrderBy(d => d.Name), "Id", "Name");
+
+        var courses = (await _courseRepository.GetAllIncludingInactiveAsync())
+            .Where(c => c.IsActive || c.Id == TargetUser.CourseId);
+        CourseOptions = new SelectList(courses.OrderBy(c => c.Name), "Id", "Name");
         RoleOptions = _roleManager.Roles.Where(r => r.IsActive).OrderBy(r => r.Name).ToList();
     }
 }

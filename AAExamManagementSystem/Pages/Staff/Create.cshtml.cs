@@ -2,6 +2,7 @@ using AppRoles = AAExamManagementSystem.Models.Entities.Roles;
 using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Repository;
+using AAExamManagementSystem.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -18,11 +19,13 @@ public class CreateModel : PageModel
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IGenericRepository<Section> _sectionRepository;
+    private readonly ActiveIdentityValidator _identity;
 
-    public CreateModel(UserManager<ApplicationUser> userManager, IGenericRepository<Section> sectionRepository)
+    public CreateModel(UserManager<ApplicationUser> userManager, IGenericRepository<Section> sectionRepository, ActiveIdentityValidator identity)
     {
         _userManager = userManager;
         _sectionRepository = sectionRepository;
+        _identity = identity;
     }
 
     [BindProperty]
@@ -57,11 +60,11 @@ public class CreateModel : PageModel
             return Page();
         }
 
-        var existingUser = await _userManager.FindByNameAsync(NewUser.UserName)
-            ?? await _userManager.FindByEmailAsync(NewUser.Email);
-        if (existingUser is not null)
+        // Only active records hold a username or email; an archived user's can be reused.
+        await _identity.ValidateUserNameAsync(ModelState, "NewUser.UserName", NewUser.UserName);
+        await _identity.ValidateEmailAsync(ModelState, "NewUser.Email", NewUser.Email);
+        if (!ModelState.IsValid)
         {
-            ModelState.AddModelError(string.Empty, "A user with that username or email already exists.");
             return Page();
         }
 

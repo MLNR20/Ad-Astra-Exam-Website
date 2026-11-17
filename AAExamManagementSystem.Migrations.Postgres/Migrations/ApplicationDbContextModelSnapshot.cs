@@ -292,7 +292,8 @@ namespace AAExamManagementSystem.Migrations.Postgres
 
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
-                        .HasDatabaseName("UserNameIndex");
+                        .HasDatabaseName("UserNameIndex")
+                        .HasFilter("\"IsDeleted\" = false");
 
                     b.HasIndex("SectionId");
 

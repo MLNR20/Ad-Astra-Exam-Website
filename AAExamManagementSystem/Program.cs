@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 // Keep local and unspecified-kind DateTime values working: Npgsql 6+ otherwise only accepts UTC DateTimes.
 AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
@@ -48,6 +49,9 @@ builder.Services.AddIdentity<ApplicationUser, ApplicationRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
+// Archived users keep their username and email but no longer hold them, so lookups skip them.
+builder.Services.Replace(ServiceDescriptor.Scoped<IUserStore<ApplicationUser>, ActiveUserStore>());
+
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Login";
@@ -84,6 +88,9 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 builder.Services.AddScoped<IClaimsTransformation, ActiveRoleClaimsTransformation>();
 builder.Services.AddScoped<ActiveNameValidator>();
+builder.Services.AddScoped<ActiveQuestionValidator>();
+builder.Services.AddScoped<ActiveCorrectChoiceValidator>();
+builder.Services.AddScoped<ActiveIdentityValidator>();
 builder.Services.AddSingleton<IValidationAttributeAdapterProvider, UniqueActiveNameAdapterProvider>();
 
 builder.Services.AddScoped(typeof(IGenericRepository<>), typeof(GenericRepository<>));

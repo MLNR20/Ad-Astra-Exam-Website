@@ -45,7 +45,12 @@ public class ChoicesController : ControllerBase
     public async Task<IActionResult> Update(Guid id, ChoiceCreateUpdateDto dto)
     {
         var result = await _choiceService.UpdateAsync(id, dto);
-        return result.Succeeded ? NoContent() : NotFound();
+        return result.Status switch
+        {
+            ServiceStatus.NotFound => NotFound(),
+            ServiceStatus.ValidationFailed => ValidationProblem(result.ValidationErrors!),
+            _ => NoContent()
+        };
     }
 
     [HttpDelete("{id:guid}")]

@@ -2,6 +2,7 @@ using AAExamManagementSystem.Models.Dtos;
 using AAExamManagementSystem.Models.Entities;
 using AAExamManagementSystem.Repository;
 using AutoMapper;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace AAExamManagementSystem.Services;
 
@@ -9,11 +10,13 @@ public class ChoiceService : IChoiceService
 {
     private readonly IUnitOfWork _unitOfWork;
     private readonly IMapper _mapper;
+    private readonly ActiveCorrectChoiceValidator _correctChoices;
 
-    public ChoiceService(IUnitOfWork unitOfWork, IMapper mapper)
+    public ChoiceService(IUnitOfWork unitOfWork, IMapper mapper, ActiveCorrectChoiceValidator correctChoices)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
+        _correctChoices = correctChoices;
     }
 
     public async Task<IEnumerable<ChoiceDto>> GetAllAsync()
@@ -40,6 +43,10 @@ public class ChoiceService : IChoiceService
     {
         var choice = await _unitOfWork.Choices.GetByIdAsync(id);
         if (choice is null) return ServiceResult.NotFound();
+
+        var modelState = new ModelStateDictionary();
+        await _correctChoices.ValidateAsync(modelState, nameof(dto.IsCorrect), id, dto.IsCorrect, dto.IsActive);
+        if (!modelState.IsValid) return ServiceResult.ValidationFailed(modelState);
 
         choice.ChoiceText = dto.ChoiceText;
         choice.IsCorrect = dto.IsCorrect;

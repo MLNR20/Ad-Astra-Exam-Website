@@ -294,7 +294,7 @@ namespace AAExamManagementSystem.Migrations.SqlServer.Migrations
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
                         .HasDatabaseName("UserNameIndex")
-                        .HasFilter("[NormalizedUserName] IS NOT NULL");
+                        .HasFilter("[NormalizedUserName] IS NOT NULL AND [IsDeleted] = 0");
 
                     b.HasIndex("SectionId");
 

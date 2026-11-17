@@ -46,6 +46,20 @@
                     </select>
                     <span asp-validation-for="NewUser.SectionId" class="text-danger"></span>
                 </div>
+                <div class="mb-3">
+                    <label asp-for="NewUser.DepartmentId" class="form-label"></label>
+                    <select asp-for="NewUser.DepartmentId" class="form-select" asp-items="Model.DepartmentOptions">
+                        <option value="">-- No Department --</option>
+                    </select>
+                    <span asp-validation-for="NewUser.DepartmentId" class="text-danger"></span>
+                </div>
+                <div class="mb-3">
+                    <label asp-for="NewUser.CourseId" class="form-label"></label>
+                    <select asp-for="NewUser.CourseId" class="form-select" asp-items="Model.CourseOptions">
+                        <option value="">-- No Course --</option>
+                    </select>
+                    <span asp-validation-for="NewUser.CourseId" class="text-danger"></span>
+                </div>
                 <div class="form-check form-switch mb-3">
                     <input asp-for="NewUser.IsActive" class="form-check-input" role="switch" />
                     <label asp-for="NewUser.IsActive" class="form-check-label"></label>

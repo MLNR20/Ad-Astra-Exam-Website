@@ -20,11 +20,13 @@ public class ReturningModel : PageModel
 {
     private readonly ApplicationDbContext _context;
     private readonly UserManager<ApplicationUser> _userManager;
+    private readonly ActiveIdentityValidator _identity;
 
     public ReturningModel(ApplicationDbContext context, UserManager<ApplicationUser> userManager)
     {
         _context = context;
         _userManager = userManager;
+        _identity = new ActiveIdentityValidator(context);
     }
 
     [BindProperty]
@@ -188,25 +190,18 @@ public class ReturningModel : PageModel
         Input.School = match;
     }
 
-    // Student numbers and emails stay unique across applicants; the applicant's own record doesn't count against them.
+    // Student numbers and emails stay unique among active records; the applicant's own record, and an archived
+    // applicant's, don't count against them.
     private async Task ValidateUniqueDetailsAsync(Applicant applicant)
     {
         Input.StudentNo = Input.StudentNo?.Trim() ?? string.Empty;
         Input.Email = Input.Email?.Trim() ?? string.Empty;
 
-        var studentNo = Input.StudentNo.ToLower();
-        if (studentNo.Length > 0
-            && await _context.Applicants.AnyAsync(a => a.Id != applicant.Id && a.StudentNo.Trim().ToLower() == studentNo))
-        {
-            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.StudentNo)}", "That student number is already registered.");
-        }
-
-        var email = Input.Email.ToLower();
-        if (email.Length > 0
-            && await _context.Applicants.AnyAsync(a => a.Id != applicant.Id && a.Email.Trim().ToLower() == email))
-        {
-            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.Email)}", "That email is already registered to another applicant.");
-        }
+        await _identity.ValidateStudentNoAsync(
+            ModelState, $"{nameof(Input)}.{nameof(Input.StudentNo)}", Input.StudentNo, excludeApplicantId: applicant.Id);
+        await _identity.ValidateEmailAsync(
+            ModelState, $"{nameof(Input)}.{nameof(Input.Email)}", Input.Email,
+            excludeUserId: applicant.UserId, excludeApplicantId: applicant.Id);
     }
 
     private void ValidateChoicesPicked()

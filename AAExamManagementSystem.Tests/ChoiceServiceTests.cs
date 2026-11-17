@@ -9,12 +9,14 @@ namespace AAExamManagementSystem.Tests;
 
 public class ChoiceServiceTests
 {
-    private static (ChoiceService Service, Mock<IUnitOfWork> UnitOfWork, Mock<IGenericRepository<Choice>> Choices) CreateService()
+    private static (ChoiceService Service, Mock<IUnitOfWork> UnitOfWork, Mock<IGenericRepository<Choice>> Choices) CreateService(
+        ApplicationDbContext? db = null)
     {
         var choices = new Mock<IGenericRepository<Choice>>();
         var unitOfWork = new Mock<IUnitOfWork>();
         unitOfWork.Setup(u => u.Choices).Returns(choices.Object);
-        return (new ChoiceService(unitOfWork.Object, CreateMapper()), unitOfWork, choices);
+        var validator = new ActiveCorrectChoiceValidator(db ?? TestSupport.CreateContext());
+        return (new ChoiceService(unitOfWork.Object, CreateMapper(), validator), unitOfWork, choices);
     }
 
     private static IMapper CreateMapper()
@@ -78,6 +80,50 @@ public class ChoiceServiceTests
         Assert.False(choice.IsActive);
         choices.Verify(r => r.Update(choice), Times.Once);
         unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Once);
+    }
+
+    [Fact]
+    public async Task Update_MakingASecondActiveChoiceCorrect_ReturnsValidationFailed_AndDoesNotSave()
+    {
+        var db = TestSupport.CreateContext();
+        var question = new Question { QuestionTitle = "Pick one" };
+        var right = new Choice { ChoiceText = "Right", IsCorrect = true };
+        var other = new Choice { ChoiceText = "Other" };
+        db.Questions.Add(question);
+        db.QuestionAndChoices.AddRange(
+            new QuestionAndChoice { Question = question, Choice = right },
+            new QuestionAndChoice { Question = question, Choice = other });
+        db.SaveChanges();
+        var (service, unitOfWork, choices) = CreateService(db);
+        choices.Setup(r => r.GetByIdAsync(other.Id)).ReturnsAsync(other);
+
+        var result = await service.UpdateAsync(other.Id, new ChoiceCreateUpdateDto { ChoiceText = "Other", IsCorrect = true, IsActive = true });
+
+        Assert.Equal(ServiceStatus.ValidationFailed, result.Status);
+        Assert.True(result.ValidationErrors!.ContainsKey(nameof(ChoiceCreateUpdateDto.IsCorrect)));
+        Assert.False(other.IsCorrect);
+        unitOfWork.Verify(u => u.SaveChangesAsync(), Times.Never);
+    }
+
+    [Fact]
+    public async Task Update_MakingAChoiceCorrect_IsAllowedOnceTheOldCorrectOneIsInactive()
+    {
+        var db = TestSupport.CreateContext();
+        var question = new Question { QuestionTitle = "Pick one" };
+        var retired = new Choice { ChoiceText = "Retired", IsCorrect = true, IsActive = false };
+        var other = new Choice { ChoiceText = "Other" };
+        db.Questions.Add(question);
+        db.QuestionAndChoices.AddRange(
+            new QuestionAndChoice { Question = question, Choice = retired },
+            new QuestionAndChoice { Question = question, Choice = other });
+        db.SaveChanges();
+        var (service, _, choices) = CreateService(db);
+        choices.Setup(r => r.GetByIdAsync(other.Id)).ReturnsAsync(other);
+
+        var result = await service.UpdateAsync(other.Id, new ChoiceCreateUpdateDto { ChoiceText = "Other", IsCorrect = true, IsActive = true });
+
+        Assert.True(result.Succeeded);
+        Assert.True(other.IsCorrect);
     }
 
     [Fact]

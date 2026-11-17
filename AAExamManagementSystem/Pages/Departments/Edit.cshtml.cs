@@ -83,10 +83,18 @@ public class EditModel : PageModel
         department.DateUpdated = DateTime.UtcNow;
         _repository.Update(department);
 
-        // A section can sit in many departments, so this only changes this department's own list.
-        await _context.Entry(department).Collection(d => d.Sections).LoadAsync();
+        // A section can sit in many departments, so this only changes this department's own list. The department and
+        // section query filters hide inactive rows, so a plain Collection(...).LoadAsync() would see an inactive
+        // department as having no sections and insert its existing links a second time (duplicate key).
+        await _context.Departments
+            .IgnoreQueryFilters()
+            .Where(d => d.Id == Id)
+            .Include(d => d.Sections)
+            .LoadAsync();
         var chosen = SelectedSectionIds.Distinct().ToList();
-        foreach (var section in department.Sections.Where(s => !chosen.Contains(s.Id)).ToList())
+
+        // Deactivated sections are not offered on the form, so leave their links alone for when they come back.
+        foreach (var section in department.Sections.Where(s => s.IsActive && !chosen.Contains(s.Id)).ToList())
         {
             department.Sections.Remove(section);
         }

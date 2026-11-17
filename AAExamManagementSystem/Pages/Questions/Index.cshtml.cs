@@ -21,6 +21,7 @@ public class IndexModel : PageModel
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly QuestionChoiceService _choiceService;
     private readonly IMapper _mapper;
+    private readonly ActiveQuestionValidator _titles;
 
     public IndexModel(
         IGenericRepository<Question> repository,
@@ -28,7 +29,8 @@ public class IndexModel : PageModel
         IGenericRepository<Section> sectionRepository,
         UserManager<ApplicationUser> userManager,
         QuestionChoiceService choiceService,
-        IMapper mapper)
+        IMapper mapper,
+        ActiveQuestionValidator titles)
     {
         _repository = repository;
         _questionTypeRepository = questionTypeRepository;
@@ -36,6 +38,7 @@ public class IndexModel : PageModel
         _userManager = userManager;
         _choiceService = choiceService;
         _mapper = mapper;
+        _titles = titles;
     }
 
     public IList<QuestionDto> Questions { get; set; } = new List<QuestionDto>();
@@ -85,6 +88,9 @@ public class IndexModel : PageModel
         }
 
         await _choiceService.NormalizeAndValidateAsync(NewQuestion, ModelState, nameof(NewQuestion));
+        await _titles.ValidateAsync(
+            ModelState, $"{nameof(NewQuestion)}.{nameof(NewQuestion.QuestionTitle)}",
+            NewQuestion.SectionId, NewQuestion.QuestionTitle, NewQuestion.IsActive);
         if (!ModelState.IsValid)
         {
             await LoadCurrentUserContextAsync();

@@ -18,6 +18,7 @@
                 <div class="form-check form-switch mb-3">
                     <input asp-for="Choice.IsCorrect" class="form-check-input" role="switch" />
                     <label asp-for="Choice.IsCorrect" class="form-check-label"></label>
+                    <span asp-validation-for="Choice.IsCorrect" class="text-danger d-block"></span>
                 </div>
                 <div class="form-check form-switch mb-3">
                     <input asp-for="Choice.IsActive" class="form-check-input" role="switch" />

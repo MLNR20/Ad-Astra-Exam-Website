@@ -64,6 +64,8 @@ public class IndexModel : PageModel
         var user = await _userManager.FindByIdAsync(applicant.UserId);
         if (user is not null)
         {
+            // Archive the account too, so the username and email are free for a new record to use.
+            user.IsDeleted = true;
             user.LockoutEnabled = true;
             user.LockoutEnd = DateTimeOffset.MaxValue;
             await _userManager.UpdateAsync(user);

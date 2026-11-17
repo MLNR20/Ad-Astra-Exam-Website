@@ -18,6 +18,7 @@ public class SignupModel : PageModel
     private readonly IMapper _mapper;
     private readonly ApplicationDbContext _context;
     private readonly IRegistrationNotifier _registrationNotifier;
+    private readonly ActiveIdentityValidator _identity;
 
     public SignupModel(
         UserManager<ApplicationUser> userManager,
@@ -33,6 +34,7 @@ public class SignupModel : PageModel
         _mapper = mapper;
         _context = context;
         _registrationNotifier = registrationNotifier;
+        _identity = new ActiveIdentityValidator(context);
     }
 
     [BindProperty]
@@ -52,7 +54,7 @@ public class SignupModel : PageModel
     // Lets the wizard flag a student number that is already registered before the applicant reaches the last step.
     public async Task<IActionResult> OnPostCheckStudentNoAsync(string? studentNo)
     {
-        return new JsonResult(new { available = !await StudentNoTakenAsync(studentNo) });
+        return new JsonResult(new { available = await _identity.IsStudentNoAvailableAsync(studentNo) });
     }
 
     public async Task<IActionResult> OnPostAsync()
@@ -68,10 +70,11 @@ public class SignupModel : PageModel
             return Page();
         }
 
-        var existingUser = await _userManager.FindByNameAsync(Input.UserName);
-        if (existingUser is not null)
+        // Only active accounts hold a username or email; an archived account's can be reused.
+        await _identity.ValidateUserNameAsync(ModelState, $"{nameof(Input)}.{nameof(Input.UserName)}", Input.UserName);
+        await _identity.ValidateEmailAsync(ModelState, $"{nameof(Input)}.{nameof(Input.Email)}", Input.Email);
+        if (!ModelState.IsValid)
         {
-            ModelState.AddModelError(string.Empty, "An account with that username already exists.");
             return Page();
         }
 
@@ -184,22 +187,8 @@ public class SignupModel : PageModel
     {
         Input.StudentNo = Input.StudentNo?.Trim() ?? string.Empty;
 
-        if (Input.StudentNo.Length > 0 && await StudentNoTakenAsync(Input.StudentNo))
-        {
-            ModelState.AddModelError($"{nameof(Input)}.{nameof(Input.StudentNo)}", "That student number is already registered.");
-        }
-    }
-
-    // Student numbers are compared ignoring case and surrounding spaces, and inactive applicants still count.
-    private async Task<bool> StudentNoTakenAsync(string? studentNo)
-    {
-        var normalized = studentNo?.Trim().ToLower();
-        if (string.IsNullOrEmpty(normalized))
-        {
-            return false;
-        }
-
-        return await _context.Applicants.AnyAsync(a => a.StudentNo.Trim().ToLower() == normalized);
+        // Student numbers compare ignoring case and surrounding spaces; an archived applicant's can be reused.
+        await _identity.ValidateStudentNoAsync(ModelState, $"{nameof(Input)}.{nameof(Input.StudentNo)}", Input.StudentNo);
     }
 
     private async Task LoadChoiceOptionsAsync()
