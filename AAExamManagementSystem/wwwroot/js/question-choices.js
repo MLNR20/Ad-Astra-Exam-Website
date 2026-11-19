@@ -60,8 +60,31 @@
         list.addEventListener('click', function (e) {
             var button = e.target.closest('.js-remove-choice');
             if (!button) return;
-            button.closest('.js-choice-row').remove();
-            renumber();
+            var row = button.closest('.js-choice-row');
+
+            function removeRow() {
+                row.remove();
+                renumber();
+            }
+
+            if (typeof Swal === 'undefined') {
+                removeRow();
+                return;
+            }
+
+            Swal.fire({
+                title: 'Delete choice?',
+                text: 'Are you sure you want to delete this choice?',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Delete',
+                confirmButtonColor: '#dc3545',
+                cancelButtonText: 'Cancel'
+            }).then(function (result) {
+                if (result.isConfirmed) {
+                    removeRow();
+                }
+            });
         });
 
         select.addEventListener('change', toggle);
