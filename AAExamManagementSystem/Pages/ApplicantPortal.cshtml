@@ -49,14 +49,6 @@ else
                     }
                 </p>
             </div>
-            @if (next is null)
-            {
-                <div class="col-12 col-lg-5 text-lg-end">
-                    <a asp-page="/Returning" class="btn btn-light fw-semibold">
-                        <i class="bi bi-arrow-repeat me-1" aria-hidden="true"></i> Apply again
-                    </a>
-                </div>
-            }
         </div>
     </section>
 
@@ -133,22 +125,21 @@ else
 
     <section class="card border rounded-2 p-4">
         <div class="card-header bg-white border-bottom-0">
-            <h5 class="mb-0 entity-table-title fw-bold">Your exams</h5>
+            <div class="d-flex align-items-center justify-content-between gap-3 flex-wrap">
+                <h5 class="mb-0 entity-table-title fw-bold">Your exams</h5>
+                @if (Model.AttemptCount > 0)
+                {
+                    <a asp-page="/Attempts/MyAttempts" class="btn btn-primary">
+                        <i class="bi bi-clipboard-check me-1" aria-hidden="true"></i> View my attempts
+                    </a>
+                }
+            </div>
             @if (Model.PendingAttempts.Count > 0)
             {
                 <p class="text-muted mt-2 mb-0">One exam for each department you picked. Each has its own password, and opens at its booked time.</p>
             }
         </div>
         <div class="card-body">
-            @if (Model.AttemptCount > 0)
-            {
-                <div class="mb-3">
-                    <a asp-page="/Attempts/MyAttempts" class="btn btn-primary">
-                        <i class="bi bi-clipboard-check me-1" aria-hidden="true"></i> View my attempts
-                    </a>
-                </div>
-            }
-
             @if (Model.PendingAttempts.Count == 0)
             {
                 <div class="text-center text-muted py-4">

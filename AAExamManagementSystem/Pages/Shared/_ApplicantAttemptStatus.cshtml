@@ -1,9 +1,9 @@
-@* Applicant-facing status of a submitted attempt: Model is true once an admin has approved (reviewed) it. *@
-@model bool
+@* Applicant-facing status of a submitted attempt: Model is null until an editor approves it, then true (passed) or false (failed). *@
+@model bool?
 
-@if (Model)
+@if (Model is { } passed)
 {
-    <span class="badge rounded-pill text-bg-success">Reviewed</span>
+    <partial name="_AttemptOutcome" model="passed" />
 }
 else
 {
