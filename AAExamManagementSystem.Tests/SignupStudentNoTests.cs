@@ -205,6 +205,54 @@ public class SignupSchoolTests
     }
 }
 
+public class ExamSubmittedPageTests
+{
+    private static AAExamManagementSystem.Pages.Attempts.SubmittedModel Page(string? section = null, bool hasNext = false)
+    {
+        var model = new AAExamManagementSystem.Pages.Attempts.SubmittedModel();
+        TestSupport.Attach(model, TestSupport.PrincipalFor("Applicant"));
+        if (section is not null)
+        {
+            model.TempData[AAExamManagementSystem.Pages.Attempts.SubmittedModel.SectionKey] = section;
+            model.TempData[AAExamManagementSystem.Pages.Attempts.SubmittedModel.HasNextExamKey] = hasNext;
+        }
+
+        return model;
+    }
+
+    [Fact]
+    public void RightAfterSubmitting_ShowsTheSection()
+    {
+        var model = Page("Web Development", hasNext: true);
+
+        var result = model.OnGet();
+
+        Assert.IsType<Microsoft.AspNetCore.Mvc.RazorPages.PageResult>(result);
+        Assert.Equal("Web Development", model.SectionName);
+        Assert.True(model.HasNextExam);
+    }
+
+    [Fact]
+    public void OpenedDirectly_SendsTheApplicantToTheirPortal()
+    {
+        var result = Page().OnGet();
+
+        Assert.Equal("/ApplicantPortal", Assert.IsType<RedirectToPageResult>(result).PageName);
+    }
+
+    [Theory]
+    [InlineData("Admin", "/Dashboard")]
+    [InlineData("Editor", "/Dashboard")]
+    [InlineData("Applicant", "/ApplicantPortal")]
+    public void ContinueGoesToTheDashboardForStaffAndThePortalForApplicants(string role, string expected)
+    {
+        var model = new AAExamManagementSystem.Pages.Attempts.SubmittedModel();
+        TestSupport.Attach(model, TestSupport.PrincipalFor(role));
+
+        Assert.Equal(expected, model.ContinuePage);
+    }
+}
+
 public class SignupSuccessTests
 {
     private static SignupSuccessModel Page(string? name = null, string? email = null)

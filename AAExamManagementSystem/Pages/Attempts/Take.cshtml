@@ -30,10 +30,6 @@
         else if (Model.AlreadyAttempted)
         {
             <div class="alert alert-info">
-                @if (Model.SubmittedScore.HasValue)
-                {
-                    <p class="fs-5 mb-1">You scored @Model.SubmittedScore out of @Model.SubmittedMaxScore.</p>
-                }
                 <p class="mb-0">You have already taken this exam. Your attempt is awaiting review.</p>
             </div>
             <a asp-page="/ApplicantPortal" class="btn btn-outline-secondary">Back to Applicant Portal</a>
@@ -60,13 +56,6 @@
         }
         else
         {
-            @if (Model.SubmittedScore.HasValue)
-            {
-                <div class="alert alert-success">
-                    Your previous exam is submitted: you scored @Model.SubmittedScore out of @Model.SubmittedMaxScore.
-                    Your next exam is below.
-                </div>
-            }
             @if (!ViewData.ModelState.IsValid)
             {
                 <div class="alert alert-danger">

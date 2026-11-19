@@ -41,6 +41,37 @@ public class QuestionChoiceService : IQuestionChoiceService
             .ToListAsync();
     }
 
+    /// <summary>Loads the choices of many questions in one query, keyed by question id (questions without choices are absent).</summary>
+    public async Task<Dictionary<Guid, List<ChoiceDto>>> GetChoicesForQuestionsAsync(IEnumerable<Guid> questionIds, bool activeOnly = false)
+    {
+        var ids = questionIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<Guid, List<ChoiceDto>>();
+        }
+
+        var rows = await _dbContext.QuestionAndChoices
+            .AsNoTracking()
+            .Where(qc => ids.Contains(qc.QuestionId) && (!activeOnly || qc.Choice.IsActive))
+            .OrderBy(qc => qc.Id)
+            .Select(qc => new
+            {
+                qc.QuestionId,
+                Choice = new ChoiceDto
+                {
+                    Id = qc.Choice.Id,
+                    ChoiceText = qc.Choice.ChoiceText,
+                    IsCorrect = qc.Choice.IsCorrect,
+                    IsActive = qc.Choice.IsActive
+                }
+            })
+            .ToListAsync();
+
+        return rows
+            .GroupBy(r => r.QuestionId)
+            .ToDictionary(g => g.Key, g => g.Select(r => r.Choice).ToList());
+    }
+
     /// <summary>
     /// Drops blank rows, clears choices for types that don't use them, and validates the rest.
     /// Call before checking ModelState.IsValid.

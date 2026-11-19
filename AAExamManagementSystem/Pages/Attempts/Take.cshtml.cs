@@ -99,12 +99,6 @@ public class TakeModel : PageModel
     public IDictionary<Guid, SectionHeadingDto> SectionHeadings { get; set; } = new Dictionary<Guid, SectionHeadingDto>();
 
     [TempData]
-    public int? SubmittedScore { get; set; }
-
-    [TempData]
-    public int? SubmittedMaxScore { get; set; }
-
-    [TempData]
     public string? ExamError { get; set; }
 
     // The signup-created attempt this request is taking; null for applicants who have none.
@@ -304,10 +298,11 @@ public class TakeModel : PageModel
 
             await NotifyEditorsAsync(applicant, attempt);
 
-            SubmittedScore = totalScore;
-            SubmittedMaxScore = allQuestions.Sum(q => q.Score);
+            TempData[SubmittedModel.SectionKey] = attempt.Section ?? SectionName ?? string.Empty;
+            TempData[SubmittedModel.SubmittedAtKey] = ExamClock.Now.ToString("MMM d, yyyy h:mm tt");
+            TempData[SubmittedModel.HasNextExamKey] = attempts.Any(a => a.DateTaken is null);
 
-            return RedirectToPage();
+            return RedirectToPage("/Attempts/Submitted");
         }
 
         return RedirectToPage(new { pageNum = CurrentPage });
@@ -373,9 +368,14 @@ public class TakeModel : PageModel
         PageInstructions = new List<(string?, string?)>();
         SectionHeadings = new Dictionary<Guid, SectionHeadingDto>();
 
+        // One query for every question's choices instead of one per question.
+        var choicesByQuestion = await _choiceService.GetChoicesForQuestionsAsync(
+            Stages.SelectMany(s => s.Questions).Select(q => q.Id),
+            activeOnly: true);
+
         foreach (var stage in Stages)
         {
-            Pages.Add(await BuildQuestionDtosAsync(stage.Questions, questionTypeNames));
+            Pages.Add(BuildQuestionDtos(stage.Questions, questionTypeNames, choicesByQuestion));
             PageInstructions.Add((stage.Heading, stage.Subheading));
 
             foreach (var (firstQuestionId, heading) in stage.SectionHeadings)
@@ -387,7 +387,10 @@ public class TakeModel : PageModel
         TotalPages = Pages.Count;
     }
 
-    private async Task<IList<QuestionDto>> BuildQuestionDtosAsync(IEnumerable<Question> questions, IReadOnlyDictionary<int, string> questionTypeNames)
+    private static IList<QuestionDto> BuildQuestionDtos(
+        IEnumerable<Question> questions,
+        IReadOnlyDictionary<int, string> questionTypeNames,
+        IReadOnlyDictionary<Guid, List<ChoiceDto>> choicesByQuestion)
     {
         var dtos = questions.Select(q => new QuestionDto
         {
@@ -404,7 +407,7 @@ public class TakeModel : PageModel
 
         foreach (var dto in dtos)
         {
-            dto.Choices = await _choiceService.GetChoicesAsync(dto.Id, activeOnly: true);
+            dto.Choices = choicesByQuestion.GetValueOrDefault(dto.Id) ?? new List<ChoiceDto>();
         }
 
         return dtos;

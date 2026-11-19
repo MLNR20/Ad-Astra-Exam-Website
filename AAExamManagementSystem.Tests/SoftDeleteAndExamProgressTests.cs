@@ -260,12 +260,26 @@ public class SoftDeleteAndExamProgressTests
 
         var result = await model.OnPostAsync(1, "submit");
 
-        Assert.IsType<RedirectToPageResult>(result);
+        Assert.Equal("/Attempts/Submitted", Assert.IsType<RedirectToPageResult>(result).PageName);
         var attempt = await f.Db.Attempts.AsNoTracking().Include(a => a.Answers).SingleAsync();
         Assert.NotNull(attempt.DateTaken);
         Assert.Equal(2, attempt.TotalScore);
         Assert.Null(attempt.ProgressJson);
         Assert.Single(attempt.Answers);
+    }
+
+    [Fact]
+    public async Task Submitting_HandsTheExamToTheSubmittedPage()
+    {
+        var f = new Fixture();
+        var model = f.TakeAsApplicant();
+        await model.OnGetAsync();
+        model.Answers[f.Question.Id] = f.RightChoice.Id;
+
+        await model.OnPostAsync(1, "submit");
+
+        Assert.Equal(false, model.TempData[SubmittedModel.HasNextExamKey]);
+        Assert.NotNull(model.TempData[SubmittedModel.SectionKey]);
     }
 
     [Fact]
