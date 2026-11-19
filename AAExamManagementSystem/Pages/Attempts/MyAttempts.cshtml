@@ -16,7 +16,11 @@
         <h5 class="mb-0 entity-table-title">Submitted exams</h5>
         @if (Model.Attempts.Count > 0)
         {
-            <p class="text-muted mt-2 mb-0">Your exam has been submitted. We'll be in touch once it has been reviewed.</p>
+            <p class="text-muted mt-2 mb-0">
+                @(Model.Attempts.All(a => a.IsApproved)
+                    ? "Your exam has been reviewed."
+                    : "Your exam has been submitted. We'll be in touch once it has been reviewed.")
+            </p>
         }
     </div>
     <div class="card-body">
@@ -45,7 +49,7 @@
                         <tr>
                             <td class="text-start">@(attempt.Section ?? "-")</td>
                             <td class="text-start" data-order="@taken.Order">@taken.Text</td>
-                            <td class="text-start"><span class="badge rounded-pill text-bg-success">Submitted</span></td>
+                            <td class="text-start"><partial name="_ApplicantAttemptStatus" model="attempt.IsApproved" /></td>
                             <td class="text-start">
                                 <a asp-page="/Attempts/MyAttemptDetails" asp-route-id="@attempt.Id" class="btn btn-primary">View</a>
                             </td>

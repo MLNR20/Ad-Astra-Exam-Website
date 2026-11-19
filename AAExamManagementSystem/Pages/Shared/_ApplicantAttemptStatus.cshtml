@@ -1,0 +1,11 @@
+@* Applicant-facing status of a submitted attempt: Model is true once an admin has approved (reviewed) it. *@
+@model bool
+
+@if (Model)
+{
+    <span class="badge rounded-pill text-bg-success">Reviewed</span>
+}
+else
+{
+    <span class="badge rounded-pill text-bg-secondary">Submitted &middot; Awaiting review</span>
+}
