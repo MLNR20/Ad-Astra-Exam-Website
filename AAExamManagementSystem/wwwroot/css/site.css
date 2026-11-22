@@ -824,6 +824,27 @@ header .navbar {
   font-size: 1.75rem;
 }
 
+/* Applicant details: black cover banner with a circle holding the first-name initial overlapping its bottom edge. */
+.profile-cover {
+  height: 7rem;
+}
+
+.profile-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 6rem;
+  height: 6rem;
+  margin-top: -3rem;
+  font-size: 2.75rem;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+  border: .3rem solid #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .15);
+}
+
 /* Applicant portal navbar: title row on top, links and the sign out / logo container along the bottom. */
 .applicant-navbar {
   background-color: #fff;
