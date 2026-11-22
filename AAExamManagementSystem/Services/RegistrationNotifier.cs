@@ -107,9 +107,9 @@ public class SmtpRegistrationNotifier : IRegistrationNotifier
         return body.ToString();
     }
 
-    private const string HeaderGreen = "#1f5a35";
+    private const string HeaderBlack = "#000000";
 
-    /// <summary>The styled HTML version of <see cref="BuildBody"/>: a green header, a greeting, and the details as label and value rows.</summary>
+    /// <summary>The styled HTML version of <see cref="BuildBody"/>: a black header, a greeting, and the details as a bordered table with a gray label column.</summary>
     public static string BuildHtmlBody(string firstName, string lastName, string studentNo, string academicYear, IReadOnlyList<string> exams)
     {
         static string Encode(string value) => WebUtility.HtmlEncode(value);
@@ -118,8 +118,8 @@ public class SmtpRegistrationNotifier : IRegistrationNotifier
 
         static string Row(string label, string value) =>
             "<tr>" +
-            $"<td style=\"padding:8px 0;width:150px;font-weight:bold;color:#666666;vertical-align:top;\">{label}</td>" +
-            $"<td style=\"padding:8px 0;color:#333333;vertical-align:top;\">{value}</td>" +
+            $"<th scope=\"row\" align=\"left\" style=\"padding:12px 16px;width:150px;background-color:#e9ecef;border:1px solid #dee2e6;font-size:14px;font-weight:600;color:#6c757d;vertical-align:middle;\">{label}</th>" +
+            $"<td style=\"padding:12px 16px;border:1px solid #dee2e6;font-size:14px;color:#333333;vertical-align:middle;\">{value}</td>" +
             "</tr>";
 
         var details = new StringBuilder();
@@ -148,9 +148,9 @@ public class SmtpRegistrationNotifier : IRegistrationNotifier
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f5f9;padding:24px 0;">
             <tr><td align="center">
               <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;">
-                <tr><td style="background-color:{HeaderGreen};padding:32px 40px;border-radius:8px 8px 0 0;">
+                <tr><td style="background-color:{HeaderBlack};padding:32px 40px;border-radius:8px 8px 0 0;">
                   <div style="font-size:24px;font-weight:bold;color:#ffffff;">Welcome to Ad Astra</div>
-                  <div style="margin-top:8px;font-size:14px;color:#d6e6dc;">Entrance Exam Registration</div>
+                  <div style="margin-top:8px;font-size:14px;color:#cfcfcf;">Entrance Exam Registration</div>
                 </td></tr>
                 <tr><td style="background-color:#ffffff;padding:32px 40px;">
                   <p style="{paragraph}">Hi <strong>{applicantName}</strong>,</p>
@@ -164,7 +164,7 @@ public class SmtpRegistrationNotifier : IRegistrationNotifier
                     <li>Don't share your exam password with anyone.</li>
                   </ul>
                   <p style="margin:0 0 8px;font-size:16px;font-weight:bold;color:#333333;">Your registration details</p>
-                  <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:16px;">{details}</table>
+                  <table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse;border:1px solid #dee2e6;">{details}</table>
                 </td></tr>
                 <tr><td style="padding:20px 40px;text-align:center;font-size:12px;color:#888888;">
                   This is an automated notification. Please do not reply to this email.
