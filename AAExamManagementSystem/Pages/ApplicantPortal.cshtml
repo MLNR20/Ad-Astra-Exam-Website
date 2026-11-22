@@ -136,7 +136,7 @@ else
             </div>
             @if (Model.PendingAttempts.Count > 0)
             {
-                <p class="text-muted mt-2 mb-0">One exam for each department you picked. Each has its own password, and opens at its booked time.</p>
+                <p class="text-muted mt-2 mb-0">One exam for each department you picked. Each opens at its booked time.</p>
             }
         </div>
         <div class="card-body">
@@ -157,7 +157,6 @@ else
                         <tr>
                             <th class="text-start">Department</th>
                             <th class="text-start">Schedule</th>
-                            <th class="text-start">Password</th>
                             <th class="text-start">Status</th>
                         </tr>
                     </thead>
@@ -176,17 +175,6 @@ else
                                     {
                                         <span class="text-muted">No time booked</span>
                                     }
-                                </td>
-                                <td class="text-start" data-order="@(exam.Password ?? "")">
-                                    <div class="d-flex align-items-center gap-2">
-                                        <code class="fs-6">@(exam.Password ?? "-")</code>
-                                        @if (!string.IsNullOrEmpty(exam.Password))
-                                        {
-                                            <button type="button" class="btn btn-sm btn-light border copy-password" data-password="@exam.Password" aria-label="Copy password for @exam.Section" title="Copy password">
-                                                <i class="bi bi-clipboard" aria-hidden="true"></i>
-                                            </button>
-                                        }
-                                    </div>
                                 </td>
                                 <td class="text-start">
                                     @if (exam.IsOpen && exam == next)
@@ -223,19 +211,8 @@ else
     <script>
         $(function () {
             if ($('#upcomingExamsTable').length) {
-                initEntityTable('upcomingExamsTable', { order: [[1, 'asc']], columnDefs: [{ orderable: false, targets: [3] }] });
+                initEntityTable('upcomingExamsTable', { order: [[1, 'asc']], columnDefs: [{ orderable: false, targets: [2] }] });
             }
-        });
-
-        // Delegated so the copy buttons keep working after DataTables redraws the rows (sorting, paging, search).
-        document.addEventListener('click', function (event) {
-            var button = event.target.closest('.copy-password');
-            if (!button) return;
-            var icon = button.querySelector('i');
-            navigator.clipboard.writeText(button.dataset.password).then(function () {
-                icon.classList.replace('bi-clipboard', 'bi-clipboard-check');
-                setTimeout(function () { icon.classList.replace('bi-clipboard-check', 'bi-clipboard'); }, 1500);
-            });
         });
     </script>
 }
